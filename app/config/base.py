@@ -33,7 +33,14 @@ class BaseConfig:
     # ---------------------------------------------------------
     # SQLAlchemy Settings
     # ---------------------------------------------------------
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+    if not DATABASE_URL:
+      raise RuntimeError(
+        "DATABASE_URL environment variable is not configured."
+    )
+
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

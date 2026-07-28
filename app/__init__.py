@@ -17,6 +17,8 @@ from app.extensions import (
     migrate,
 )
 from app.logging import configure_logging
+# Import models so Flask-Migrate can discover them
+from app import models  # noqa: F401
 
 
 def create_app(config_name=None):
