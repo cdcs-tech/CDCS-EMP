@@ -8,7 +8,8 @@ from datetime import datetime
 
 from flask_login import UserMixin
 
-from app.extensions import bcrypt, db
+from app.extensions import bcrypt
+from app.extensions import db
 
 from .base import BaseModel
 from .mixins import (
@@ -71,44 +72,111 @@ class User(
         nullable=True,
     )
 
+    # -------------------------------
+    # RBAC Relationship
+    # -------------------------------
+
     user_roles = db.relationship(
-    "UserRole",
-    back_populates="user",
-    cascade="all, delete-orphan",
+        "UserRole",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
 
+    # -------------------------------
+    # Password Management
+    # -------------------------------
+
     def set_password(self, password):
-        """
-        Hash and store a password.
-        """
-        self.password_hash = bcrypt.generate_password_hash(
-            password
-        ).decode("utf-8")
+        self.password_hash = (
+            bcrypt
+            .generate_password_hash(password)
+            .decode("utf-8")
+        )
 
     def check_password(self, password):
-        """
-        Verify a password.
-        """
         return bcrypt.check_password_hash(
             self.password_hash,
             password,
         )
 
+    # -------------------------------
+    # User Information
+    # -------------------------------
+
     @property
     def full_name(self):
-        """
-        Return the user's full name.
-        """
-        return f"{self.first_name} {self.last_name}"
+        return (
+            f"{self.first_name} "
+            f"{self.last_name}"
+        )
 
     def update_last_login(self):
-        """
-        Record the user's last successful login.
-        """
         self.last_login = datetime.utcnow()
 
+    # -------------------------------
+    # RBAC Methods
+    # -------------------------------
+
+    def has_role(self, role_name):
+        """
+        Check whether user has a role.
+        """
+
+        for user_role in self.user_roles:
+
+            if user_role.role.name == role_name:
+                return True
+
+        return False
+
+
+    def has_permission(self, permission_name):
+        """
+        Check whether user has permission.
+        """
+
+        for user_role in self.user_roles:
+
+            role = user_role.role
+
+            for role_permission in role.role_permissions:
+
+                if (
+                    role_permission
+                    .permission
+                    .name
+                    == permission_name
+                ):
+                    return True
+
+        return False
+
+
+    def get_permissions(self):
+        """
+        Return all effective permissions.
+        """
+
+        permissions = set()
+
+        for user_role in self.user_roles:
+
+            role = user_role.role
+
+            for role_permission in role.role_permissions:
+
+                permissions.add(
+                    role_permission.permission.name
+                )
+
+        return permissions
+
+
     def __repr__(self):
+
         return (
-            f"<User(id={self.id}, "
-            f"username='{self.username}')>"
+            f"<User("
+            f"id={self.id}, "
+            f"username='{self.username}'"
+            f")>"
         )
