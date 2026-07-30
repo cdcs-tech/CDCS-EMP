@@ -1,35 +1,109 @@
-from app.extensions import db
+"""
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Administrator User Seeder
+"""
+
+
 from app.models import User
 
+from .base import BaseSeeder
 
-def seed_admin():
+from .constants import (
+    ADMIN_USERNAME,
+    ADMIN_EMAIL,
+    ADMIN_FIRST_NAME,
+    ADMIN_LAST_NAME,
+    ADMIN_DEFAULT_PASSWORD,
+)
 
-    admin = User.query.filter_by(
 
-        email="admin@cdcs.local"
 
-    ).first()
+class UserSeeder(BaseSeeder):
+    """
+    Seeds default platform users.
 
-    if admin:
+    Safe to execute multiple times.
+    """
 
-        return
 
-    admin = User(
+    name = "User Seeder"
 
-        username="admin",
 
-        email="admin@cdcs.local",
 
-        first_name="System",
+    def run(self):
 
-        last_name="Administrator",
+        created = 0
+        skipped = 0
 
-        is_active=True,
 
-    )
+        self.log("Starting...")
 
-    admin.set_password("Admin@123")
 
-    db.session.add(admin)
+        existing = User.query.filter(
 
-    db.session.commit()
+            (
+                User.username == ADMIN_USERNAME
+            )
+            |
+            (
+                User.email == ADMIN_EMAIL
+            )
+
+        ).first()
+
+
+
+        if existing:
+
+            skipped += 1
+
+
+        else:
+
+            user = User(
+
+                username=ADMIN_USERNAME,
+
+                email=ADMIN_EMAIL,
+
+                first_name=ADMIN_FIRST_NAME,
+
+                last_name=ADMIN_LAST_NAME,
+
+                is_active=True,
+
+            )
+
+
+            user.set_password(
+                ADMIN_DEFAULT_PASSWORD
+            )
+
+
+            self.add(user)
+
+            created += 1
+
+
+
+        self.commit()
+
+
+
+        self.log(
+            f"Created: {created}"
+        )
+
+        self.log(
+            f"Skipped: {skipped}"
+        )
+
+
+        return {
+
+            "created": created,
+
+            "skipped": skipped,
+
+        }
