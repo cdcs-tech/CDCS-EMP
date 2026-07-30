@@ -8,7 +8,7 @@ import logging
 import os
 
 from flask import Flask
-
+from flask import render_template
 from app.config import config
 from app.extensions import (
     bcrypt,
@@ -58,5 +58,24 @@ def create_app(config_name=None):
 
     if not app.debug:
         logging.basicConfig(level=logging.INFO)
+
+
+    @app.errorhandler(401)
+    def unauthorized(error):
+        return (
+            render_template(
+                "auth/unauthorized.html"
+            ),
+            401,
+        )
+
+    @app.errorhandler(403)
+    def forbidden(error):
+        return (
+            render_template(
+                "auth/forbidden.html"
+            ),
+            403,
+        )
 
     return app

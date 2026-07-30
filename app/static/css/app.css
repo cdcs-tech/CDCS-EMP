@@ -1,0 +1,19 @@
+body {
+
+    background: #f8f9fa;
+
+}
+
+.card {
+
+    border-radius: 12px;
+
+}
+
+.card-header {
+
+    background: #0d6efd;
+
+    color: white;
+
+}
