@@ -4,60 +4,39 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 Permission Seeder
 """
 
-from app.extensions import db
 from app.models import Permission
 
-
-DEFAULT_PERMISSIONS = [
-
-    {
-        "name": "system.admin",
-        "module": "System",
-        "description": "Full system administration access",
-    },
-
-    {
-        "name": "dashboard.view",
-        "module": "Dashboard",
-        "description": "View dashboard",
-    },
-
-    {
-        "name": "users.create",
-        "module": "Users",
-        "description": "Create users",
-    },
-
-    {
-        "name": "users.read",
-        "module": "Users",
-        "description": "Read users",
-    },
-
-    {
-        "name": "users.update",
-        "module": "Users",
-        "description": "Update users",
-    },
-
-    {
-        "name": "users.delete",
-        "module": "Users",
-        "description": "Delete users",
-    },
-
-]
+from .base import BaseSeeder
+from .constants import PERMISSIONS
 
 
-def seed_permissions():
+class PermissionSeeder(BaseSeeder):
+    """
+    Seeds the system permissions.
 
-    for item in DEFAULT_PERMISSIONS:
+    Safe to execute multiple times.
+    """
 
-        permission = Permission.query.filter_by(
-            name=item["name"]
-        ).first()
+    name = "Permission Seeder"
 
-        if permission is None:
+    def run(self):
+
+        created = 0
+        skipped = 0
+
+        self.log("Starting...")
+
+        for item in PERMISSIONS:
+
+            existing = self.exists(
+                Permission,
+                name=item["name"],
+            )
+
+            if existing:
+
+                skipped += 1
+                continue
 
             permission = Permission(
 
@@ -69,6 +48,24 @@ def seed_permissions():
 
             )
 
-            db.session.add(permission)
+            self.add(permission)
 
-    db.session.commit()
+            created += 1
+
+        self.commit()
+
+        self.log(
+            f"Created: {created}"
+        )
+
+        self.log(
+            f"Skipped: {skipped}"
+        )
+
+        return {
+
+            "created": created,
+
+            "skipped": skipped,
+
+        }
