@@ -1,33 +1,76 @@
-from app.extensions import db
+"""
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Role Seeder
+"""
+
 from app.models import Role
 
-DEFAULT_ROLES = [
-
-    "System Administrator",
-
-    "Manager",
-
-    "Staff",
-
-]
+from .base import BaseSeeder
+from .constants import ROLES
 
 
-def seed_roles():
+class RoleSeeder(BaseSeeder):
+    """
+    Seeds default system roles.
 
-    for role_name in DEFAULT_ROLES:
+    Safe to execute multiple times.
+    """
 
-        role = Role.query.filter_by(
-            name=role_name
-        ).first()
+    name = "Role Seeder"
 
-        if role is None:
 
-            db.session.add(
+    def run(self):
 
-                Role(
-                    name=role_name
-                )
+        created = 0
+        skipped = 0
+
+        self.log("Starting...")
+
+        for item in ROLES:
+
+            existing = self.exists(
+                Role,
+                name=item["name"],
+            )
+
+            if existing:
+
+                skipped += 1
+                continue
+
+
+            role = Role(
+
+                name=item["name"],
+
+                description=item["description"],
+
+                is_system=item["is_system"],
 
             )
 
-    db.session.commit()
+            self.add(role)
+
+            created += 1
+
+
+        self.commit()
+
+
+        self.log(
+            f"Created: {created}"
+        )
+
+        self.log(
+            f"Skipped: {skipped}"
+        )
+
+
+        return {
+
+            "created": created,
+
+            "skipped": skipped,
+
+        }

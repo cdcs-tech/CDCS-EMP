@@ -14,6 +14,37 @@ MANAGER = "Manager"
 
 STAFF = "Staff"
 
+# ==========================================================
+# Role Definitions
+# ==========================================================
+
+ROLES = [
+
+    {
+        "name": SYSTEM_ADMINISTRATOR,
+        "description": (
+            "Full system administration access"
+        ),
+        "is_system": True,
+    },
+
+    {
+        "name": MANAGER,
+        "description": (
+            "Operational management access"
+        ),
+        "is_system": True,
+    },
+
+    {
+        "name": STAFF,
+        "description": (
+            "Standard staff access"
+        ),
+        "is_system": True,
+    },
+
+]
 
 # ==========================================================
 # Administrator Account
