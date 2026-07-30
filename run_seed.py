@@ -1,40 +1,13 @@
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
-Database Seed Runner
+Database Seed Entry Point
 """
 
-from app import create_app
 
-from app.seeds.permissions import PermissionSeeder
-from app.seeds.roles import RoleSeeder
-from app.seeds.role_permissions import RolePermissionSeeder
-from app.seeds.users import UserSeeder
-from app.seeds.user_roles import UserRoleSeeder
+from app.seeds.runner import run
 
 
-app = create_app()
+if __name__ == "__main__":
 
-
-with app.app_context():
-
-    print("\n")
-    print("=" * 50)
-    print("CDCS-EMP Database Seeder")
-    print("=" * 50)
-
-
-    PermissionSeeder().run()
-
-    RoleSeeder().run()
-
-    RolePermissionSeeder().run()
-
-    UserSeeder().run()
-
-    UserRoleSeeder().run()
-
-
-    print("=" * 50)
-    print("Seeding completed.")
-    print("=" * 50)
+    run()

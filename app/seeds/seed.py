@@ -1,22 +1,51 @@
 """
-Database Seeder
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Seed Orchestrator
 """
 
-from .permissions import seed_permissions
-from .roles import seed_roles
-from .users import seed_admin
+
+from .permissions import PermissionSeeder
+from .roles import RoleSeeder
+from .role_permissions import RolePermissionSeeder
+from .users import UserSeeder
+from .user_roles import UserRoleSeeder
 
 
-def seed_database():
 
-    seed_permissions()
+class SeedManager:
+    """
+    Controls execution order of all seeders.
+    """
 
-    seed_roles()
 
-    seed_admin()
+    def __init__(self):
 
-    print(
+        self.seeders = [
 
-        "Database successfully seeded."
+            PermissionSeeder(),
 
-    )
+            RoleSeeder(),
+
+            RolePermissionSeeder(),
+
+            UserSeeder(),
+
+            UserRoleSeeder(),
+
+        ]
+
+
+    def run(self):
+
+        results = {}
+
+
+        for seeder in self.seeders:
+
+            results[
+                seeder.name
+            ] = seeder.run()
+
+
+        return results
