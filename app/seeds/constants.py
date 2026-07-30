@@ -141,3 +141,54 @@ PERMISSIONS = [
     },
 
 ]
+
+# ==========================================================
+# Role Permission Mapping
+# ==========================================================
+
+
+ROLE_PERMISSIONS = {
+
+    SYSTEM_ADMINISTRATOR: [
+
+        "system.admin",
+
+        "dashboard.view",
+
+        "user.create",
+
+        "user.read",
+
+        "user.update",
+
+        "user.delete",
+
+        "role.create",
+
+        "role.read",
+
+        "role.update",
+
+        "role.delete",
+
+    ],
+
+
+    MANAGER: [
+
+        "dashboard.view",
+
+        "user.read",
+
+        "user.update",
+
+    ],
+
+
+    STAFF: [
+
+        "dashboard.view",
+
+    ],
+
+}

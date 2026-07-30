@@ -8,6 +8,7 @@ from app import create_app
 
 from app.seeds.permissions import PermissionSeeder
 from app.seeds.roles import RoleSeeder
+from app.seeds.role_permissions import RolePermissionSeeder
 
 
 app = create_app()
@@ -24,6 +25,8 @@ with app.app_context():
     PermissionSeeder().run()
 
     RoleSeeder().run()
+
+    RolePermissionSeeder().run()
 
 
     print("=" * 50)
