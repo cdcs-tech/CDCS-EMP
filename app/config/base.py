@@ -5,52 +5,44 @@ Base Configuration
 """
 
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from datetime import timedelta
+from urllib.parse import quote_plus
 
 
 class BaseConfig:
-    """Base configuration shared across all environments."""
-
-    # ---------------------------------------------------------
-    # General Application Settings
-    # ---------------------------------------------------------
-    APP_NAME = "CDCS Enterprise Management Platform"
-    APP_VERSION = "0.1.0-alpha"
+    """
+    Base configuration shared by all environments.
+    """
 
     SECRET_KEY = os.getenv(
         "SECRET_KEY",
-        "cdcs123456"
+        "change-this-in-production",
     )
-
-    # ---------------------------------------------------------
-    # Flask Settings
-    # ---------------------------------------------------------
-    DEBUG = False
-    TESTING = False
-
-    # ---------------------------------------------------------
-    # SQLAlchemy Settings
-    # ---------------------------------------------------------
-    DATABASE_URL = os.getenv("DATABASE_URL")
-
-    if not DATABASE_URL:
-      raise RuntimeError(
-        "DATABASE_URL environment variable is not configured."
-    )
-
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # ---------------------------------------------------------
-    # Session Settings
-    # ---------------------------------------------------------
-    SESSION_COOKIE_HTTPONLY = True
-    REMEMBER_COOKIE_HTTPONLY = True
+    DB_SERVER = os.getenv("DB_SERVER", ".")
+    DB_NAME = os.getenv("DB_NAME", "CDCS_EMP")
+    DB_DRIVER = os.getenv(
+        "DB_DRIVER",
+        "ODBC Driver 18 for SQL Server",
+    )
 
-    # ---------------------------------------------------------
-    # Upload Settings
-    # ---------------------------------------------------------
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024
+    SQLALCHEMY_DATABASE_URI = (
+        f"mssql+pyodbc://@{DB_SERVER}/{DB_NAME}"
+        f"?driver={quote_plus(DB_DRIVER)}"
+        "&trusted_connection=yes"
+        "&TrustServerCertificate=yes"
+    )
+
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
+
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = False
+
+    REMEMBER_COOKIE_DURATION = timedelta(days=14)
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_SECURE = False
+    REMEMBER_COOKIE_REFRESH_EACH_REQUEST = True
