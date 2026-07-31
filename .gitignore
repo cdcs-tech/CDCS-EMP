@@ -21,9 +21,18 @@ __pycache__/
 venv/
 
 # ------------------------------------------
-# Environment Variables
-# ------------------------------------------
+# Environment files
 .env
+.env.local
+.env.production.local
+
+# Local environment configurations
+.env.development
+.env.testing
+.env.production
+
+# Keep the template
+!.env.example
 
 # ------------------------------------------
 # Flask

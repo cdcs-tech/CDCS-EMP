@@ -6,6 +6,7 @@ Application Factory
 
 import logging
 import os
+from dotenv import load_dotenv
 
 from flask import Flask
 from flask import render_template
@@ -21,6 +22,12 @@ from app.extensions import (
 # Import models so Flask-Migrate can discover them
 from app import models  # noqa: F401
 
+environment = os.getenv("FLASK_ENV", "development")
+
+dotenv_file = f".env.{environment}"
+
+if os.path.exists(dotenv_file):
+    load_dotenv(dotenv_file)
 
 def create_app(config_name=None):
     """
