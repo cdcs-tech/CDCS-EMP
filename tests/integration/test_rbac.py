@@ -1,7 +1,12 @@
 """
 RBAC Tests
 """
+import pytest
 
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.authorization,
+]
 
 def test_user_has_role():
 

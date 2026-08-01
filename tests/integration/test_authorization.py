@@ -1,6 +1,12 @@
 """
 Authorization Tests
 """
+import pytest
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.authorization,
+]
 
 from app.security.authorization import AuthorizationService
 

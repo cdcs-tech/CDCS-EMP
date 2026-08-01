@@ -1,3 +1,10 @@
+import pytest
+
+pytestmark = [
+    pytest.mark.unit,
+    pytest.mark.authentication,
+]
+
 from app.models import User
 
 

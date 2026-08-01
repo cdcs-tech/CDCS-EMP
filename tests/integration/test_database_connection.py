@@ -1,6 +1,12 @@
 """
 Database Connection Test
 """
+import pytest
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.database,
+]
 
 from app import create_app
 from app.extensions import db

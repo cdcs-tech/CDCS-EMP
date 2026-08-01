@@ -1,7 +1,12 @@
 """
 Authentication Session Tests
 """
+import pytest
 
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.authentication,
+]
 
 def test_login_page(client):
     response = client.get("/auth/login")
