@@ -88,55 +88,13 @@ def session(app):
 
     db.session.rollback()
 
-
 # -------------------------------------------------------
-# Administrator Fixture
-# -------------------------------------------------------
-
-@pytest.fixture(scope="function")
-def admin_user(session):
-    """
-    Create administrator.
-    """
-
-    user = User(
-        username="admin",
-        email="admin@test.local",
-        first_name="System",
-        last_name="Administrator",
-    )
-
-    user.set_password("Admin@123")
-
-    session.add(user)
-    session.commit()
-
-    return user
-
-
-# -------------------------------------------------------
-# Standard User Fixture
+# Import Reusable Fixtures
 # -------------------------------------------------------
 
-@pytest.fixture(scope="function")
-def regular_user(session):
-    """
-    Create standard user.
-    """
-
-    user = User(
-        username="john",
-        email="john@test.local",
-        first_name="John",
-        last_name="Doe",
-    )
-
-    user.set_password("Password123")
-
-    session.add(user)
-    session.commit()
-
-    return user
+pytest_plugins = [
+    "tests.fixtures.users",
+]
 
 
 # -------------------------------------------------------
