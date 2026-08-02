@@ -1,0 +1,57 @@
+/*
+====================================================
+Accessibility Styles
+====================================================
+*/
+
+/* Keyboard focus */
+
+:focus-visible {
+
+    outline: 3px solid var(--cdcs-secondary);
+
+    outline-offset: 2px;
+
+}
+
+/* Skip link */
+
+.skip-link {
+
+    position: absolute;
+
+    left: -9999px;
+
+}
+
+.skip-link:focus {
+
+    left: 1rem;
+
+    top: 1rem;
+
+    background: var(--cdcs-primary);
+
+    color: white;
+
+    padding: .75rem;
+
+    z-index: 9999;
+
+}
+
+/* Disabled links */
+
+.nav-link.disabled {
+
+    opacity: .65;
+
+}
+
+/* Better spacing */
+
+.card {
+
+    margin-bottom: 1rem;
+
+}
