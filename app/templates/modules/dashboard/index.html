@@ -8,154 +8,67 @@ Dashboard
 
 <div class="container-fluid">
 
-    <div class="mb-4">
+    <!-- Page Header -->
 
-        <h2 class="fw-bold">
-            Executive Dashboard
-        </h2>
-
-        <p class="text-muted">
-            Welcome to the CDCS Enterprise Management Platform.
-        </p>
-
-    </div>
+    {% with
+    title="Executive Dashboard",
+    subtitle="Welcome to the CDCS Enterprise Management Platform."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
 
     <!-- KPI Cards -->
 
     <div class="row g-4 mb-4">
 
-        <div class="col-xl-3 col-md-6">
+        {% with
+        title="Employees",
+        value="--",
+        icon="bi-people"
+        %}
+        {% include "components/kpi_card.html" %}
+        {% endwith %}
 
-            <div class="card shadow-sm dashboard-card">
+        {% with
+        title="Members",
+        value="--",
+        icon="bi-person-badge"
+        %}
+        {% include "components/kpi_card.html" %}
+        {% endwith %}
 
-                <div class="card-body">
+        {% with
+        title="Assets",
+        value="--",
+        icon="bi-box-seam"
+        %}
+        {% include "components/kpi_card.html" %}
+        {% endwith %}
 
-                    <div class="d-flex justify-content-between">
-
-                        <div>
-
-                            <h6 class="text-muted">
-                                Employees
-                            </h6>
-
-                            <h3 id="employees-count">
-                                --
-                            </h3>
-
-                        </div>
-
-                        <i class="bi bi-people dashboard-icon"></i>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-
-            <div class="card shadow-sm dashboard-card">
-
-                <div class="card-body">
-
-                    <div class="d-flex justify-content-between">
-
-                        <div>
-
-                            <h6 class="text-muted">
-                                Members
-                            </h6>
-
-                            <h3 id="members-count">
-                                --
-                            </h3>
-
-                        </div>
-
-                        <i class="bi bi-person-badge dashboard-icon"></i>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-
-            <div class="card shadow-sm dashboard-card">
-
-                <div class="card-body">
-
-                    <div class="d-flex justify-content-between">
-
-                        <div>
-
-                            <h6 class="text-muted">
-                                Assets
-                            </h6>
-
-                            <h3 id="assets-count">
-                                --
-                            </h3>
-
-                        </div>
-
-                        <i class="bi bi-box-seam dashboard-icon"></i>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-
-            <div class="card shadow-sm dashboard-card">
-
-                <div class="card-body">
-
-                    <div class="d-flex justify-content-between">
-
-                        <div>
-
-                            <h6 class="text-muted">
-                                Revenue
-                            </h6>
-
-                            <h3 id="revenue-total">
-                                --
-                            </h3>
-
-                        </div>
-
-                        <i class="bi bi-cash-stack dashboard-icon"></i>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
+        {% with
+        title="Revenue",
+        value="--",
+        icon="bi-cash-stack"
+        %}
+        {% include "components/kpi_card.html" %}
+        {% endwith %}
 
     </div>
 
-    <!-- Charts -->
+    <!-- Dashboard Widgets -->
 
     <div class="row g-4 mb-4">
+
+        <!-- Performance Overview -->
 
         <div class="col-lg-8">
 
             <div class="card shadow-sm">
 
                 <div class="card-header fw-semibold">
+
                     Performance Overview
+
                 </div>
 
                 <div class="card-body">
@@ -168,30 +81,42 @@ Dashboard
 
         </div>
 
+        <!-- Quick Actions -->
+
         <div class="col-lg-4">
 
             <div class="card shadow-sm">
 
                 <div class="card-header fw-semibold">
+
                     Quick Actions
+
                 </div>
 
                 <div class="list-group list-group-flush">
 
-                    <a href="#" class="list-group-item">
+                    <a href="#" class="list-group-item list-group-item-action">
+
                         Add Employee
+
                     </a>
 
-                    <a href="#" class="list-group-item">
+                    <a href="#" class="list-group-item list-group-item-action">
+
                         Register Member
+
                     </a>
 
-                    <a href="#" class="list-group-item">
+                    <a href="#" class="list-group-item list-group-item-action">
+
                         Create Purchase
+
                     </a>
 
-                    <a href="#" class="list-group-item">
+                    <a href="#" class="list-group-item list-group-item-action">
+
                         Record Asset
+
                     </a>
 
                 </div>
@@ -202,22 +127,28 @@ Dashboard
 
     </div>
 
-    <!-- Activity -->
+    <!-- Bottom Section -->
 
-    <div class="row">
+    <div class="row g-4">
+
+        <!-- Recent Activity -->
 
         <div class="col-lg-6">
 
             <div class="card shadow-sm">
 
                 <div class="card-header fw-semibold">
+
                     Recent Activity
+
                 </div>
 
                 <div class="card-body">
 
                     <p class="text-muted">
+
                         No recent activity available.
+
                     </p>
 
                 </div>
@@ -226,32 +157,49 @@ Dashboard
 
         </div>
 
+        <!-- System Information -->
+
         <div class="col-lg-6">
 
             <div class="card shadow-sm">
 
                 <div class="card-header fw-semibold">
+
                     System Information
+
                 </div>
 
                 <div class="card-body">
 
                     <table class="table table-sm">
 
-                        <tr>
-                            <th>Platform</th>
-                            <td>CDCS-EMP</td>
-                        </tr>
+                        <tbody>
 
-                        <tr>
-                            <th>Version</th>
-                            <td>1.0 Alpha</td>
-                        </tr>
+                            <tr>
 
-                        <tr>
-                            <th>Environment</th>
-                            <td>Development</td>
-                        </tr>
+                                <th>Platform</th>
+
+                                <td>CDCS-EMP</td>
+
+                            </tr>
+
+                            <tr>
+
+                                <th>Version</th>
+
+                                <td>1.0 Alpha</td>
+
+                            </tr>
+
+                            <tr>
+
+                                <th>Environment</th>
+
+                                <td>Development</td>
+
+                            </tr>
+
+                        </tbody>
 
                     </table>
 
