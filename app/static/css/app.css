@@ -1,7 +1,39 @@
 /*
 ====================================================
-CDCS Enterprise Management Platform (CDCS-EMP)
-
-Global Application Styles
+Application Styles
 ====================================================
 */
+
+body {
+
+    font-family: var(--font-family);
+
+    background: var(--cdcs-light);
+
+    color: var(--cdcs-dark);
+
+}
+
+.card {
+
+    border-radius: var(--radius-md);
+
+    box-shadow: var(--shadow-sm);
+
+}
+
+.btn-primary {
+
+    background: var(--cdcs-primary);
+
+    border-color: var(--cdcs-primary);
+
+}
+
+.btn-primary:hover {
+
+    background: var(--cdcs-primary-dark);
+
+    border-color: var(--cdcs-primary-dark);
+
+}

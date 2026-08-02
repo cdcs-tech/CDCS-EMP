@@ -3,7 +3,7 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 
 Application Factory
 """
-
+from app.branding.brand import BRAND
 import logging
 import os
 from dotenv import load_dotenv
@@ -93,6 +93,15 @@ def create_app(config_name=None):
      return {
 
         "menu_items": MENU_ITEMS
+
+    }
+
+    @app.context_processor
+    def inject_brand():
+
+      return {
+
+        "brand": BRAND
 
     }
 

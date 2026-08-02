@@ -1,0 +1,69 @@
+/*
+====================================================
+CDCS Enterprise Theme
+====================================================
+*/
+
+:root {
+
+    /*
+    Brand Colors
+    */
+
+    --cdcs-primary: #0056b3;
+    --cdcs-primary-dark: #003f80;
+
+    --cdcs-secondary: #ff8c00;
+    --cdcs-secondary-dark: #d97300;
+
+    --cdcs-success: #198754;
+    --cdcs-danger: #dc3545;
+    --cdcs-warning: #ffc107;
+    --cdcs-info: #0dcaf0;
+
+    --cdcs-light: #f8f9fa;
+    --cdcs-dark: #212529;
+
+    /*
+    Typography
+    */
+
+    --font-family:
+        "Segoe UI",
+        Tahoma,
+        Geneva,
+        Verdana,
+        sans-serif;
+
+    /*
+    Spacing
+    */
+
+    --spacing-xs: .25rem;
+    --spacing-sm: .5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /*
+    Radius
+    */
+
+    --radius-sm: .25rem;
+    --radius-md: .5rem;
+    --radius-lg: .75rem;
+
+    /*
+    Shadows
+    */
+
+    --shadow-sm:
+        0 1px 3px rgba(0, 0, 0, .1);
+
+    --shadow-md:
+        0 4px 8px rgba(0, 0, 0, .12);
+
+    --shadow-lg:
+        0 8px 20px rgba(0, 0, 0, .15);
+
+}
