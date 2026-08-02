@@ -19,5 +19,5 @@ from . import dashboard_bp
 @require_permission(DASHBOARD_VIEW)
 def index():
     return render_template(
-        "dashboard/index.html"
+        "modules/dashboard/index.html"
     )

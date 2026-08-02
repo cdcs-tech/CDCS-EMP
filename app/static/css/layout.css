@@ -3,3 +3,30 @@
 Enterprise Layout Styles
 ====================================================
 */
+
+body {
+    background: #f8f9fa;
+}
+
+.sidebar {
+    min-height: calc(100vh - 56px);
+}
+
+.sidebar .nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+}
+
+.sidebar .nav-link:hover {
+    background: #e9ecef;
+}
+
+.sidebar .nav-link.active {
+    background: #0d6efd;
+    color: #ffffff;
+    border-radius: 0.375rem;
+}
+
+main {
+    min-height: calc(100vh - 120px);
+}
