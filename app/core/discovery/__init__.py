@@ -11,7 +11,21 @@ from app.core.discovery.manifest import (
     ModuleManifest,
 )
 
+from app.core.discovery.discovery import (
+    ModuleDiscovery,
+)
+
+from app.core.discovery.validator import (
+    ModuleDependencyValidator,
+)
+
 
 __all__ = [
+
     "ModuleManifest",
+
+    "ModuleDiscovery",
+
+    "ModuleDependencyValidator",
+
 ]
