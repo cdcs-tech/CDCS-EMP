@@ -1,0 +1,30 @@
+{% extends "base/base.html" %}
+
+{% block body %}
+
+{% include "partials/navbar.html" %}
+
+<div class="container-fluid">
+
+    <div class="row">
+
+        {% include "partials/sidebar.html" %}
+
+        <main class="col">
+
+            {% include "partials/breadcrumbs.html" %}
+
+            {% include "partials/flash_messages.html" %}
+
+            {% block page_content %}
+            {% endblock %}
+
+        </main>
+
+    </div>
+
+</div>
+
+{% include "partials/footer.html" %}
+
+{% endblock %}
