@@ -1,10 +1,9 @@
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
-Application Startup Package
+Enterprise Startup Framework
 
-Provides the public interface for application
-startup and initialization services.
+Public interface for application startup services.
 """
 
 from app.core.startup.modules import (
