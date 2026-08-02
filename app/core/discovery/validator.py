@@ -10,7 +10,7 @@ before application startup.
 
 from typing import Dict, List, Set
 
-from app.core.discovery import ModuleManifest
+from app.core.discovery.manifest import ModuleManifest
 
 
 class ModuleDependencyValidator:

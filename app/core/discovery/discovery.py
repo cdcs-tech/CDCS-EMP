@@ -12,7 +12,7 @@ import os
 
 from typing import List
 
-from app.core.discovery import ModuleManifest
+from app.core.discovery.manifest import ModuleManifest
 
 
 class ModuleDiscovery:
