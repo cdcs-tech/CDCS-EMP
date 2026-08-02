@@ -30,3 +30,16 @@ body {
 main {
     min-height: calc(100vh - 120px);
 }
+
+.sidebar .nav-link.disabled {
+
+    color: #6c757d;
+    cursor: default;
+
+}
+
+.sidebar .badge {
+
+    font-size: 0.65rem;
+
+}

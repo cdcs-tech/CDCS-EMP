@@ -85,4 +85,15 @@ def create_app(config_name=None):
             403,
         )
 
+    from app.navigation.menu import MENU_ITEMS
+
+    @app.context_processor
+    def inject_navigation():
+
+     return {
+
+        "menu_items": MENU_ITEMS
+
+    }
+
     return app
