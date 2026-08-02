@@ -1,39 +1,261 @@
 {% extends "base/dashboard_base.html" %}
 
 {% block title %}
-
 Dashboard
-
 {% endblock %}
 
 {% block page_content %}
 
-<div class="row">
+<div class="container-fluid">
 
-    <div class="col">
+    <div class="mb-4">
 
-        <h2 class="mb-4">
-
-            Dashboard
-
+        <h2 class="fw-bold">
+            Executive Dashboard
         </h2>
 
-        <div class="card shadow-sm">
+        <p class="text-muted">
+            Welcome to the CDCS Enterprise Management Platform.
+        </p>
 
-            <div class="card-body">
+    </div>
 
-                <h5 class="card-title">
+    <!-- KPI Cards -->
 
-                    Welcome
+    <div class="row g-4 mb-4">
 
-                </h5>
+        <div class="col-xl-3 col-md-6">
 
-                <p class="card-text">
+            <div class="card shadow-sm dashboard-card">
 
-                    Welcome to the CDCS Enterprise
-                    Management Platform.
+                <div class="card-body">
 
-                </p>
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted">
+                                Employees
+                            </h6>
+
+                            <h3 id="employees-count">
+                                --
+                            </h3>
+
+                        </div>
+
+                        <i class="bi bi-people dashboard-icon"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card shadow-sm dashboard-card">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted">
+                                Members
+                            </h6>
+
+                            <h3 id="members-count">
+                                --
+                            </h3>
+
+                        </div>
+
+                        <i class="bi bi-person-badge dashboard-icon"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card shadow-sm dashboard-card">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted">
+                                Assets
+                            </h6>
+
+                            <h3 id="assets-count">
+                                --
+                            </h3>
+
+                        </div>
+
+                        <i class="bi bi-box-seam dashboard-icon"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card shadow-sm dashboard-card">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted">
+                                Revenue
+                            </h6>
+
+                            <h3 id="revenue-total">
+                                --
+                            </h3>
+
+                        </div>
+
+                        <i class="bi bi-cash-stack dashboard-icon"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Charts -->
+
+    <div class="row g-4 mb-4">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header fw-semibold">
+                    Performance Overview
+                </div>
+
+                <div class="card-body">
+
+                    <canvas id="performanceChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header fw-semibold">
+                    Quick Actions
+                </div>
+
+                <div class="list-group list-group-flush">
+
+                    <a href="#" class="list-group-item">
+                        Add Employee
+                    </a>
+
+                    <a href="#" class="list-group-item">
+                        Register Member
+                    </a>
+
+                    <a href="#" class="list-group-item">
+                        Create Purchase
+                    </a>
+
+                    <a href="#" class="list-group-item">
+                        Record Asset
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Activity -->
+
+    <div class="row">
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header fw-semibold">
+                    Recent Activity
+                </div>
+
+                <div class="card-body">
+
+                    <p class="text-muted">
+                        No recent activity available.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header fw-semibold">
+                    System Information
+                </div>
+
+                <div class="card-body">
+
+                    <table class="table table-sm">
+
+                        <tr>
+                            <th>Platform</th>
+                            <td>CDCS-EMP</td>
+                        </tr>
+
+                        <tr>
+                            <th>Version</th>
+                            <td>1.0 Alpha</td>
+                        </tr>
+
+                        <tr>
+                            <th>Environment</th>
+                            <td>Development</td>
+                        </tr>
+
+                    </table>
+
+                </div>
 
             </div>
 

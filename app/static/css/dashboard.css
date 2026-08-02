@@ -3,3 +3,36 @@
 Dashboard Styles
 ====================================================
 */
+
+.dashboard-card {
+
+    border: none;
+    transition: all .2s ease;
+
+}
+
+.dashboard-card:hover {
+
+    transform: translateY(-4px);
+
+}
+
+.dashboard-icon {
+
+    font-size: 2rem;
+    color: #0d6efd;
+
+}
+
+.card-header {
+
+    background: #ffffff;
+    font-weight: 600;
+
+}
+
+#performanceChart {
+
+    min-height: 300px;
+
+}
