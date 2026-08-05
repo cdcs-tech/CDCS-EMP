@@ -12,6 +12,12 @@ from abc import ABC, abstractmethod
 
 from app.core.modules.metadata import ModuleMetadata
 
+from app.core.services import (
+    ServiceDefinition,
+    service_registry,
+    service_container,
+)
+
 
 class BaseModule(ABC):
     """
@@ -28,6 +34,10 @@ class BaseModule(ABC):
 
         self.crud_config = (
             self.get_crud_config()
+        )
+
+        self.services = (
+            self.get_service_definitions()
         )
 
         self.initialized = False
@@ -57,6 +67,17 @@ class BaseModule(ABC):
         return None
 
 
+    def get_service_definitions(self):
+        """
+        Return optional service definitions.
+
+        Modules override this method when
+        they expose business services.
+        """
+
+        return []
+
+
     def initialize(self, app):
         """
         Initialize module.
@@ -78,6 +99,7 @@ class BaseModule(ABC):
         self.initialized = True
 
 
+
     def register_blueprints(self, app):
         """
         Register Flask blueprints.
@@ -89,14 +111,40 @@ class BaseModule(ABC):
         return None
 
 
+
     def register_services(self, app):
         """
         Register application services.
 
-        Reserved for future service layer integration.
+        Services are registered into:
+        - Service Registry
+        - Dependency Container
         """
 
-        return None
+        for service_definition in self.services:
+
+            if not isinstance(
+                service_definition,
+                ServiceDefinition,
+            ):
+                continue
+
+
+            service_registry.register(
+                service_definition
+            )
+
+
+            if service_definition.instance:
+
+                service_container.register(
+                    (
+                        f"{service_definition.module_name}."
+                        f"{service_definition.service_name}"
+                    ),
+                    service_definition.instance,
+                )
+
 
 
     def register_repositories(self, app):
@@ -107,6 +155,7 @@ class BaseModule(ABC):
         """
 
         return None
+
 
 
     def register_crud(self, app):
@@ -120,6 +169,7 @@ class BaseModule(ABC):
         return None
 
 
+
     def register_permissions(self, app):
         """
         Register RBAC permissions.
@@ -128,6 +178,7 @@ class BaseModule(ABC):
         """
 
         return None
+
 
 
     def get_navigation(self):
@@ -140,6 +191,7 @@ class BaseModule(ABC):
         return None
 
 
+
     def get_dashboard_widgets(self):
         """
         Return dashboard widgets.
@@ -148,6 +200,7 @@ class BaseModule(ABC):
         """
 
         return []
+
 
 
     def has_crud(self):
@@ -160,12 +213,25 @@ class BaseModule(ABC):
         )
 
 
+
+    def has_services(self):
+        """
+        Check whether module exposes services.
+        """
+
+        return bool(
+            self.services
+        )
+
+
+
     def is_active(self):
         """
         Check whether module is enabled.
         """
 
         return self.metadata.active
+
 
 
     def __repr__(self):
