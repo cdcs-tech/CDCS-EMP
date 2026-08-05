@@ -4,7 +4,7 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 Generic CRUD Framework
 
 Public interface for reusable CRUD
-operations.
+operations and infrastructure.
 """
 
 
@@ -80,6 +80,26 @@ from app.core.crud.tables import (
 )
 
 
+# ---------------------------------------------------------
+# Configuration Framework
+# ---------------------------------------------------------
+
+from app.core.crud.config import (
+    CRUDConfig,
+)
+
+
+# ---------------------------------------------------------
+# Registry Framework
+# ---------------------------------------------------------
+
+from app.core.crud.registry import (
+    CRUDRegistry,
+    CRUDDefinition,
+    crud_registry,
+)
+
+
 __all__ = [
 
     # Services
@@ -130,5 +150,19 @@ __all__ = [
     "CRUDTable",
 
     "TableColumn",
+
+
+    # Configuration
+
+    "CRUDConfig",
+
+
+    # Registry
+
+    "CRUDRegistry",
+
+    "CRUDDefinition",
+
+    "crud_registry",
 
 ]

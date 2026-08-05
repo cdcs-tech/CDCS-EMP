@@ -17,9 +17,54 @@ from app.core.discovery import (
     ModuleDiscovery,
     ModuleLoader,
 )
+
 from app.core.modules import ModuleManager
 
+from app.core.crud.registry import (
+    CRUDDefinition,
+    crud_registry,
+)
+
+
 logger = logging.getLogger(__name__)
+
+
+def register_module_crud(module):
+    """
+    Register CRUD capabilities exposed
+    by an enterprise module.
+    """
+
+    crud_config = (
+        module.get_crud_config()
+    )
+
+    if crud_config is None:
+        return
+
+
+    definition = CRUDDefinition(
+
+        module_name=(
+            crud_config.module_name
+        ),
+
+        entity_name=(
+            crud_config.entity_name
+        ),
+    )
+
+
+    crud_registry.register(
+        definition
+    )
+
+
+    logger.info(
+        "Registered CRUD definition: %s.%s",
+        crud_config.module_name,
+        crud_config.entity_name,
+    )
 
 
 def initialize_modules(app: Flask) -> ModuleManager:
@@ -37,13 +82,17 @@ def initialize_modules(app: Flask) -> ModuleManager:
         Loading
             ↓
         Initialization
+            ↓
+        CRUD Registration
     """
+
 
     # --------------------------------------------------
     # Create Module Manager
     # --------------------------------------------------
 
     manager = ModuleManager()
+
 
     # --------------------------------------------------
     # Discover Available Modules
@@ -53,10 +102,12 @@ def initialize_modules(app: Flask) -> ModuleManager:
 
     manifests = discovery.discover()
 
+
     logger.info(
         "Discovered %s module manifest(s).",
         len(manifests),
     )
+
 
     # --------------------------------------------------
     # Validate Dependencies
@@ -68,13 +119,16 @@ def initialize_modules(app: Flask) -> ModuleManager:
 
     validator.validate()
 
+
     ordered_manifests = (
         validator.dependency_order()
     )
 
+
     logger.info(
         "Validated module dependencies."
     )
+
 
     # --------------------------------------------------
     # Load Modules
@@ -86,10 +140,12 @@ def initialize_modules(app: Flask) -> ModuleManager:
         ordered_manifests
     )
 
+
     logger.info(
         "Loaded %s module(s).",
         len(loaded_modules),
     )
+
 
     # --------------------------------------------------
     # Initialize Modules
@@ -102,11 +158,19 @@ def initialize_modules(app: Flask) -> ModuleManager:
             module.metadata.code,
         )
 
+
         module.initialize(app)
+
+
+        register_module_crud(
+            module
+        )
+
 
     logger.info(
         "Enterprise Module Framework initialized."
     )
+
 
     # --------------------------------------------------
     # Expose Module Manager
@@ -115,5 +179,15 @@ def initialize_modules(app: Flask) -> ModuleManager:
     app.extensions[
         "module_manager"
     ] = manager
+
+
+    # --------------------------------------------------
+    # Expose CRUD Registry
+    # --------------------------------------------------
+
+    app.extensions[
+        "crud_registry"
+    ] = crud_registry
+
 
     return manager
