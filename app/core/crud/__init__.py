@@ -13,6 +13,17 @@ from app.core.crud.service import (
 )
 
 
+from app.core.crud.repository import (
+    CRUDRepository,
+)
+
+
+from app.core.crud.transaction import (
+    TransactionManager,
+    SimpleTransactionManager,
+)
+
+
 from app.core.crud.exceptions import (
     CRUDException,
     EntityNotFoundException,
@@ -31,7 +42,24 @@ from app.core.crud.operations import (
 
 __all__ = [
 
+    # Services
+
     "CRUDService",
+
+
+    # Repository
+
+    "CRUDRepository",
+
+
+    # Transactions
+
+    "TransactionManager",
+
+    "SimpleTransactionManager",
+
+
+    # Exceptions
 
     "CRUDException",
 
@@ -42,6 +70,9 @@ __all__ = [
     "DuplicateEntityException",
 
     "InvalidCRUDOperationException",
+
+
+    # Operations
 
     "CRUDOperation",
 
