@@ -28,6 +28,12 @@ from app.core.workflow import (
 )
 
 
+from app.core.security import (
+    Permission,
+    permission_registry,
+)
+
+
 class BaseModule(ABC):
     """
     Abstract base class for CDCS-EMP modules.
@@ -56,6 +62,10 @@ class BaseModule(ABC):
         self.workflows = (
             self.get_workflows()
         )
+
+        self.permissions = (
+            self.get_permissions()
+ )
 
         self.initialized = False
 
@@ -117,6 +127,16 @@ class BaseModule(ABC):
 
         Modules override this method to expose
         enterprise workflows.
+        """
+
+        return []
+
+    def get_permissions(self):
+        """
+        Return module permissions.
+
+        Modules override this method to expose
+        enterprise security permissions.
         """
 
         return []
@@ -262,11 +282,25 @@ class BaseModule(ABC):
 
 
     def register_permissions(self, app):
-        """
-        Register RBAC permissions.
+       """
+        Register module permissions.
 
-        Reserved for future permission discovery.
+        Permissions are registered into the
+        global permission registry.
         """
+
+       for permission in self.permissions:
+
+        if not isinstance(
+            permission,
+            Permission,
+        ):
+            continue
+
+
+        permission_registry.register(
+            permission
+        )
 
         return None
 
@@ -335,6 +369,15 @@ class BaseModule(ABC):
         return bool(
             self.workflows
         )
+
+    def has_permissions(self):
+        """
+        Check whether module exposes permissions.
+        """
+
+        return bool(
+        self.permissions
+    )
 
 
 
