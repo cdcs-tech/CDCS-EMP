@@ -44,6 +44,32 @@ from app.core.security.module import (
 )
 
 
+# ---------------------------------------------------------
+# RBAC Framework
+# ---------------------------------------------------------
+
+from app.core.security.roles import (
+    Role,
+)
+
+
+from app.core.security.role_registry import (
+    RoleRegistry,
+    role_registry,
+)
+
+
+from app.core.security.assignment import (
+    RolePermissionAssignment,
+)
+
+
+from app.core.security.authorization import (
+    AuthorizationEngine,
+    authorization_engine,
+)
+
+
 
 __all__ = [
 
@@ -72,5 +98,20 @@ __all__ = [
     # Module Security
 
     "ModulePermission",
+
+
+    # RBAC Framework
+
+    "Role",
+
+    "RoleRegistry",
+
+    "role_registry",
+
+    "RolePermissionAssignment",
+
+    "AuthorizationEngine",
+
+    "authorization_engine",
 
 ]
