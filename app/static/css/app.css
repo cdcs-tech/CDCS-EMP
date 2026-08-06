@@ -24,9 +24,11 @@ body {
 
 .btn-primary {
 
-    background: var(--cdcs-primary);
+    background: blue !important;
 
-    border-color: var(--cdcs-primary);
+    border-color: rgb(0, 123, 255) !important;
+
+    color: white !important;
 
 }
 
