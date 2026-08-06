@@ -114,6 +114,25 @@ from app.core.security.compliance import (
 )
 
 
+# ---------------------------------------------------------
+# Compliance Registry
+# ---------------------------------------------------------
+
+from app.core.security.compliance_registry import (
+    ComplianceRegistry,
+    compliance_registry,
+)
+
+# ---------------------------------------------------------
+# Security Governance
+# ---------------------------------------------------------
+
+from app.core.security.governance import (
+    SecurityGovernanceManager,
+    security_governance,
+)
+
+
 __all__ = [
 
     # Security Exceptions
@@ -183,5 +202,19 @@ __all__ = [
     # Security Compliance Framework
 
     "ComplianceControl",
+
+
+    # Compliance Registry
+
+    "ComplianceRegistry",
+
+    "compliance_registry",
+
+
+    # Governance Manager
+
+    "SecurityGovernanceManager",
+
+    "security_governance",
 
 ]
