@@ -13,6 +13,14 @@ import logging
 
 from flask import Flask
 
+from app.core.validation import (
+    BaseValidator,
+)
+
+from app.core.workflow import (
+    workflow_registry,
+)
+
 from app.core.discovery import (
     ModuleDependencyValidator,
     ModuleDiscovery,
@@ -127,6 +135,9 @@ def initialize_modules(app: Flask) -> ModuleManager:
     )
 
 
+    # --------------------------------------------------
+    # Expose Enterprise Framework Services
+    # --------------------------------------------------
 
     app.extensions[
         "module_manager"
@@ -134,13 +145,8 @@ def initialize_modules(app: Flask) -> ModuleManager:
 
 
     app.extensions[
-        "service_registry"
-    ] = service_registry
-
-
-    app.extensions[
-        "service_container"
-    ] = service_container
+        "workflow_registry"
+    ] = workflow_registry
 
 
     return manager

@@ -18,6 +18,15 @@ from app.core.services import (
     service_container,
 )
 
+from app.core.validation import (
+    BaseValidator,
+)
+
+from app.core.workflow import (
+    WorkflowDefinition,
+    workflow_registry,
+)
+
 
 class BaseModule(ABC):
     """
@@ -40,7 +49,16 @@ class BaseModule(ABC):
             self.get_service_definitions()
         )
 
+        self.validators = (
+            self.get_validators()
+        )
+
+        self.workflows = (
+            self.get_workflows()
+        )
+
         self.initialized = False
+
 
 
     @abstractmethod
@@ -52,6 +70,7 @@ class BaseModule(ABC):
         """
 
         raise NotImplementedError
+
 
 
     def get_crud_config(self):
@@ -67,6 +86,7 @@ class BaseModule(ABC):
         return None
 
 
+
     def get_service_definitions(self):
         """
         Return optional service definitions.
@@ -76,6 +96,31 @@ class BaseModule(ABC):
         """
 
         return []
+
+
+
+    def get_validators(self):
+        """
+        Return module validators.
+
+        Modules override this method to expose
+        enterprise validation logic.
+        """
+
+        return []
+
+
+
+    def get_workflows(self):
+        """
+        Return module workflow definitions.
+
+        Modules override this method to expose
+        enterprise workflows.
+        """
+
+        return []
+
 
 
     def initialize(self, app):
@@ -89,6 +134,10 @@ class BaseModule(ABC):
         self.register_blueprints(app)
 
         self.register_services(app)
+
+        self.register_validation(app)
+
+        self.register_workflows(app)
 
         self.register_repositories(app)
 
@@ -144,6 +193,48 @@ class BaseModule(ABC):
                     ),
                     service_definition.instance,
                 )
+
+
+
+    def register_validation(self, app):
+        """
+        Register module validators.
+
+        Reserved for enterprise validation
+        integration.
+        """
+
+        for validator in self.validators:
+
+            if not isinstance(
+                validator,
+                BaseValidator,
+            ):
+                continue
+
+        return None
+
+
+
+    def register_workflows(self, app):
+        """
+        Register enterprise workflows.
+        """
+
+        for workflow in self.workflows:
+
+            if not isinstance(
+                workflow,
+                WorkflowDefinition,
+            ):
+                continue
+
+
+            workflow_registry.register(
+                workflow
+            )
+
+        return None
 
 
 
@@ -221,6 +312,28 @@ class BaseModule(ABC):
 
         return bool(
             self.services
+        )
+
+
+
+    def has_validators(self):
+        """
+        Check whether module exposes validators.
+        """
+
+        return bool(
+            self.validators
+        )
+
+
+
+    def has_workflows(self):
+        """
+        Check whether module exposes workflows.
+        """
+
+        return bool(
+            self.workflows
         )
 
 
