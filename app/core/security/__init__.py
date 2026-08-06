@@ -92,6 +92,27 @@ from app.core.security.evaluator import (
 )
 
 
+# ---------------------------------------------------------
+# Security Audit Framework
+# ---------------------------------------------------------
+
+from app.core.security.audit import (
+    SecurityAuditEvent,
+)
+
+from app.core.security.audit_registry import (
+    AuditRegistry,
+    audit_registry,
+)
+
+# ---------------------------------------------------------
+# Security Compliance Framework
+# ---------------------------------------------------------
+
+from app.core.security.compliance import (
+    ComplianceControl,
+)
+
 
 __all__ = [
 
@@ -149,5 +170,18 @@ __all__ = [
     "PolicyEvaluator",
 
     "policy_evaluator",
+
+        # Security Audit Framework
+
+    "SecurityAuditEvent",
+
+    "AuditRegistry",
+
+    "audit_registry",
+
+
+    # Security Compliance Framework
+
+    "ComplianceControl",
 
 ]

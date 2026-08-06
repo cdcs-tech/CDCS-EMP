@@ -3,7 +3,10 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 
 Enterprise Security Framework
 
-Authorization engine with security policy integration.
+Authorization engine with:
+- RBAC permission checks
+- Security policy evaluation
+- Audit event recording
 """
 
 
@@ -15,6 +18,14 @@ from app.core.security.exceptions import (
 
 from app.core.security.evaluator import (
     policy_evaluator,
+)
+
+from app.core.security.audit import (
+    SecurityAuditEvent,
+)
+
+from app.core.security.audit_registry import (
+    audit_registry,
 )
 
 
@@ -57,10 +68,7 @@ class AuthorizationEngine:
     ) -> bool:
         """
         Evaluate security policies.
-
-        Returns True when all policies pass.
         """
-
 
         if not policies:
 
@@ -84,6 +92,31 @@ class AuthorizationEngine:
 
 
 
+    def _audit(
+        self,
+        event_type,
+        subject,
+        permission_code,
+        result,
+        message="",
+    ):
+        """
+        Create security audit event.
+        """
+
+        audit_registry.record(
+            SecurityAuditEvent(
+                event_type=event_type,
+                subject=str(subject),
+                resource=permission_code,
+                action="authorization",
+                result=result,
+                message=message,
+            )
+        )
+
+
+
     def can(
         self,
         subject,
@@ -92,7 +125,7 @@ class AuthorizationEngine:
         context=None,
     ) -> bool:
         """
-        Generic authorization check.
+        Authorization check.
 
         Checks:
         1. Permission
@@ -105,14 +138,55 @@ class AuthorizationEngine:
             permission_code,
         ):
 
+            self._audit(
+                event_type=
+                    "PERMISSION_DENIED",
+                subject=subject,
+                permission_code=
+                    permission_code,
+                result="FAILED",
+                message=
+                    "Permission not granted.",
+            )
+
             return False
 
 
-        return self.evaluate_policies(
+
+        if not self.evaluate_policies(
             policies,
             subject,
             context,
+        ):
+
+            self._audit(
+                event_type=
+                    "POLICY_FAILED",
+                subject=subject,
+                permission_code=
+                    permission_code,
+                result="FAILED",
+                message=
+                    "Security policy failed.",
+            )
+
+            return False
+
+
+
+        self._audit(
+            event_type=
+                "PERMISSION_GRANTED",
+            subject=subject,
+            permission_code=
+                permission_code,
+            result="SUCCESS",
+            message=
+                "Authorization successful.",
         )
+
+
+        return True
 
 
 
@@ -125,11 +199,7 @@ class AuthorizationEngine:
     ):
         """
         Validate authorization.
-
-        Raises PermissionDeniedError
-        when access is denied.
         """
-
 
         if not self.can(
             subject,
