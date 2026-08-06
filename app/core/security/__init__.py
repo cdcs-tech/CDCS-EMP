@@ -70,6 +70,28 @@ from app.core.security.authorization import (
 )
 
 
+# ---------------------------------------------------------
+# Security Policy Framework
+# ---------------------------------------------------------
+
+from app.core.security.policies import (
+    SecurityPolicy,
+)
+
+
+from app.core.security.policy_registry import (
+    PolicyRegistry,
+    policy_registry,
+)
+
+
+from app.core.security.evaluator import (
+    PolicyEvaluationResult,
+    PolicyEvaluator,
+    policy_evaluator,
+)
+
+
 
 __all__ = [
 
@@ -113,5 +135,19 @@ __all__ = [
     "AuthorizationEngine",
 
     "authorization_engine",
+
+    # Security Policy Framework
+
+    "SecurityPolicy",
+
+    "PolicyRegistry",
+
+    "policy_registry",
+
+    "PolicyEvaluationResult",
+
+    "PolicyEvaluator",
+
+    "policy_evaluator",
 
 ]
