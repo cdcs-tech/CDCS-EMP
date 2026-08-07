@@ -52,6 +52,9 @@ logs/
 .coverage
 htmlcov/
 
+# Coverage reports
+coverage.xml
+
 # ------------------------------------------
 # Build Files
 # ------------------------------------------
