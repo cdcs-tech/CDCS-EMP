@@ -9,13 +9,11 @@ Provides the standard contract for
 all domain events within CDCS-EMP.
 """
 
-
 from abc import ABC, abstractmethod
 
-from datetime import datetime, timezone
-
-from uuid import uuid4
-
+from app.core.events.metadata import (
+    EventMetadata,
+)
 
 
 class BaseEvent(ABC):
@@ -23,6 +21,9 @@ class BaseEvent(ABC):
     Abstract base class for enterprise events.
     """
 
+    event_version = "1.0"
+
+    event_source = "CDCS-EMP"
 
 
     def __init__(self):
@@ -30,12 +31,21 @@ class BaseEvent(ABC):
         Initialize event metadata.
         """
 
-        self.event_id = str(uuid4())
-
-        self.created_at = datetime.now(
-            timezone.utc
+        self._metadata = EventMetadata(
+            event_name=self.event_name,
+            version=self.event_version,
+            source=self.event_source,
         )
 
+
+        # Backward compatibility
+        self.event_id = (
+            self._metadata.event_id
+        )
+
+        self.created_at = (
+            self._metadata.timestamp
+        )
 
 
     @property
@@ -50,23 +60,36 @@ class BaseEvent(ABC):
         raise NotImplementedError
 
 
+    @property
+    def version(self):
+        """
+        Return event version.
+        """
+
+        return self.event_version
+
+
+    @property
+    def source(self):
+        """
+        Return event source.
+        """
+
+        return self.event_source
+
 
     def metadata(self):
         """
-        Return event metadata.
+        Return enterprise event metadata.
 
         Used by:
         - Event Bus
         - Audit System
         - Logging
+        - Integrations
         """
 
-        return {
-            "event_id": self.event_id,
-            "event_name": self.event_name,
-            "created_at": self.created_at,
-        }
-
+        return self._metadata.to_dict()
 
 
     def __repr__(self):
@@ -77,5 +100,7 @@ class BaseEvent(ABC):
         return (
             f"<Event "
             f"{self.event_name} "
+            f"v{self.version} "
             f"{self.event_id}>"
         )
+

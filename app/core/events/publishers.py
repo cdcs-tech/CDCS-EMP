@@ -15,6 +15,10 @@ from app.core.events.bus import (
 )
 
 
+from app.core.events.validator import (
+    event_validator,
+)
+
 
 class EventPublisher:
     """
@@ -26,7 +30,18 @@ class EventPublisher:
     def __init__(
         self,
         bus=None,
-    ):
+        validator=None,
+):
+
+        self.bus = (
+          bus
+          or event_bus
+    )
+
+        self.validator = (
+        validator
+        or event_validator
+    )
 
         self.bus = (
             bus
@@ -44,9 +59,13 @@ class EventPublisher:
         the enterprise event bus.
         """
 
+        self.validator.validate(
+            event
+)
+
         return self.bus.publish(
             event
-        )
+)
 
 
 

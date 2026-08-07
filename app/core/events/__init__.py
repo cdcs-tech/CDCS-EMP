@@ -36,6 +36,17 @@ from app.core.events.publishers import (
 )
 
 
+from app.core.events.audit_handler import (
+    EventAuditHandler,
+)
+
+
+from app.core.events.workflow_handler import (
+    EventWorkflowHandler,
+)
+
+
+
 __all__ = [
     "BaseEvent",
     "BaseEventHandler",
@@ -48,5 +59,7 @@ __all__ = [
     "event_bus",
     "EventPublisher",
     "event_publisher",
+    "EventAuditHandler",
+    "EventWorkflowHandler",
 ]
 
