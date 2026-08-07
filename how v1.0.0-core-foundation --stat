@@ -1,0 +1,15 @@
+[33m67ce86f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m release: establish CDCS-EMP core platform v1.0 foundation
+[33m860889f[m[33m ([m[1;33mtag: [m[1;33mv1.0.0-core-foundation[m[33m)[m release: establish CDCS-EMP core platform v1.0 foundation
+[33m26b0477[m feat(core): integrate enterprise security governance framework
+[33m863c71f[m feat(core): implement security audit and compliance foundation
+[33m48cea92[m feat(core): implement security audit and compliance foundation
+[33m44fe31c[m feat(core): implement security policy framework
+[33m48668e8[m feat(core): implement advanced RBAC security foundation
+[33m511b761[m feat(core): integrate module permission registration framework
+[33mbe74bfd[m feat(core): add enterprise validation and workflow foundation
+[33m8c7569f[m feat(services): implement enterprise service layer foundation
+[33mf034bb7[m feat(crud): complete enterprise CRUD infrastructure integration
+[33me15692b[m feat(crud): add reusable UI CRUD framework
+[33m6fdb260[m feat(crud): add repository and transaction infrastructure
+[33m27bf385[m feat(crud): add generic CRUD service foundation
+[33m644c833[m feat(data): add enterprise query infrastructure

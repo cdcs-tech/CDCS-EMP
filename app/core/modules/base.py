@@ -7,7 +7,6 @@ Provides the standard foundation that all
 enterprise modules must inherit from.
 """
 
-
 from abc import ABC, abstractmethod
 
 from app.core.modules.metadata import ModuleMetadata
@@ -27,10 +26,15 @@ from app.core.workflow import (
     workflow_registry,
 )
 
-
 from app.core.security import (
     Permission,
     permission_registry,
+)
+
+from app.core.events import (
+    BaseEvent,
+    BaseEventHandler,
+    event_registry,
 )
 
 
@@ -38,7 +42,6 @@ class BaseModule(ABC):
     """
     Abstract base class for CDCS-EMP modules.
     """
-
 
     def __init__(self):
         """
@@ -65,11 +68,17 @@ class BaseModule(ABC):
 
         self.permissions = (
             self.get_permissions()
- )
+        )
+
+        self.events = (
+            self.get_events()
+        )
+
+        self.event_handlers = (
+            self.get_event_handlers()
+        )
 
         self.initialized = False
-
-
 
     @abstractmethod
     def get_metadata(self) -> ModuleMetadata:
@@ -80,8 +89,6 @@ class BaseModule(ABC):
         """
 
         raise NotImplementedError
-
-
 
     def get_crud_config(self):
         """
@@ -95,8 +102,6 @@ class BaseModule(ABC):
 
         return None
 
-
-
     def get_service_definitions(self):
         """
         Return optional service definitions.
@@ -107,8 +112,6 @@ class BaseModule(ABC):
 
         return []
 
-
-
     def get_validators(self):
         """
         Return module validators.
@@ -118,8 +121,6 @@ class BaseModule(ABC):
         """
 
         return []
-
-
 
     def get_workflows(self):
         """
@@ -141,7 +142,31 @@ class BaseModule(ABC):
 
         return []
 
+    def get_events(self):
+        """
+        Return module event definitions.
 
+        Modules override this method to expose
+        enterprise domain events.
+        """
+
+        return []
+
+    def get_event_handlers(self):
+        """
+        Return module event handlers.
+
+        Modules override this method to expose
+        handlers for enterprise domain events.
+
+        Expected format:
+
+            [
+                (EventClass, HandlerInstance),
+            ]
+        """
+
+        return []
 
     def initialize(self, app):
         """
@@ -165,9 +190,11 @@ class BaseModule(ABC):
 
         self.register_permissions(app)
 
+        self.register_events(app)
+
+        self.register_event_handlers(app)
+
         self.initialized = True
-
-
 
     def register_blueprints(self, app):
         """
@@ -178,8 +205,6 @@ class BaseModule(ABC):
         """
 
         return None
-
-
 
     def register_services(self, app):
         """
@@ -198,11 +223,9 @@ class BaseModule(ABC):
             ):
                 continue
 
-
             service_registry.register(
                 service_definition
             )
-
 
             if service_definition.instance:
 
@@ -213,8 +236,6 @@ class BaseModule(ABC):
                     ),
                     service_definition.instance,
                 )
-
-
 
     def register_validation(self, app):
         """
@@ -234,8 +255,6 @@ class BaseModule(ABC):
 
         return None
 
-
-
     def register_workflows(self, app):
         """
         Register enterprise workflows.
@@ -249,14 +268,11 @@ class BaseModule(ABC):
             ):
                 continue
 
-
             workflow_registry.register(
                 workflow
             )
 
         return None
-
-
 
     def register_repositories(self, app):
         """
@@ -266,8 +282,6 @@ class BaseModule(ABC):
         """
 
         return None
-
-
 
     def register_crud(self, app):
         """
@@ -279,32 +293,98 @@ class BaseModule(ABC):
 
         return None
 
-
-
     def register_permissions(self, app):
-       """
+        """
         Register module permissions.
 
         Permissions are registered into the
         global permission registry.
         """
 
-       for permission in self.permissions:
+        for permission in self.permissions:
 
-        if not isinstance(
-            permission,
-            Permission,
-        ):
-            continue
+            if not isinstance(
+                permission,
+                Permission,
+            ):
+                continue
 
-
-        permission_registry.register(
-            permission
-        )
+            permission_registry.register(
+                permission
+            )
 
         return None
 
+    def register_events(self, app):
+        """
+        Register module event definitions.
 
+        Events are registered into the
+        global event registry.
+        """
+
+        for event in self.events:
+
+            if not isinstance(
+                event,
+                type,
+            ):
+                continue
+
+            if not issubclass(
+                event,
+                BaseEvent,
+            ):
+                continue
+
+            event_registry.register(
+                event
+            )
+
+        return None
+
+    def register_event_handlers(self, app):
+        """
+        Register module event handlers.
+
+        Handlers are registered into the
+        global event registry.
+
+        Expected format:
+
+            [
+                (EventClass, HandlerInstance),
+            ]
+        """
+
+        for event_class, handler in (
+            self.event_handlers
+        ):
+
+            if not isinstance(
+                event_class,
+                type,
+            ):
+                continue
+
+            if not issubclass(
+                event_class,
+                BaseEvent,
+            ):
+                continue
+
+            if not isinstance(
+                handler,
+                BaseEventHandler,
+            ):
+                continue
+
+            event_registry.register_handler(
+                event_class,
+                handler,
+            )
+
+        return None
 
     def get_navigation(self):
         """
@@ -315,8 +395,6 @@ class BaseModule(ABC):
 
         return None
 
-
-
     def get_dashboard_widgets(self):
         """
         Return dashboard widgets.
@@ -325,8 +403,6 @@ class BaseModule(ABC):
         """
 
         return []
-
-
 
     def has_crud(self):
         """
@@ -337,8 +413,6 @@ class BaseModule(ABC):
             self.crud_config is not None
         )
 
-
-
     def has_services(self):
         """
         Check whether module exposes services.
@@ -348,8 +422,6 @@ class BaseModule(ABC):
             self.services
         )
 
-
-
     def has_validators(self):
         """
         Check whether module exposes validators.
@@ -358,8 +430,6 @@ class BaseModule(ABC):
         return bool(
             self.validators
         )
-
-
 
     def has_workflows(self):
         """
@@ -376,10 +446,26 @@ class BaseModule(ABC):
         """
 
         return bool(
-        self.permissions
-    )
+            self.permissions
+        )
 
+    def has_events(self):
+        """
+        Check whether module exposes events.
+        """
 
+        return bool(
+            self.events
+        )
+
+    def has_event_handlers(self):
+        """
+        Check whether module exposes event handlers.
+        """
+
+        return bool(
+            self.event_handlers
+        )
 
     def is_active(self):
         """
@@ -387,8 +473,6 @@ class BaseModule(ABC):
         """
 
         return self.metadata.active
-
-
 
     def __repr__(self):
         """
@@ -400,3 +484,4 @@ class BaseModule(ABC):
             f"{self.metadata.identifier} "
             f"v{self.metadata.version}>"
         )
+
