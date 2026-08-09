@@ -33,9 +33,10 @@ class ExecutionAuthorizationService:
     """
     Application-level authorization service.
 
-    Provides the execution layer with a stable authorization
-    boundary while delegating the actual security evaluation
-    to an ExecutionAuthorizer implementation.
+    Provides the execution layer with a stable
+    authorization boundary while delegating the
+    actual security evaluation to an
+    ExecutionAuthorizer implementation.
     """
 
     def __init__(
@@ -63,7 +64,11 @@ class ExecutionAuthorizationService:
         context: ExecutionContext,
     ) -> AuthorizationDecision:
         """
-        Authorize a command for execution.
+        Evaluate authorization for a command.
+
+        This method performs authorization evaluation
+        but does not itself raise an exception when
+        authorization is denied.
         """
 
         validate_authorization_contract(
@@ -127,6 +132,27 @@ class ExecutionAuthorizationService:
 
         return decision
 
+    def enforce(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+    ) -> AuthorizationDecision:
+        """
+        Enforce authorization for command execution.
+
+        This is the explicit execution-guard boundary.
+
+        Returns the successful authorization decision.
+
+        Raises ExecutionContractException when
+        authorization is denied.
+        """
+
+        return self.require_authorization(
+            command,
+            context,
+        )
+
     def metadata(
         self,
         command: BaseCommand,
@@ -135,8 +161,8 @@ class ExecutionAuthorizationService:
         """
         Return authorization metadata.
 
-        The returned dictionary is a copy and can therefore
-        be safely enriched by callers.
+        The returned dictionary is a copy and can
+        therefore be safely enriched by callers.
         """
 
         decision = self.authorize(

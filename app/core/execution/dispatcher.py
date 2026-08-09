@@ -13,7 +13,10 @@ from typing import Type
 from app.core.execution.authorization import (
     AllowAllExecutionAuthorizer,
     ExecutionAuthorizer,
-    validate_authorization_contract,
+)
+
+from app.core.execution.authorization_service import (
+    ExecutionAuthorizationService,
 )
 
 from app.core.execution.commands.base import (
@@ -56,7 +59,7 @@ class CommandDispatcher:
     The dispatcher is responsible for orchestration
     only. Business logic remains inside handlers.
 
-    Authorization is evaluated before the command
+    Authorization is enforced before the command
     handler is executed.
     """
 
@@ -78,10 +81,7 @@ class CommandDispatcher:
 
             When no authorizer is supplied, the
             compatibility AllowAllExecutionAuthorizer
-            is used. This preserves existing command
-            execution behavior while allowing the
-            enterprise security framework to be
-            integrated in a later stage.
+            is used.
         """
 
         self.registry = (
@@ -92,6 +92,12 @@ class CommandDispatcher:
         self.authorizer = (
             authorizer
             or AllowAllExecutionAuthorizer()
+        )
+
+        self.authorization_service = (
+            ExecutionAuthorizationService(
+                self.authorizer
+            )
         )
 
         self._handlers: dict[
@@ -191,7 +197,7 @@ class CommandDispatcher:
 
         except KeyError as exc:
             raise HandlerContractException(
-                f"No handler is registered for "
+                "No handler is registered for "
                 f"command "
                 f"'{command_type.command_name}'."
             ) from exc
@@ -232,6 +238,9 @@ class CommandDispatcher:
     ) -> None:
         """
         Replace the execution authorizer.
+
+        The authorization service is recreated so
+        that it always uses the current authorizer.
         """
 
         if not isinstance(
@@ -245,26 +254,28 @@ class CommandDispatcher:
 
         self.authorizer = authorizer
 
+        self.authorization_service = (
+            ExecutionAuthorizationService(
+                self.authorizer
+            )
+        )
+
     def authorize(
         self,
         command: BaseCommand,
         context: ExecutionContext,
-    ) -> None:
+    ):
         """
-        Authorize a command before execution.
+        Enforce authorization before execution.
+
+        Returns the successful AuthorizationDecision.
 
         A denied authorization decision prevents
         the command handler from executing.
         """
 
         try:
-            validate_authorization_contract(
-                command,
-                context,
-                self.authorizer,
-            )
-
-            decision = self.authorizer.authorize(
+            return self.authorization_service.enforce(
                 command,
                 context,
             )
@@ -276,16 +287,6 @@ class CommandDispatcher:
             raise ExecutionContractException(
                 "Authorization evaluation failed."
             ) from exc
-
-        if not decision.is_allowed():
-            reason = (
-                decision.reason
-                or "Command execution was not authorized."
-            )
-
-            raise ExecutionContractException(
-                reason
-            )
 
     def dispatch(
         self,
@@ -327,8 +328,8 @@ class CommandDispatcher:
 
         if registered_type is not command_type:
             raise ExecutionContractException(
-                f"Registered command type does "
-                f"not match supplied command "
+                "Registered command type does "
+                "not match supplied command "
                 f"'{command.command_name}'."
             )
 
@@ -340,23 +341,52 @@ class CommandDispatcher:
             command
         ):
             raise HandlerContractException(
-                f"Handler does not support "
+                "Handler does not support "
                 f"command "
                 f"'{command.command_name}'."
             )
 
-        # Authorization MUST occur before
-        # the handler is invoked.
-        self.authorize(
+        # -------------------------------------------------
+        # Authorization enforcement boundary.
+        #
+        # Authorization MUST occur before the handler
+        # is invoked.
+        # -------------------------------------------------
+
+        authorization_decision = self.authorize(
             command,
             context,
         )
 
-        # Preserve the existing execution
-        # context enrichment pipeline.
+        # The authorization service guarantees that
+        # a returned decision is allowed. Keeping the
+        # decision here provides a stable extension
+        # point for future audit/governance integration.
+        if not authorization_decision.is_allowed():
+            raise ExecutionContractException(
+                authorization_decision.reason
+                or "Command execution was not authorized."
+            )
+
+        # -------------------------------------------------
+        # Preserve the existing execution context
+        # enrichment pipeline.
+        # -------------------------------------------------
+
         enriched_context = context.with_metadata(
             command=command.command_name,
             handler=handler.__class__.__name__,
+            authorization={
+                "allowed": (
+                    authorization_decision.is_allowed()
+                ),
+                "reason": (
+                    authorization_decision.reason
+                ),
+                "metadata": dict(
+                    authorization_decision.metadata
+                ),
+            },
         )
 
         result = handler.handle(
