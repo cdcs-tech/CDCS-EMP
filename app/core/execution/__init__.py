@@ -71,6 +71,10 @@ from app.core.execution.authorization_service import (
     ExecutionAuthorizationService,
 )
 
+from app.core.execution.authorization_audit import (
+    AuthorizationAuditContract,
+)
+
 
 __all__ = [
     "ExecutionContext",
@@ -116,4 +120,5 @@ __all__ = [
     "validate_authorization_contract",
 
     "ExecutionAuthorizationService",
+    "AuthorizationAuditContract",
 ]
