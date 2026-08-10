@@ -83,6 +83,10 @@ from app.core.execution.governance import (
     ExecutionGovernance,
 )
 
+from app.core.execution.authorization_enforcement import (
+    GovernanceAwareAuthorizationEnforcement,
+)
+
 
 __all__ = [
     "ExecutionContext",
@@ -131,4 +135,5 @@ __all__ = [
     "AuthorizationAuditContract",
     "AuthorizationResultGovernance",
     "ExecutionGovernance",
+    "GovernanceAwareAuthorizationEnforcement",
 ]
