@@ -35,6 +35,18 @@ from app.core.execution.results import (
     ExecutionResult,
 )
 
+from app.core.execution.authorization_enforcement import (
+    GovernanceAwareAuthorizationEnforcement,
+)
+
+from app.core.execution.authorization_service import (
+    ExecutionAuthorizationService,
+)
+
+from app.core.execution.governance import (
+    ExecutionGovernance,
+)
+
 
 class TestCommand(BaseCommand):
     """
@@ -279,3 +291,46 @@ def test_authorizer_failure_is_converted_to_execution_contract_error():
         )
 
     assert handler.called is False
+
+def test_dispatcher_supports_governance_aware_enforcement():
+    """
+    Dispatcher can use the governance-aware
+    authorization enforcement boundary.
+    """
+
+    registry = CommandRegistry()
+
+    registry.register(
+        TestCommand
+    )
+
+    service = ExecutionAuthorizationService(
+        AllowAuthorizer()
+    )
+
+    enforcement = (
+        GovernanceAwareAuthorizationEnforcement(
+            service,
+            governance=ExecutionGovernance(),
+        )
+    )
+
+    dispatcher = CommandDispatcher(
+        registry=registry,
+        authorization_enforcement=enforcement,
+    )
+
+    handler = TestHandler()
+
+    dispatcher.register_handler(
+        handler
+    )
+
+    result = dispatcher.dispatch(
+        TestCommand(),
+        create_context(),
+    )
+
+    assert result.is_success()
+
+    assert handler.called is True
