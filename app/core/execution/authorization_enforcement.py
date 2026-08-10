@@ -14,16 +14,8 @@ from app.core.execution.authorization import (
     AuthorizationDecision,
 )
 
-from app.core.execution.authorization_audit import (
-    AuthorizationAuditContract,
-)
-
 from app.core.execution.authorization_service import (
     ExecutionAuthorizationService,
-)
-
-from app.core.execution.authorization_result import (
-    AuthorizationResultGovernance,
 )
 
 from app.core.execution.commands.base import (
@@ -32,6 +24,10 @@ from app.core.execution.commands.base import (
 
 from app.core.execution.context import (
     ExecutionContext,
+)
+
+from app.core.execution.governance import (
+    ExecutionGovernance,
 )
 
 from app.core.execution.results import (
@@ -44,17 +40,17 @@ class GovernanceAwareAuthorizationEnforcement:
     Coordinates authorization evaluation with
     execution governance.
 
-    Authorization remains delegated to the existing
+    Authorization is delegated to the existing
     ExecutionAuthorizationService.
 
-    Audit and result governance remain delegated to
-    their existing contracts.
+    Audit and result governance are delegated to
+    the existing ExecutionGovernance boundary.
     """
 
     def __init__(
         self,
         authorization_service: ExecutionAuthorizationService,
-        audit_contract: AuthorizationAuditContract | None = None,
+        governance: ExecutionGovernance | None = None,
     ) -> None:
         """
         Initialize governance-aware authorization
@@ -70,13 +66,22 @@ class GovernanceAwareAuthorizationEnforcement:
                 "ExecutionAuthorizationService."
             )
 
+        if governance is not None and not isinstance(
+            governance,
+            ExecutionGovernance,
+        ):
+            raise TypeError(
+                "governance must be an "
+                "ExecutionGovernance."
+            )
+
         self.authorization_service = (
             authorization_service
         )
 
-        self.audit_contract = (
-            audit_contract
-            or AuthorizationAuditContract()
+        self.governance = (
+            governance
+            or ExecutionGovernance()
         )
 
     def authorize(
@@ -101,10 +106,11 @@ class GovernanceAwareAuthorizationEnforcement:
         decision: AuthorizationDecision,
     ):
         """
-        Build the authorization audit event.
+        Build the authorization audit event through
+        the execution governance boundary.
         """
 
-        return self.audit_contract.build_event(
+        return self.governance.audit_event(
             command,
             context,
             decision,
@@ -134,22 +140,13 @@ class GovernanceAwareAuthorizationEnforcement:
                 "AuthorizationDecision."
             )
 
-        if decision.is_allowed():
-            return AuthorizationResultGovernance.success_result(
-                decision,
-                context=context,
-                data=data,
-                message=message,
-                metadata=metadata,
-            )
-
-        return AuthorizationResultGovernance.failure_result(
+        return self.governance.governed_result(
             decision,
             context=context,
+            data=data,
             message=message,
             error_code=error_code,
-            data=data,
-            metadata=metadata,
+            result_metadata=metadata,
         )
 
     def enforce(
@@ -170,12 +167,6 @@ class GovernanceAwareAuthorizationEnforcement:
         Evaluate authorization and produce the
         corresponding audit event and governed
         execution result.
-
-        Returns
-        -------
-        tuple
-            Authorization decision, audit event,
-            and governed execution result.
         """
 
         decision = self.authorize(

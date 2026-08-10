@@ -11,6 +11,15 @@ from app.core.execution import (
     AuthorizationDecision,
     ExecutionAuthorizationService,
     ExecutionContext,
+    ExecutionGovernance,
+    GovernanceAwareAuthorizationEnforcement,
+)
+
+from app.core.execution import (
+    AllowAllExecutionAuthorizer,
+    AuthorizationDecision,
+    ExecutionAuthorizationService,
+    ExecutionContext,
     GovernanceAwareAuthorizationEnforcement,
 )
 
@@ -192,3 +201,75 @@ def test_context_metadata_reaches_governed_result():
     assert result.metadata[
         "trace_id"
     ] == "trace-001"
+
+def test_enforcement_uses_supplied_execution_governance():
+    class TrackingGovernance(ExecutionGovernance):
+        def __init__(self):
+            super().__init__()
+            self.audit_called = False
+            self.result_called = False
+
+        def audit_event(
+            self,
+            command,
+            context,
+            decision,
+        ):
+            self.audit_called = True
+
+            return super().audit_event(
+                command,
+                context,
+                decision,
+            )
+
+        def governed_result(
+            self,
+            decision,
+            *,
+            context=None,
+            data=None,
+            message="",
+            error_code="AUTHORIZATION_DENIED",
+            result_metadata=None,
+        ):
+            self.result_called = True
+
+            return super().governed_result(
+                decision,
+                context=context,
+                data=data,
+                message=message,
+                error_code=error_code,
+                result_metadata=result_metadata,
+            )
+
+    governance = TrackingGovernance()
+
+    service = ExecutionAuthorizationService(
+        AllowAllExecutionAuthorizer()
+    )
+
+    enforcement = GovernanceAwareAuthorizationEnforcement(
+        service,
+        governance=governance,
+    )
+
+    command = TestEnforcementCommand()
+    context = build_context()
+
+    decision, event, result = enforcement.enforce(
+        command,
+        context,
+    )
+
+    assert decision.is_allowed()
+
+    assert event.event_type == (
+        "EXECUTION_AUTHORIZATION"
+    )
+
+    assert result.success is True
+
+    assert governance.audit_called is True
+    assert governance.result_called is True
