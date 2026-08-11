@@ -38,6 +38,15 @@ from app.core.execution.contracts import (
     validate_execution_result,
 )
 
+from app.core.execution.event_emitter import (
+    ExecutionEventEmitter,
+)
+
+from app.core.execution.events import (
+    ExecutionEvent,
+    ExecutionEventType,
+)
+
 from app.core.execution.exceptions import (
     ExecutionContractException,
     HandlerContractException,
@@ -49,6 +58,10 @@ from app.core.execution.handlers.base import (
 
 from app.core.execution.results import (
     ExecutionResult,
+)
+
+from app.core.execution.transaction import (
+    ExecutionTransactionBoundary,
 )
 
 
@@ -63,14 +76,14 @@ class CommandDispatcher:
     Authorization is evaluated before the command
     handler is executed.
 
-    The dispatcher supports two authorization paths:
+    When a transaction boundary is configured,
+    transaction lifecycle is controlled by the
+    dispatcher.
 
-    1. The existing ExecutionAuthorizer path.
-    2. An optional GovernanceAwareAuthorizationEnforcement
-       boundary.
-
-    The existing authorizer path remains the default
-    for backward compatibility.
+    When an event emitter is configured, execution
+    lifecycle events are emitted without allowing
+    emitter failures to interfere with command
+    execution semantics.
     """
 
     def __init__(
@@ -81,29 +94,17 @@ class CommandDispatcher:
             GovernanceAwareAuthorizationEnforcement
             | None
         ) = None,
+        transaction_boundary: (
+            ExecutionTransactionBoundary
+            | None
+        ) = None,
+        event_emitter: (
+            ExecutionEventEmitter
+            | None
+        ) = None,
     ) -> None:
         """
         Initialize the command dispatcher.
-
-        Parameters
-        ----------
-        registry:
-            Optional command registry.
-
-        authorizer:
-            Optional execution authorizer.
-
-            When no authorizer is supplied, the
-            compatibility AllowAllExecutionAuthorizer
-            is used.
-
-        authorization_enforcement:
-            Optional governance-aware authorization
-            enforcement boundary.
-
-            When supplied, authorization is delegated
-            through this boundary instead of directly
-            through the dispatcher authorizer.
         """
 
         self.registry = (
@@ -120,6 +121,39 @@ class CommandDispatcher:
             authorization_enforcement
         )
 
+        if (
+            transaction_boundary is not None
+            and not isinstance(
+                transaction_boundary,
+                ExecutionTransactionBoundary,
+            )
+        ):
+            raise ExecutionContractException(
+                "Transaction boundary must "
+                "implement "
+                "ExecutionTransactionBoundary."
+            )
+
+        self.transaction_boundary = (
+            transaction_boundary
+        )
+
+        if (
+            event_emitter is not None
+            and not isinstance(
+                event_emitter,
+                ExecutionEventEmitter,
+            )
+        ):
+            raise ExecutionContractException(
+                "Event emitter must implement "
+                "ExecutionEventEmitter."
+            )
+
+        self.event_emitter = (
+            event_emitter
+        )
+
         self._handlers: dict[
             Type[BaseCommand],
             BaseCommandHandler,
@@ -131,9 +165,6 @@ class CommandDispatcher:
     ) -> BaseCommandHandler:
         """
         Register a command handler.
-
-        The handler's command_type determines which
-        command class it supports.
         """
 
         if not isinstance(
@@ -281,10 +312,6 @@ class CommandDispatcher:
         """
         Configure the optional governance-aware
         authorization enforcement boundary.
-
-        Passing None disables the governance-aware
-        enforcement path and restores the existing
-        authorizer-only behavior.
         """
 
         if (
@@ -304,6 +331,209 @@ class CommandDispatcher:
             enforcement
         )
 
+    def set_transaction_boundary(
+        self,
+        transaction_boundary: (
+            ExecutionTransactionBoundary
+            | None
+        ),
+    ) -> None:
+        """
+        Configure the optional execution
+        transaction boundary.
+
+        Passing None disables transaction-aware
+        command execution.
+        """
+
+        if (
+            transaction_boundary is not None
+            and not isinstance(
+                transaction_boundary,
+                ExecutionTransactionBoundary,
+            )
+        ):
+            raise ExecutionContractException(
+                "Transaction boundary must "
+                "implement "
+                "ExecutionTransactionBoundary."
+            )
+
+        self.transaction_boundary = (
+            transaction_boundary
+        )
+
+    def set_event_emitter(
+        self,
+        event_emitter: (
+            ExecutionEventEmitter
+            | None
+        ),
+    ) -> None:
+        """
+        Configure the optional execution
+        event emitter.
+
+        Passing None disables execution event
+        emission.
+        """
+
+        if (
+            event_emitter is not None
+            and not isinstance(
+                event_emitter,
+                ExecutionEventEmitter,
+            )
+        ):
+            raise ExecutionContractException(
+                "Event emitter must implement "
+                "ExecutionEventEmitter."
+            )
+
+        self.event_emitter = (
+            event_emitter
+        )
+
+    def _emit_event(
+        self,
+        event: ExecutionEvent,
+    ) -> None:
+        """
+        Emit an execution event when an emitter
+        is configured.
+
+        Event-emitter failures are intentionally
+        isolated from command execution.
+        """
+
+        if self.event_emitter is None:
+            return
+
+        try:
+            self.event_emitter.emit(
+                event
+            )
+
+        except Exception:
+            # Event emission is observability
+            # infrastructure and must not alter
+            # command execution semantics.
+            return
+
+    def _build_event(
+        self,
+        event_type: ExecutionEventType,
+        command: BaseCommand,
+        context: ExecutionContext,
+        outcome: str,
+        **metadata,
+    ) -> ExecutionEvent:
+        """
+        Build an execution lifecycle event.
+
+        All dispatcher-generated events identify
+        the dispatcher as their source.
+        """
+
+        event_metadata = {
+            "source": "dispatcher",
+        }
+
+        event_metadata.update(
+            metadata
+        )
+
+        return ExecutionEvent(
+            event_type=event_type,
+            command_name=command.command_name,
+            context=context,
+            outcome=outcome,
+            metadata=event_metadata,
+        )
+
+    def _emit_started_event(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+    ) -> None:
+        """
+        Emit the execution-started event.
+        """
+
+        self._emit_event(
+            self._build_event(
+                ExecutionEventType.STARTED,
+                command,
+                context,
+                "success",
+            )
+        )
+
+    def _emit_completed_event(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+        result: ExecutionResult,
+    ) -> None:
+        """
+        Emit the execution-completed event.
+        """
+
+        self._emit_event(
+            self._build_event(
+                ExecutionEventType.COMPLETED,
+                command,
+                context,
+                "success",
+                error_code=result.error_code,
+            )
+        )
+
+    def _emit_failed_event(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+        result: ExecutionResult | None = None,
+    ) -> None:
+        """
+        Emit the execution-failed event.
+        """
+
+        metadata = {}
+
+        if result is not None:
+            metadata["error_code"] = (
+                result.error_code
+            )
+
+        self._emit_event(
+            self._build_event(
+                ExecutionEventType.FAILED,
+                command,
+                context,
+                "failure",
+                **metadata,
+            )
+        )
+
+    def _emit_denied_event(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+    ) -> None:
+        """
+        Emit the execution-denied event.
+        """
+
+        self._emit_event(
+            self._build_event(
+                ExecutionEventType.DENIED,
+                command,
+                context,
+                "denied",
+            )
+        )
+
     def authorize(
         self,
         command: BaseCommand,
@@ -311,14 +541,6 @@ class CommandDispatcher:
     ) -> None:
         """
         Authorize a command before execution.
-
-        A denied authorization decision prevents
-        the command handler from executing.
-
-        When a governance-aware authorization
-        enforcement boundary is configured, that
-        boundary is used. Otherwise the existing
-        ExecutionAuthorizer path is preserved.
         """
 
         if (
@@ -348,6 +570,11 @@ class CommandDispatcher:
                         "Command execution was "
                         "not authorized."
                     )
+                )
+
+                self._emit_denied_event(
+                    command,
+                    context,
                 )
 
                 raise ExecutionContractException(
@@ -385,9 +612,137 @@ class CommandDispatcher:
                 )
             )
 
+            self._emit_denied_event(
+                command,
+                context,
+            )
+
             raise ExecutionContractException(
                 reason
             )
+
+    def _execute_handler(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+        handler: BaseCommandHandler,
+    ) -> ExecutionResult:
+        """
+        Execute a command handler and validate
+        the returned execution result.
+        """
+
+        enriched_context = context.with_metadata(
+            command=command.command_name,
+            handler=handler.__class__.__name__,
+        )
+
+        result = handler.handle(
+            command,
+            enriched_context,
+        )
+
+        try:
+            validate_execution_result(
+                result
+            )
+
+        except Exception as exc:
+            raise HandlerContractException(
+                "Command handler returned "
+                "an invalid execution result."
+            ) from exc
+
+        return result
+
+    def _execute_transactionally(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+        handler: BaseCommandHandler,
+    ) -> ExecutionResult:
+        """
+        Execute a command inside the configured
+        transaction boundary.
+        """
+
+        transaction = self.transaction_boundary
+
+        if transaction is None:
+            try:
+                result = self._execute_handler(
+                    command,
+                    context,
+                    handler,
+                )
+
+            except Exception:
+                self._emit_failed_event(
+                    command,
+                    context,
+                )
+                raise
+
+            if result.is_success():
+                self._emit_completed_event(
+                    command,
+                    context,
+                    result,
+                )
+
+            else:
+                self._emit_failed_event(
+                    command,
+                    context,
+                    result,
+                )
+
+            return result
+
+        transaction.begin()
+
+        try:
+            result = self._execute_handler(
+                command,
+                context,
+                handler,
+            )
+
+            if result.is_success():
+                transaction.commit()
+
+                self._emit_completed_event(
+                    command,
+                    context,
+                    result,
+                )
+
+            else:
+                transaction.rollback()
+
+                self._emit_failed_event(
+                    command,
+                    context,
+                    result,
+                )
+
+            return result
+
+        except Exception:
+            try:
+                transaction.rollback()
+            except Exception:
+                # Preserve the original execution
+                # exception. Transaction rollback
+                # failure must not mask it.
+                pass
+
+            self._emit_failed_event(
+                command,
+                context,
+            )
+
+            raise
 
     def dispatch(
         self,
@@ -447,37 +802,21 @@ class CommandDispatcher:
                 f"'{command.command_name}'."
             )
 
-        # Authorization MUST occur before
-        # the handler is invoked.
         self.authorize(
             command,
             context,
         )
 
-        # Preserve the existing execution
-        # context enrichment pipeline.
-        enriched_context = context.with_metadata(
-            command=command.command_name,
-            handler=handler.__class__.__name__,
-        )
-
-        result = handler.handle(
+        self._emit_started_event(
             command,
-            enriched_context,
+            context,
         )
 
-        try:
-            validate_execution_result(
-                result
-            )
-
-        except Exception as exc:
-            raise HandlerContractException(
-                "Command handler returned "
-                "an invalid execution result."
-            ) from exc
-
-        return result
+        return self._execute_transactionally(
+            command,
+            context,
+            handler,
+        )
 
 
 __all__ = [

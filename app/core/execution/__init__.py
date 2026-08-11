@@ -87,6 +87,20 @@ from app.core.execution.authorization_enforcement import (
     GovernanceAwareAuthorizationEnforcement,
 )
 
+from app.core.execution.transaction import (
+    ExecutionTransactionBoundary,
+    ExecutionTransactionFailure,
+)
+
+from app.core.execution.event_emitter import (
+    ExecutionEventEmitter,
+    RecordingExecutionEventEmitter,
+)
+
+from app.core.execution.observability_emitter import (
+    ObservabilityExecutionEventEmitter,
+)
+
 
 __all__ = [
     "ExecutionContext",
@@ -136,4 +150,9 @@ __all__ = [
     "AuthorizationResultGovernance",
     "ExecutionGovernance",
     "GovernanceAwareAuthorizationEnforcement",
+    "ExecutionTransactionBoundary",
+    "ExecutionTransactionFailure",
+    "ExecutionEventEmitter",
+    "RecordingExecutionEventEmitter",
+    "ObservabilityExecutionEventEmitter",
 ]
