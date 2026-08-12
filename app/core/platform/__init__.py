@@ -74,6 +74,11 @@ from app.core.platform.governance import (
     platform_governance,
 )
 
+from app.core.platform.execution_observability import (
+    PlatformExecutionObserver,
+    platform_execution_observer,
+)
+
 __all__ = [
     "PlatformConfig",
     "platform_config",
@@ -110,5 +115,7 @@ __all__ = [
     "PlatformComponent",
     "PlatformGovernance",
     "platform_governance",
+    "PlatformExecutionObserver",
+    "platform_execution_observer",
 ]
 
