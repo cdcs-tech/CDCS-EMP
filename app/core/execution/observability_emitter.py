@@ -79,8 +79,9 @@ class ObservabilityExecutionEventEmitter(
         Emit an execution event to the
         platform observability infrastructure.
 
-        Logging and metrics failures are isolated
-        so that observability cannot alter
+        Logging and metrics failures are
+        independently isolated so that an
+        observability failure cannot alter
         execution behavior.
         """
 
@@ -96,15 +97,21 @@ class ObservabilityExecutionEventEmitter(
             self._record_metric(
                 event
             )
+        except Exception:
+            # Metric infrastructure must never
+            # alter execution semantics or
+            # prevent other observability
+            # signals from being recorded.
+            pass
 
+        try:
             self._record_log(
                 event
             )
-
         except Exception:
-            # Observability infrastructure must
-            # never alter execution semantics.
-            return
+            # Logging infrastructure must never
+            # alter execution semantics.
+            pass
 
     def _record_metric(
         self,
@@ -181,6 +188,13 @@ class ObservabilityExecutionEventEmitter(
             f"{event.command_name}"
         )
 
+        metadata = (
+            self._context_metadata(
+                context,
+                **extra,
+            )
+        )
+
         if (
             event.event_type
             == ExecutionEventType.FAILED
@@ -188,10 +202,7 @@ class ObservabilityExecutionEventEmitter(
             self.logger.error(
                 message,
                 context=None,
-                **self._context_metadata(
-                    context,
-                    **extra,
-                ),
+                **metadata,
             )
 
         elif (
@@ -201,20 +212,14 @@ class ObservabilityExecutionEventEmitter(
             self.logger.warning(
                 message,
                 context=None,
-                **self._context_metadata(
-                    context,
-                    **extra,
-                ),
+                **metadata,
             )
 
         else:
             self.logger.info(
                 message,
                 context=None,
-                **self._context_metadata(
-                    context,
-                    **extra,
-                ),
+                **metadata,
             )
 
     @staticmethod
@@ -227,7 +232,9 @@ class ObservabilityExecutionEventEmitter(
         into structured logging metadata.
         """
 
-        metadata = dict(extra)
+        metadata = dict(
+            extra
+        )
 
         metadata.setdefault(
             "request_id",
