@@ -731,6 +731,7 @@ class CommandDispatcher:
         except Exception:
             try:
                 transaction.rollback()
+
             except Exception:
                 # Preserve the original execution
                 # exception. Transaction rollback
@@ -802,12 +803,23 @@ class CommandDispatcher:
                 f"'{command.command_name}'."
             )
 
-        self.authorize(
+        # Establish the execution as RUNNING
+        # before authorization is evaluated.
+        #
+        # This permits authorization denial to
+        # follow the governed lifecycle:
+        #
+        #     STARTED -> DENIED
+        #
+        # Authorization still occurs before any
+        # transaction is started or handler is
+        # executed.
+        self._emit_started_event(
             command,
             context,
         )
 
-        self._emit_started_event(
+        self.authorize(
             command,
             context,
         )
@@ -817,8 +829,3 @@ class CommandDispatcher:
             context,
             handler,
         )
-
-
-__all__ = [
-    "CommandDispatcher",
-]

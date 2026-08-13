@@ -92,6 +92,11 @@ from app.core.execution.transaction import (
     ExecutionTransactionFailure,
 )
 
+from app.core.execution.lifecycle import (
+    ExecutionLifecycleState,
+    ExecutionLifecycle,
+)
+
 from app.core.execution.event_emitter import (
     ExecutionEventEmitter,
     RecordingExecutionEventEmitter,
@@ -99,6 +104,12 @@ from app.core.execution.event_emitter import (
 
 from app.core.execution.observability_emitter import (
     ObservabilityExecutionEventEmitter,
+)
+
+from app.core.execution.governance_contract import (
+    ExecutionGovernanceState,
+    ExecutionGovernanceDecision,
+    ExecutionGovernanceContract,
 )
 
 
@@ -149,10 +160,16 @@ __all__ = [
     "AuthorizationAuditContract",
     "AuthorizationResultGovernance",
     "ExecutionGovernance",
+    "ExecutionGovernanceState",
+    "ExecutionGovernanceDecision",
+    "ExecutionGovernanceContract",
     "GovernanceAwareAuthorizationEnforcement",
     "ExecutionTransactionBoundary",
     "ExecutionTransactionFailure",
     "ExecutionEventEmitter",
     "RecordingExecutionEventEmitter",
     "ObservabilityExecutionEventEmitter",
+    "ExecutionLifecycleState",
+    "ExecutionLifecycle",
+
 ]
