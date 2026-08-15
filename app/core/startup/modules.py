@@ -34,6 +34,10 @@ from app.core.services import (
     service_container,
 )
 
+from app.core.configuration.composition import (
+    register_configuration_service,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +119,13 @@ def initialize_modules(app: Flask) -> ModuleManager:
 
         module.initialize(app)
 
+    # --------------------------------------------------
+    # Configuration Service
+    # --------------------------------------------------
+
+    register_configuration_service(
+        app
+    )
 
 
     logger.info(
