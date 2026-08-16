@@ -73,6 +73,16 @@ class User(
     )
 
     # -------------------------------
+    # Organization Relationship
+    # -------------------------------
+
+    organization_memberships = db.relationship(
+        "OrganizationMembership",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    # -------------------------------
     # RBAC Relationship
     # -------------------------------
 

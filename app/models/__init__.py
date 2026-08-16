@@ -11,6 +11,9 @@ from .role import Role
 from .role_permission import RolePermission
 from .user import User
 from .user_role import UserRole
+from .organization import Organization
+from .organization_membership import OrganizationMembership
+from .tenant import Tenant
 
 __all__ = [
     "BaseModel",
@@ -22,4 +25,7 @@ __all__ = [
     "Permission",
     "UserRole",
     "RolePermission",
+    "Organization",
+    "OrganizationMembership",
+    "Tenant"
 ]
