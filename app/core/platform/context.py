@@ -34,6 +34,8 @@ class RequestContext:
     including:
 
     - User identity
+    - Tenant identity
+    - Organization identity
     - Module identity
     - Operation identity
     - Resource identity
@@ -60,6 +62,10 @@ class RequestContext:
     user_id: Optional[str] = None
 
     username: Optional[str] = None
+
+    tenant_id: Optional[str] = None
+
+    organization_id: Optional[str] = None
 
     module_name: Optional[str] = None
 
@@ -150,6 +156,10 @@ class RequestContext:
             "request_id": self.request_id,
             "user_id": self.user_id,
             "username": self.username,
+            "tenant_id": self.tenant_id,
+            "organization_id": (
+                self.organization_id
+            ),
             "module_name": self.module_name,
             "operation": self.operation,
             "resource": self.resource,
@@ -196,6 +206,10 @@ class RequestContext:
             "request_id": self.request_id,
             "user_id": self.user_id,
             "username": self.username,
+            "tenant_id": self.tenant_id,
+            "organization_id": (
+                self.organization_id
+            ),
             "module_name": self.module_name,
             "operation": self.operation,
             "resource": self.resource,
@@ -241,6 +255,8 @@ class RequestContext:
             trace=self.trace.child(),
             user_id=self.user_id,
             username=self.username,
+            tenant_id=self.tenant_id,
+            organization_id=self.organization_id,
             module_name=self.module_name,
             operation=self.operation,
             resource=self.resource,

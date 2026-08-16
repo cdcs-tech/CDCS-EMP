@@ -127,6 +127,24 @@ def build_context():
     )
 
 
+def build_scoped_context():
+
+    return ExecutionContext(
+        user_id="user-001",
+        tenant_id="tenant-001",
+        organization_id="organization-001",
+        module_name="test",
+        operation="context_operation",
+        request_id="request-001",
+        correlation_id="correlation-001",
+        trace_id="trace-001",
+        environment="testing",
+        metadata={
+            "original": True,
+        },
+    )
+
+
 def test_context_adapter_preserves_original():
 
     context = build_context()
@@ -352,4 +370,55 @@ def test_context_validation():
 
     ExecutionContextAdapter.validate(
         context
+    )
+
+
+def test_context_adapter_preserves_tenant_scope():
+
+    context = build_scoped_context()
+
+    enriched = (
+        ExecutionContextAdapter.enrich(
+            context,
+            extra="value",
+        )
+    )
+
+    assert (
+        enriched.tenant_id
+        == "tenant-001"
+    )
+
+    assert (
+        enriched.organization_id
+        == "organization-001"
+    )
+
+
+def test_context_adapter_preserves_tenant_scope_through_use_case():
+
+    executor, handler = (
+        build_environment()
+    )
+
+    context = build_scoped_context()
+
+    executor.execute_use_case(
+        ContextUseCase(),
+        context,
+        value="hello",
+    )
+
+    captured = (
+        handler.captured_context
+    )
+
+    assert (
+        captured.tenant_id
+        == "tenant-001"
+    )
+
+    assert (
+        captured.organization_id
+        == "organization-001"
     )

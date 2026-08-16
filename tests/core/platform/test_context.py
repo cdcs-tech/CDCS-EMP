@@ -297,3 +297,81 @@ def test_context_representation():
         in representation
     )
 
+def test_request_context_supports_tenant_and_organization():
+
+    runtime = create_runtime()
+
+    context = RequestContext(
+        runtime=runtime,
+        user_id="user-001",
+        tenant_id="tenant-001",
+        organization_id="org-001",
+        module_name="finance",
+        operation="create",
+    )
+
+    assert (
+        context.tenant_id
+        == "tenant-001"
+    )
+
+    assert (
+        context.organization_id
+        == "org-001"
+    )
+
+def test_request_identity_contains_tenant_and_organization():
+
+    runtime = create_runtime()
+
+    context = RequestContext(
+        runtime=runtime,
+        user_id="user-001",
+        tenant_id="tenant-001",
+        organization_id="org-001",
+        module_name="finance",
+        operation="create",
+    )
+
+    identity = context.identity()
+
+    assert (
+        identity["tenant_id"]
+        == "tenant-001"
+    )
+
+    assert (
+        identity["organization_id"]
+        == "org-001"
+    )
+
+def test_child_context_preserves_tenant_and_organization():
+
+    runtime = create_runtime()
+
+    context = RequestContext(
+        runtime=runtime,
+        user_id="user-001",
+        tenant_id="tenant-001",
+        organization_id="org-001",
+        module_name="finance",
+        operation="create",
+    )
+
+    child = context.child_context()
+
+    assert (
+        child.tenant_id
+        == "tenant-001"
+    )
+
+    assert (
+        child.organization_id
+        == "org-001"
+    )
+
+    assert (
+        child.correlation_id
+        == context.correlation_id
+    )
+

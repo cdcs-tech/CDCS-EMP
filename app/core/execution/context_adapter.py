@@ -28,6 +28,62 @@ class ExecutionContextAdapter:
     ExecutionContext. All enrichment operations
     return a new context instance.
     """
+    @staticmethod
+    def for_tenant(
+        context: ExecutionContext,
+        tenant_id: str,
+    ) -> ExecutionContext:
+        """
+        Add tenant identity to the execution
+        context.
+        """
+
+        if not tenant_id:
+            raise ExecutionContractException(
+                "Tenant ID is required."
+            )
+
+        return ExecutionContext(
+            user_id=context.user_id,
+            tenant_id=tenant_id,
+            organization_id=context.organization_id,
+            module_name=context.module_name,
+            operation=context.operation,
+            request_id=context.request_id,
+            correlation_id=context.correlation_id,
+            trace_id=context.trace_id,
+            environment=context.environment,
+            metadata=dict(context.metadata),
+        )
+
+    @staticmethod
+    def for_organization(
+        context: ExecutionContext,
+        organization_id: str,
+    ) -> ExecutionContext:
+        """
+        Add organization identity to the execution
+        context.
+        """
+
+        if not organization_id:
+            raise ExecutionContractException(
+                "Organization ID is required."
+            )
+
+        return ExecutionContext(
+            user_id=context.user_id,
+            tenant_id=context.tenant_id,
+            organization_id=organization_id,
+            module_name=context.module_name,
+            operation=context.operation,
+            request_id=context.request_id,
+            correlation_id=context.correlation_id,
+            trace_id=context.trace_id,
+            environment=context.environment,
+            metadata=dict(context.metadata),
+        )
+
 
     @staticmethod
     def validate(

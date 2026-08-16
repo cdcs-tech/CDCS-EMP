@@ -23,6 +23,10 @@ class ExecutionContext:
 
     user_id: Optional[str] = None
 
+    tenant_id: Optional[str] = None
+
+    organization_id: Optional[str] = None
+
     module_name: Optional[str] = None
 
     operation: Optional[str] = None
@@ -75,6 +79,8 @@ class ExecutionContext:
 
         return ExecutionContext(
             user_id=self.user_id,
+            tenant_id=self.tenant_id,
+            organization_id=self.organization_id,
             module_name=self.module_name,
             operation=self.operation,
             request_id=self.request_id,

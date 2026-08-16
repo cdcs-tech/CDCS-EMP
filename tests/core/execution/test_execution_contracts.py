@@ -39,6 +39,34 @@ def test_valid_execution_contract():
     )
 
 
+def test_valid_execution_contract_with_tenant_scope():
+
+    command = TestCommand()
+
+    context = ExecutionContext(
+        user_id="user-001",
+        tenant_id="tenant-001",
+        organization_id="organization-001",
+        module_name="test",
+        operation="command",
+    )
+
+    validate_execution_contract(
+        command,
+        context,
+    )
+
+    assert (
+        context.tenant_id
+        == "tenant-001"
+    )
+
+    assert (
+        context.organization_id
+        == "organization-001"
+    )
+
+
 def test_invalid_command_type():
 
     context = ExecutionContext(
