@@ -79,6 +79,14 @@ from app.core.platform.execution_observability import (
     platform_execution_observer,
 )
 
+from app.core.platform.scope import (
+    PlatformScopeException,
+    PlatformScopeResolutionException,
+    PlatformScopeAmbiguityException,
+    UserScope,
+    UserScopeResolver,
+)
+
 __all__ = [
     "PlatformConfig",
     "platform_config",
@@ -117,5 +125,11 @@ __all__ = [
     "platform_governance",
     "PlatformExecutionObserver",
     "platform_execution_observer",
+    "PlatformScopeException",
+    "PlatformScopeResolutionException",
+    "PlatformScopeAmbiguityException",
+    "UserScope",
+    "UserScopeResolver",
+
 ]
 
