@@ -42,15 +42,21 @@ def clean_configuration_service():
     is isolated between tests.
     """
 
-    service_container.remove(
+    if service_container.has(
         "configuration"
-    )
+    ):
+        service_container.remove(
+            "configuration"
+        )
 
     yield
 
-    service_container.remove(
+    if service_container.has(
         "configuration"
-    )
+    ):
+        service_container.remove(
+            "configuration"
+        )
 
 
 def test_create_application_configuration_service_uses_default_provider():

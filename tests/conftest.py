@@ -25,6 +25,9 @@ if str(PROJECT_ROOT) not in sys.path:
 from app import create_app
 from app.extensions import db
 from app.models.user import User
+from app.core.platform.lifecycle import (
+    ApplicationLifecycle,
+)
 
 # -------------------------------------------------------
 # Application Fixture
@@ -34,18 +37,27 @@ from app.models.user import User
 def app():
     """
     Create a testing application.
+
+    The application lifecycle is explicitly shut down after
+    each test so that application-scoped enterprise services
+    do not leak into subsequent application instances.
     """
 
     app = create_app("testing")
 
-    with app.app_context():
+    try:
+        with app.app_context():
+            db.create_all()
 
-        db.create_all()
+            yield app
 
-        yield app
+            db.session.remove()
+            db.drop_all()
 
-        db.session.remove()
-        db.drop_all()
+    finally:
+        lifecycle = ApplicationLifecycle.from_app(app)
+
+        lifecycle.shutdown(app)
 
 
 # -------------------------------------------------------
@@ -87,6 +99,17 @@ def session(app):
     yield db.session
 
     db.session.rollback()
+
+@pytest.fixture(scope="function")
+def db_session(app):
+    """
+    Provide the active SQLAlchemy database session.
+
+    The app dependency guarantees that the Flask
+    application context is active.
+    """
+
+    return db.session
 
 # -------------------------------------------------------
 # Import Reusable Fixtures

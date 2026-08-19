@@ -87,6 +87,13 @@ from app.core.platform.scope import (
     UserScopeResolver,
 )
 
+from app.core.platform.lifecycle import (
+    ApplicationLifecycleException,
+    ApplicationLifecycleState,
+    ApplicationLifecycle,
+    application_lifecycle,
+)
+
 __all__ = [
     "PlatformConfig",
     "platform_config",
@@ -130,6 +137,10 @@ __all__ = [
     "PlatformScopeAmbiguityException",
     "UserScope",
     "UserScopeResolver",
+    "ApplicationLifecycleException",
+    "ApplicationLifecycleState",
+    "ApplicationLifecycle",
+    "application_lifecycle",
 
 ]
 

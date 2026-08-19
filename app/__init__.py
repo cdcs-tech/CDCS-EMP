@@ -14,7 +14,9 @@ from flask import render_template
 from app import models  # noqa: F401
 from app.branding.brand import BRAND
 from app.config import config
-from app.core.startup import initialize_modules
+from app.core.platform.lifecycle import (
+    ApplicationLifecycle,
+)
 from app.extensions import (
     bcrypt,
     csrf,
@@ -99,10 +101,14 @@ def create_app(config_name=None):
     )
 
     # -----------------------------------------------------
-    # Initialize Enterprise Module Framework
+    # Initialize Application Lifecycle
     # -----------------------------------------------------
 
-    initialize_modules(app)
+    lifecycle = ApplicationLifecycle()
+
+    lifecycle.start(
+        app
+    )
 
     # -----------------------------------------------------
     # Logging Configuration

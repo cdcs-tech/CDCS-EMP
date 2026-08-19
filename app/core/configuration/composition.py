@@ -39,6 +39,7 @@ from app.core.configuration.validator import (
 )
 
 from app.core.services import (
+    ServiceNotRegisteredException,
     service_container,
 )
 
@@ -218,6 +219,13 @@ def register_configuration_service(
         )
     )
 
+    if service_container.has(
+        CONFIGURATION_SERVICE_NAME
+    ):
+        service_container.remove(
+            CONFIGURATION_SERVICE_NAME
+        )
+
     service_container.register(
         CONFIGURATION_SERVICE_NAME,
         service,
@@ -245,9 +253,16 @@ def get_configuration_service(
             been registered.
     """
 
-    service = service_container.resolve(
-        CONFIGURATION_SERVICE_NAME
-    )
+    try:
+        service = service_container.resolve(
+            CONFIGURATION_SERVICE_NAME
+        )
+
+    except ServiceNotRegisteredException as exc:
+        raise RuntimeError(
+            "Configuration service has not "
+            "been registered."
+        ) from exc
 
     if service is None:
         raise RuntimeError(
@@ -318,9 +333,12 @@ def unregister_configuration_service(
             service extension should also be removed.
     """
 
-    service_container.remove(
+    if service_container.has(
         CONFIGURATION_SERVICE_NAME
-    )
+    ):
+        service_container.remove(
+            CONFIGURATION_SERVICE_NAME
+        )
 
     if app is not None:
 
