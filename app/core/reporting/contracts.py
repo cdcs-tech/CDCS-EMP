@@ -49,6 +49,19 @@ from app.core.reporting.queries import (
 
 
 # ---------------------------------------------------------
+# Report Execution Request / Context Contracts
+# ---------------------------------------------------------
+
+from app.core.reporting.execution_context import (
+    ReportExecutionContext,
+)
+
+from app.core.reporting.execution_request import (
+    ReportExecutionRequest,
+)
+
+
+# ---------------------------------------------------------
 # Report Query Result Contracts
 # ---------------------------------------------------------
 
@@ -74,6 +87,10 @@ from app.core.reporting.data_providers import (
 from app.core.reporting.execution import (
     DefaultReportQueryExecutor,
     ReportQueryExecutor,
+)
+
+from app.core.reporting.execution_service import (
+    ReportExecutionService,
 )
 
 
@@ -102,6 +119,14 @@ from app.core.reporting.providers import (
 from app.core.reporting.results import (
     ReportResultStatus,
     ReportResult,
+)
+
+# ---------------------------------------------------------
+# Reporting Execution Exceptions
+# ---------------------------------------------------------
+
+from app.core.reporting.exceptions import (
+    ReportExecutionException,
 )
 
 
@@ -135,6 +160,13 @@ __all__ = [
     "ReportQuery",
 
 
+    # Report Execution Context
+
+    "ReportExecutionContext",
+
+    "ReportExecutionRequest",
+
+
     # -----------------------------------------------------
     # Report Query Results
     # -----------------------------------------------------
@@ -151,6 +183,10 @@ __all__ = [
     "ReportQueryExecutor",
 
     "DefaultReportQueryExecutor",
+
+    "ReportExecutionService",
+
+    "ReportExecutionException",
 
 
     # -----------------------------------------------------

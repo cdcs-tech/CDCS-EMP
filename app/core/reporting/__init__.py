@@ -20,9 +20,12 @@ from app.core.reporting.contracts import (
     ReportParameter,
     ReportParameterCollection,
     ReportQuery,
+    ReportExecutionContext,
+    ReportExecutionRequest,
     ReportQueryResultStatus,
     ReportQueryResult,
     ReportQueryExecutor,
+    ReportExecutionService,
     DefaultReportQueryExecutor,
     ReportDataProvider,
     ReportDataProviderRegistry,
@@ -83,6 +86,15 @@ __all__ = [
 
 
     # -----------------------------------------------------
+    # Reporting Execution Request / Context
+    # -----------------------------------------------------
+
+    "ReportExecutionContext",
+
+    "ReportExecutionRequest",
+
+
+    # -----------------------------------------------------
     # Reporting Query Results
     # -----------------------------------------------------
 
@@ -98,6 +110,8 @@ __all__ = [
     "ReportQueryExecutor",
 
     "DefaultReportQueryExecutor",
+
+    "ReportExecutionService",
 
 
     # -----------------------------------------------------
