@@ -46,6 +46,29 @@ from app.core.reporting.queries import (
     ReportQuery,
 )
 
+# ---------------------------------------------------------
+# Report Query Execution Contracts
+# ---------------------------------------------------------
+
+from app.core.reporting.execution import (
+    ReportQueryExecutor,
+)
+
+# ---------------------------------------------------------
+# Report Data Provider Contracts
+# ---------------------------------------------------------
+
+from app.core.reporting.data_providers import (
+    ReportDataProvider,
+)
+
+# ---------------------------------------------------------
+# Report Data Provider Registry Contracts
+# ---------------------------------------------------------
+
+from app.core.reporting.provider_registry import (
+    ReportDataProviderRegistry,
+)
 
 # ---------------------------------------------------------
 # Report Provider Contracts
@@ -87,6 +110,21 @@ __all__ = [
 
 
     "ReportQuery",
+
+
+    # Query Execution
+
+    "ReportQueryExecutor",
+
+
+    # Report Data Providers
+
+    "ReportDataProvider",
+
+
+    # Provider Registry
+
+    "ReportDataProviderRegistry",
 
 
     # Providers
