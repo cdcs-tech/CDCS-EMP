@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.data.query import QueryOptions
 from app.core.data.sqlalchemy_repository import (
     SQLAlchemyRepository,
 )
@@ -91,6 +92,7 @@ class TestSQLAlchemyRepository:
 
         assert result is tenant
         assert tenant.id is not None
+
         assert db_session.get(
             Tenant,
             tenant.id,
@@ -326,3 +328,304 @@ class TestSQLAlchemyRepository:
         )
 
         assert db_session.is_active is True
+
+    # ------------------------------------------------------------------
+    # QueryOptions integration
+    # ------------------------------------------------------------------
+
+    def test_get_all_accepts_query_options(
+        self,
+        repository,
+    ):
+        """
+        Repository get_all supports the reusable QueryOptions contract.
+        """
+
+        first = Tenant(
+            code="QUERY-001",
+            name="Alpha Tenant",
+        )
+
+        second = Tenant(
+            code="QUERY-002",
+            name="Beta Tenant",
+        )
+
+        repository.add(
+            first
+        )
+
+        repository.add(
+            second
+        )
+
+        options = QueryOptions(
+            page=1,
+            page_size=25,
+            sort_by="name",
+            sort_direction="asc",
+        )
+
+        result = repository.get_all(
+            options=options,
+        )
+
+        assert result == [
+            first,
+            second,
+        ]
+
+    def test_get_all_applies_pagination_options(
+        self,
+        repository,
+    ):
+        """
+        Repository get_all applies QueryOptions pagination.
+        """
+
+        tenants = [
+            Tenant(
+                code=f"PAGE-{index:03d}",
+                name=f"Tenant {index}",
+            )
+            for index in range(1, 6)
+        ]
+
+        for tenant in tenants:
+            repository.add(
+                tenant
+            )
+
+        options = QueryOptions(
+            page=2,
+            page_size=2,
+            sort_by="id",
+            sort_direction="asc",
+        )
+
+        result = repository.get_all(
+            options=options,
+        )
+
+        assert len(result) == 2
+
+        assert result[0].id == tenants[2].id
+        assert result[1].id == tenants[3].id
+
+    def test_get_all_applies_sorting_options(
+        self,
+        repository,
+    ):
+        """
+        Repository get_all applies QueryOptions sorting.
+        """
+
+        first = Tenant(
+            code="SORT-001",
+            name="Charlie",
+        )
+
+        second = Tenant(
+            code="SORT-002",
+            name="Alpha",
+        )
+
+        third = Tenant(
+            code="SORT-003",
+            name="Bravo",
+        )
+
+        repository.add(
+            first
+        )
+
+        repository.add(
+            second
+        )
+
+        repository.add(
+            third
+        )
+
+        options = QueryOptions(
+            sort_by="name",
+            sort_direction="asc",
+        )
+
+        result = repository.get_all(
+            options=options,
+        )
+
+        assert [
+            tenant.name
+            for tenant in result
+        ] == [
+            "Alpha",
+            "Bravo",
+            "Charlie",
+        ]
+
+    def test_get_all_applies_descending_sorting(
+        self,
+        repository,
+    ):
+        """
+        Repository get_all supports descending QueryOptions sorting.
+        """
+
+        first = Tenant(
+            code="SORT-DESC-001",
+            name="Alpha",
+        )
+
+        second = Tenant(
+            code="SORT-DESC-002",
+            name="Charlie",
+        )
+
+        third = Tenant(
+            code="SORT-DESC-003",
+            name="Bravo",
+        )
+
+        repository.add(
+            first
+        )
+
+        repository.add(
+            second
+        )
+
+        repository.add(
+            third
+        )
+
+        options = QueryOptions(
+            sort_by="name",
+            sort_direction="desc",
+        )
+
+        result = repository.get_all(
+            options=options,
+        )
+
+        assert [
+            tenant.name
+            for tenant in result
+        ] == [
+            "Charlie",
+            "Bravo",
+            "Alpha",
+        ]
+
+    def test_get_all_applies_filter_options(
+        self,
+        repository,
+    ):
+        """
+        Repository get_all applies QueryOptions filters.
+        """
+
+        matching = Tenant(
+            code="FILTER-001",
+            name="Matching Tenant",
+        )
+
+        non_matching = Tenant(
+            code="FILTER-002",
+            name="Other Tenant",
+        )
+
+        repository.add(
+            matching
+        )
+
+        repository.add(
+            non_matching
+        )
+
+        options = QueryOptions(
+            filters={
+                "code": "FILTER-001",
+            },
+        )
+
+        result = repository.get_all(
+            options=options,
+        )
+
+        assert result == [
+            matching,
+        ]
+
+    def test_get_all_applies_search_option(
+        self,
+        repository,
+    ):
+        """
+        Repository get_all supports QueryOptions search criteria.
+        """
+
+        matching = Tenant(
+            code="SEARCH-001",
+            name="Finance Department",
+            description="Finance operations",
+        )
+
+        non_matching = Tenant(
+            code="SEARCH-002",
+            name="Human Resources",
+            description="HR operations",
+        )
+
+        repository.add(
+            matching
+        )
+
+        repository.add(
+            non_matching
+        )
+
+        options = QueryOptions(
+            search="Finance",
+        )
+
+        result = repository.get_all(
+            options=options,
+        )
+
+        assert result == [
+            matching,
+        ]
+
+    def test_get_all_without_options_preserves_repository_contract(
+        self,
+        repository,
+    ):
+        """
+        QueryOptions remains optional for backward compatibility.
+        """
+
+        first = Tenant(
+            code="OPTIONAL-001",
+            name="First Tenant",
+        )
+
+        second = Tenant(
+            code="OPTIONAL-002",
+            name="Second Tenant",
+        )
+
+        repository.add(
+            first
+        )
+
+        repository.add(
+            second
+        )
+
+        result = repository.get_all()
+
+        assert first in result
+        assert second in result
+        assert len(result) == 2

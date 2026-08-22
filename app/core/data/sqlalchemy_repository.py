@@ -14,9 +14,10 @@ from __future__ import annotations
 
 from typing import Generic, List, Optional, Type, TypeVar
 
-from sqlalchemy import func, select
+from sqlalchemy import String, func, or_, select
 
 from app.core.data.entity import BaseEntity
+from app.core.data.query import QueryOptions
 from app.core.data.repository import BaseRepository
 from app.extensions import db
 
@@ -71,13 +72,6 @@ class SQLAlchemyRepository(
     ) -> Optional[TModel]:
         """
         Retrieve an entity by its primary key.
-
-        Args:
-            entity_id:
-                Primary-key value.
-
-        Returns:
-            The matching entity or None.
         """
 
         return db.session.get(
@@ -87,16 +81,99 @@ class SQLAlchemyRepository(
 
     def get_all(
         self,
+        options: QueryOptions | None = None,
     ) -> List[TModel]:
         """
         Retrieve all entities.
 
+        When query options are supplied, the query is delegated
+        to the provider-neutral query implementation so that
+        filtering, searching, sorting, and pagination are
+        applied consistently.
+
+        Args:
+            options:
+                Optional Enterprise Data Framework query options.
+
         Returns:
-            A list containing all persisted entities.
+            Entities matching the supplied query options.
         """
+
+        if options is not None:
+            return self.query(
+                options
+            )
 
         statement = select(
             self.model
+        )
+
+        return list(
+            db.session.execute(
+                statement
+            ).scalars().all()
+        )
+
+    def query(
+        self,
+        options: QueryOptions,
+    ) -> List[TModel]:
+        """
+        Execute a provider-neutral query.
+
+        Supported query features:
+
+        - filtering by mapped model attributes
+        - case-insensitive partial text search
+        - sorting by a mapped model attribute
+        - ascending and descending sort direction
+        - pagination
+
+        The implementation deliberately does not interpret
+        reporting-specific concepts.
+
+        Args:
+            options:
+                Enterprise Data Framework query options.
+
+        Returns:
+            Entities matching the query options.
+
+        Raises:
+            ValueError:
+                When an unsupported model field is requested.
+        """
+
+        if not isinstance(
+            options,
+            QueryOptions,
+        ):
+            raise ValueError(
+                "Query options must be a QueryOptions instance."
+            )
+
+        statement = select(
+            self.model
+        )
+
+        statement = self._apply_filters(
+            statement,
+            options,
+        )
+
+        statement = self._apply_search(
+            statement,
+            options,
+        )
+
+        statement = self._apply_sorting(
+            statement,
+            options,
+        )
+
+        statement = self._apply_pagination(
+            statement,
+            options,
         )
 
         return list(
@@ -113,13 +190,6 @@ class SQLAlchemyRepository(
         Add and flush a new entity.
 
         The transaction is not committed here.
-
-        Args:
-            entity:
-                SQLAlchemy model instance to persist.
-
-        Returns:
-            The persisted entity.
         """
 
         db.session.add(
@@ -139,15 +209,6 @@ class SQLAlchemyRepository(
 
         Detached instances are merged into the current
         SQLAlchemy session.
-
-        The transaction is not committed here.
-
-        Args:
-            entity:
-                Entity to update.
-
-        Returns:
-            The session-managed entity instance.
         """
 
         merged = db.session.merge(
@@ -166,10 +227,6 @@ class SQLAlchemyRepository(
         Delete an entity.
 
         The transaction is not committed here.
-
-        Args:
-            entity:
-                Entity to delete.
         """
 
         db.session.delete(
@@ -184,13 +241,6 @@ class SQLAlchemyRepository(
     ) -> bool:
         """
         Determine whether an entity exists.
-
-        Args:
-            entity_id:
-                Primary-key value.
-
-        Returns:
-            True when the entity exists, otherwise False.
         """
 
         statement = (
@@ -216,9 +266,6 @@ class SQLAlchemyRepository(
     ) -> int:
         """
         Return the total number of persisted entities.
-
-        Returns:
-            Number of persisted entities.
         """
 
         statement = select(
@@ -232,6 +279,182 @@ class SQLAlchemyRepository(
                 statement
             ).scalar_one()
         )
+
+    def _apply_filters(
+        self,
+        statement,
+        options: QueryOptions,
+    ):
+        """
+        Apply equality filters to a query.
+
+        QueryOptions filters currently use the generic
+        field/value representation. Operator-aware
+        filtering remains the responsibility of the
+        FilterCollection framework and a future query
+        translation layer.
+        """
+
+        for field_name, value in options.filters.items():
+
+            field = self._resolve_field(
+                field_name
+            )
+
+            statement = statement.where(
+                field == value
+            )
+
+        return statement
+
+    def _apply_search(
+        self,
+        statement,
+        options: QueryOptions,
+    ):
+        """
+        Apply a generic case-insensitive text search.
+
+        Search is performed as a partial match across all
+        mapped SQLAlchemy string columns on the configured
+        model.
+
+        Non-string columns are deliberately excluded.
+
+        Args:
+            statement:
+                SQLAlchemy select statement.
+
+            options:
+                Enterprise Data Framework query options.
+
+        Returns:
+            SQLAlchemy statement with search criteria applied.
+        """
+
+        if not options.search:
+            return statement
+
+        search_value = (
+            f"%{options.search}%"
+        )
+
+        conditions = []
+
+        for column in self.model.__table__.columns:
+
+            if isinstance(
+                column.type,
+                String,
+            ):
+                conditions.append(
+                    func.lower(
+                        column
+                    ).like(
+                        search_value.lower()
+                    )
+                )
+
+        if conditions:
+
+            statement = statement.where(
+                or_(
+                    *conditions
+                )
+            )
+
+        return statement
+
+    def _apply_sorting(
+        self,
+        statement,
+        options: QueryOptions,
+    ):
+        """
+        Apply the requested sort order.
+        """
+
+        field = self._resolve_field(
+            options.sort_by
+        )
+
+        if options.sort_direction == "desc":
+
+            statement = statement.order_by(
+                field.desc()
+            )
+
+        else:
+
+            statement = statement.order_by(
+                field.asc()
+            )
+
+        return statement
+
+    def _apply_pagination(
+        self,
+        statement,
+        options: QueryOptions,
+    ):
+        """
+        Apply page and page-size settings.
+        """
+
+        offset = (
+            options.page - 1
+        ) * options.page_size
+
+        return statement.offset(
+            offset
+        ).limit(
+            options.page_size
+        )
+
+    def _resolve_field(
+        self,
+        field_name: str,
+    ):
+        """
+        Resolve a query field against the configured model.
+
+        Field resolution is deliberately restricted to
+        mapped SQLAlchemy attributes.
+
+        Raises:
+            ValueError:
+                When the requested field is unavailable.
+        """
+
+        if not isinstance(
+            field_name,
+            str,
+        ):
+            raise ValueError(
+                "Query field name must be a string."
+            )
+
+        field_name = field_name.strip()
+
+        if not field_name:
+            raise ValueError(
+                "Query field name is required."
+            )
+
+        field = getattr(
+            self.model,
+            field_name,
+            None,
+        )
+
+        if field is None:
+
+            raise ValueError(
+                f"Unknown query field "
+                f"'{field_name}'."
+            )
+
+        return field
 
 
 __all__ = [

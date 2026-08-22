@@ -38,6 +38,7 @@ from app.core.reporting.parameters import (
     ReportParameterCollection,
 )
 
+
 # ---------------------------------------------------------
 # Report Query Contracts
 # ---------------------------------------------------------
@@ -46,13 +47,16 @@ from app.core.reporting.queries import (
     ReportQuery,
 )
 
+
 # ---------------------------------------------------------
-# Report Query Execution Contracts
+# Report Query Result Contracts
 # ---------------------------------------------------------
 
-from app.core.reporting.execution import (
-    ReportQueryExecutor,
+from app.core.reporting.query_results import (
+    ReportQueryResultStatus,
+    ReportQueryResult,
 )
+
 
 # ---------------------------------------------------------
 # Report Data Provider Contracts
@@ -62,6 +66,17 @@ from app.core.reporting.data_providers import (
     ReportDataProvider,
 )
 
+
+# ---------------------------------------------------------
+# Report Query Execution Contracts
+# ---------------------------------------------------------
+
+from app.core.reporting.execution import (
+    DefaultReportQueryExecutor,
+    ReportQueryExecutor,
+)
+
+
 # ---------------------------------------------------------
 # Report Data Provider Registry Contracts
 # ---------------------------------------------------------
@@ -69,6 +84,7 @@ from app.core.reporting.data_providers import (
 from app.core.reporting.provider_registry import (
     ReportDataProviderRegistry,
 )
+
 
 # ---------------------------------------------------------
 # Report Provider Contracts
@@ -89,9 +105,10 @@ from app.core.reporting.results import (
 )
 
 
-
 __all__ = [
+    # -----------------------------------------------------
     # Report Definition
+    # -----------------------------------------------------
 
     "ReportDefinition",
 
@@ -100,7 +117,9 @@ __all__ = [
     "ReportDefinitionParameterCollection",
 
 
+    # -----------------------------------------------------
     # Report Parameters
+    # -----------------------------------------------------
 
     "ReportParameterType",
 
@@ -109,30 +128,55 @@ __all__ = [
     "ReportParameterCollection",
 
 
+    # -----------------------------------------------------
+    # Report Query
+    # -----------------------------------------------------
+
     "ReportQuery",
 
 
+    # -----------------------------------------------------
+    # Report Query Results
+    # -----------------------------------------------------
+
+    "ReportQueryResultStatus",
+
+    "ReportQueryResult",
+
+
+    # -----------------------------------------------------
     # Query Execution
+    # -----------------------------------------------------
 
     "ReportQueryExecutor",
 
+    "DefaultReportQueryExecutor",
 
+
+    # -----------------------------------------------------
     # Report Data Providers
+    # -----------------------------------------------------
 
     "ReportDataProvider",
 
 
+    # -----------------------------------------------------
     # Provider Registry
+    # -----------------------------------------------------
 
     "ReportDataProviderRegistry",
 
 
+    # -----------------------------------------------------
     # Providers
+    # -----------------------------------------------------
 
     "ReportProvider",
 
 
+    # -----------------------------------------------------
     # Results
+    # -----------------------------------------------------
 
     "ReportResultStatus",
 

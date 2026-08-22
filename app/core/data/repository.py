@@ -12,6 +12,8 @@ from abc import ABC, abstractmethod
 from typing import Generic, List, Optional, TypeVar
 
 from app.core.data.entity import BaseEntity
+from app.core.data.query import QueryOptions
+
 
 TEntity = TypeVar(
     "TEntity",
@@ -36,6 +38,7 @@ class BaseRepository(
         """
         Retrieve an entity by its identifier.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -45,6 +48,28 @@ class BaseRepository(
         """
         Retrieve all entities.
         """
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def query(
+        self,
+        options: QueryOptions,
+    ) -> List[TEntity]:
+        """
+        Execute a provider-neutral data query.
+
+        Query interpretation remains the responsibility
+        of the repository implementation.
+
+        Args:
+            options:
+                Enterprise Data Framework query options.
+
+        Returns:
+            Entities matching the supplied query options.
+        """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -55,6 +80,7 @@ class BaseRepository(
         """
         Persist a new entity.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -65,6 +91,7 @@ class BaseRepository(
         """
         Update an existing entity.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -75,6 +102,7 @@ class BaseRepository(
         """
         Delete an entity.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -85,6 +113,7 @@ class BaseRepository(
         """
         Determine whether an entity exists.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -94,4 +123,5 @@ class BaseRepository(
         """
         Return the total number of entities.
         """
+
         raise NotImplementedError
