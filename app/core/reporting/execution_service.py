@@ -42,13 +42,15 @@ class ReportExecutionService:
     - execution-option propagation
     - execution-parameter propagation
     - execution-context propagation
+    - reporting-filter propagation
+    - reporting-sorting propagation
     - query execution
     - standardized execution-result validation
     - execution failure translation
 
-    The service preserves ReportQueryResult outcomes produced
-    by the query executor, including SUCCESS, EMPTY, and
-    FAILED results.
+    The service preserves ReportQueryResult outcomes
+    produced by the query executor, including SUCCESS,
+    EMPTY, and FAILED results.
 
     Authorization, governance, auditing, telemetry,
     transaction management, persistence, and presentation
@@ -62,19 +64,6 @@ class ReportExecutionService:
     ) -> None:
         """
         Initialize the report execution service.
-
-        Args:
-            provider_registry:
-                Registry responsible for resolving a suitable
-                report data provider.
-
-            query_executor:
-                Executor responsible for executing a query
-                through the resolved provider.
-
-        Raises:
-            ValueError:
-                When either dependency is missing or invalid.
         """
 
         if not isinstance(
@@ -112,9 +101,10 @@ class ReportExecutionService:
 
         1. validates the execution request,
         2. resolves the appropriate data provider,
-        3. delegates execution to the query executor,
-        4. validates the returned execution result, and
-        5. returns the standardized ReportQueryResult.
+        3. propagates all execution-boundary contracts,
+        4. delegates execution to the query executor,
+        5. validates the returned execution result, and
+        6. returns the standardized ReportQueryResult.
 
         SUCCESS, EMPTY, and FAILED query results are valid
         execution outcomes and are returned unchanged.
@@ -122,23 +112,6 @@ class ReportExecutionService:
         Exceptions raised during provider resolution or
         query execution are translated into the reporting
         execution exception boundary.
-
-        Args:
-            request:
-                Complete provider-neutral report execution
-                request.
-
-        Returns:
-            Standardized report query result.
-
-        Raises:
-            ValueError:
-                When the supplied request is invalid.
-
-            ReportExecutionException:
-                When provider resolution or query execution
-                raises an exception, or when the executor
-                returns an invalid result.
         """
 
         self._validate_request(
@@ -153,6 +126,12 @@ class ReportExecutionService:
 
         context = request.context
 
+        query_options = request.query_options
+
+        filters = request.filters
+
+        sorting = request.sorting
+
         try:
 
             provider = (
@@ -164,8 +143,11 @@ class ReportExecutionService:
             result = self._execute_query(
                 provider=provider,
                 query=query,
+                options=query_options,
                 parameters=parameters,
                 context=context,
+                filters=filters,
+                sorting=sorting,
             )
 
         except Exception as exc:
@@ -207,13 +189,16 @@ class ReportExecutionService:
         self,
         provider: Any,
         query: Any,
+        options: Any,
         parameters: dict[str, Any],
         context: ReportExecutionContext,
+        filters: Any,
+        sorting: Any,
     ) -> ReportQueryResult:
         """
         Delegate query execution to the configured executor.
 
-        Execution parameters and execution context are passed
+        All provider-neutral execution contracts are passed
         through without changing their semantic meaning.
 
         The method intentionally does not interpret the result.
@@ -224,8 +209,11 @@ class ReportExecutionService:
         return self.query_executor.execute(
             provider,
             query,
+            options=options,
             parameters=parameters,
             context=context,
+            filters=filters,
+            sorting=sorting,
         )
 
     def _validate_result(
@@ -234,13 +222,6 @@ class ReportExecutionService:
     ) -> None:
         """
         Validate the result returned by the query executor.
-
-        SUCCESS, EMPTY, and FAILED are all valid standardized
-        execution outcomes.
-
-        Raises:
-            ReportExecutionException:
-                When the executor returns an invalid object.
         """
 
         if not isinstance(

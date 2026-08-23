@@ -12,6 +12,7 @@ from app.core.reporting import (
     ReportQuery,
 )
 
+from app.core.data import QueryOptions
 
 def test_report_query_creation():
 
@@ -161,3 +162,100 @@ def test_public_report_query_is_available():
         PublicReportQuery
         is ReportQuery
     )
+
+def test_report_query_accepts_query_options():
+
+    query_options = QueryOptions(
+        page=2,
+        page_size=50,
+        sort_by="name",
+        sort_direction="desc",
+        filters={
+            "status": "active",
+        },
+        search="finance",
+        fields=[
+            "id",
+            "name",
+        ],
+    )
+
+    query = ReportQuery(
+        report_code="FINANCE.REVENUE",
+        query_options=query_options,
+    )
+
+    assert query.query_options is query_options
+
+def test_report_query_rejects_invalid_query_options():
+
+    try:
+        ReportQuery(
+            report_code="FINANCE.REVENUE",
+            query_options="invalid",
+        )
+    except ValueError as exc:
+        assert (
+            str(exc)
+            == (
+                "Report query query_options must be "
+                "a QueryOptions instance or None."
+            )
+        )
+    else:
+        raise AssertionError(
+            "Expected ValueError was not raised."
+        )
+
+def test_report_query_serializes_query_options():
+
+    query_options = QueryOptions(
+        page=2,
+        page_size=50,
+        sort_by="name",
+        sort_direction="desc",
+        filters={
+            "status": "active",
+        },
+    )
+
+    query = ReportQuery(
+        report_code="FINANCE.REVENUE",
+        metadata={
+            "source": "finance",
+        },
+        query_options=query_options,
+    )
+
+    serialized = query.to_dict()
+
+    assert serialized["report_code"] == (
+        "FINANCE.REVENUE"
+    )
+
+    assert serialized["metadata"] == {
+        "source": "finance",
+    }
+
+    assert serialized["query_options"] == {
+        "page": 2,
+        "page_size": 50,
+        "sort_by": "name",
+        "sort_direction": "desc",
+        "filters": {
+            "status": "active",
+        },
+        "search": None,
+        "fields": [],
+        "include_inactive": False,
+    }
+
+def test_report_query_without_query_options_remains_valid():
+
+    query = ReportQuery(
+        report_code="FINANCE.REVENUE",
+    )
+
+    assert query.query_options is None
+
+    assert "query_options" not in query.to_dict()

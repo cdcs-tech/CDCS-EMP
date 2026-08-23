@@ -10,10 +10,18 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.data import QueryOptions
+
 from app.core.reporting import (
     ReportExecutionContext,
     ReportExecutionRequest,
+    ReportFilter,
+    ReportFilterCollection,
+    ReportFilterOperator,
     ReportQuery,
+    ReportSort,
+    ReportSortCollection,
+    ReportSortDirection,
 )
 
 
@@ -51,6 +59,31 @@ def test_execution_request_defaults():
     assert (
         request.context.metadata
         == {}
+    )
+
+    assert (
+        request.query_options
+        is None
+    )
+
+    assert isinstance(
+        request.filters,
+        ReportFilterCollection,
+    )
+
+    assert (
+        len(request.filters)
+        == 0
+    )
+
+    assert isinstance(
+        request.sorting,
+        ReportSortCollection,
+    )
+
+    assert (
+        len(request.sorting)
+        == 0
     )
 
 
@@ -92,6 +125,123 @@ def test_execution_request_accepts_context():
         request.context
         is context
     )
+
+
+def test_execution_request_accepts_query_options():
+
+    options = QueryOptions(
+        page=2,
+        page_size=50,
+        sort_by="name",
+        sort_direction="desc",
+    )
+
+    request = ReportExecutionRequest(
+        query=create_query(),
+        query_options=options,
+    )
+
+    assert (
+        request.query_options
+        is options
+    )
+
+
+def test_execution_request_accepts_filters():
+
+    filters = ReportFilterCollection(
+        filters=[
+            ReportFilter(
+                field="status",
+                operator=ReportFilterOperator.EQUALS,
+                value="active",
+            ),
+        ]
+    )
+
+    request = ReportExecutionRequest(
+        query=create_query(),
+        filters=filters,
+    )
+
+    assert (
+        request.filters
+        is filters
+    )
+
+
+def test_execution_request_accepts_sorting():
+
+    sorting = ReportSortCollection(
+        sorts=[
+            ReportSort(
+                field="name",
+                direction=ReportSortDirection.ASCENDING,
+            ),
+        ]
+    )
+
+    request = ReportExecutionRequest(
+        query=create_query(),
+        sorting=sorting,
+    )
+
+    assert (
+        request.sorting
+        is sorting
+    )
+
+
+def test_execution_request_accepts_complete_execution_boundary():
+
+    options = QueryOptions(
+        page=2,
+        page_size=50,
+        sort_by="name",
+        sort_direction="desc",
+    )
+
+    filters = ReportFilterCollection(
+        filters=[
+            ReportFilter(
+                field="status",
+                operator=ReportFilterOperator.EQUALS,
+                value="active",
+            ),
+        ]
+    )
+
+    sorting = ReportSortCollection(
+        sorts=[
+            ReportSort(
+                field="name",
+                direction=ReportSortDirection.ASCENDING,
+            ),
+        ]
+    )
+
+    context = ReportExecutionContext(
+        correlation_id="corr-001",
+        source="api",
+    )
+
+    request = ReportExecutionRequest(
+        query=create_query(),
+        parameters={
+            "year": 2026,
+        },
+        context=context,
+        query_options=options,
+        filters=filters,
+        sorting=sorting,
+    )
+
+    assert request.query.report_code == "SALES_SUMMARY"
+    assert request.parameters["year"] == 2026
+    assert request.context is context
+    assert request.query_options is options
+    assert request.filters is filters
+    assert request.sorting is sorting
 
 
 def test_execution_request_accepts_parameters_and_context():
@@ -173,6 +323,45 @@ def test_execution_request_rejects_invalid_context():
         )
 
 
+def test_execution_request_rejects_invalid_query_options():
+
+    with pytest.raises(
+        ValueError,
+        match="query_options",
+    ):
+
+        ReportExecutionRequest(
+            query=create_query(),
+            query_options="invalid",
+        )
+
+
+def test_execution_request_rejects_invalid_filters():
+
+    with pytest.raises(
+        ValueError,
+        match="ReportFilterCollection",
+    ):
+
+        ReportExecutionRequest(
+            query=create_query(),
+            filters="invalid",
+        )
+
+
+def test_execution_request_rejects_invalid_sorting():
+
+    with pytest.raises(
+        ValueError,
+        match="ReportSortCollection",
+    ):
+
+        ReportExecutionRequest(
+            query=create_query(),
+            sorting="invalid",
+        )
+
+
 def test_execution_request_copies_parameters():
 
     parameters = {
@@ -194,6 +383,13 @@ def test_execution_request_copies_parameters():
 
 def test_execution_request_to_dict():
 
+    options = QueryOptions(
+        page=2,
+        page_size=50,
+        sort_by="name",
+        sort_direction="desc",
+    )
+
     request = ReportExecutionRequest(
         query=create_query(),
         parameters={
@@ -208,6 +404,7 @@ def test_execution_request_to_dict():
                 "environment": "test",
             },
         ),
+        query_options=options,
     )
 
     result = request.to_dict()
@@ -250,6 +447,21 @@ def test_execution_request_to_dict():
     assert (
         result["context"]["metadata"]["environment"]
         == "test"
+    )
+
+    assert (
+        result["query_options"]
+        == options.to_dict()
+    )
+
+    assert (
+        result["filters"]
+        == []
+    )
+
+    assert (
+        result["sorting"]
+        == []
     )
 
 

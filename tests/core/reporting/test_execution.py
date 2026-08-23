@@ -62,6 +62,7 @@ class ExampleReportDataProvider(
         query: ReportQuery,
         options: QueryOptions | None = None,
     ) -> Any:
+
         self.received_query = query
         self.received_options = options
 
@@ -120,7 +121,7 @@ def test_report_query_executor_cannot_be_instantiated():
     with pytest.raises(
         TypeError
     ):
-        ReportQueryExecutor()
+        ReportQueryExecutor()  # type: ignore[abstract]
 
 
 def test_report_query_executor_requires_execute():
@@ -133,7 +134,7 @@ def test_report_query_executor_requires_execute():
     with pytest.raises(
         TypeError
     ):
-        InvalidExecutor()
+        InvalidExecutor()  # type: ignore[abstract]
 
 
 def test_default_report_query_executor_is_concrete():
@@ -336,8 +337,6 @@ def test_execute_detects_none_as_empty():
         data=None,
     )
 
-    # Explicitly override provider behaviour so that
-    # None is returned as provider data.
     provider.execute = (
         lambda query, options=None: None
     )

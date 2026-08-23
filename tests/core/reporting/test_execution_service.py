@@ -9,6 +9,9 @@ Report execution service contract tests.
 from __future__ import annotations
 
 import pytest
+from typing import cast
+
+from app.core.data import QueryOptions
 
 from app.core.reporting import (
     ReportDataProvider,
@@ -17,10 +20,16 @@ from app.core.reporting import (
     ReportExecutionException,
     ReportExecutionRequest,
     ReportExecutionService,
+    ReportFilter,
+    ReportFilterCollection,
+    ReportFilterOperator,
     ReportQuery,
     ReportQueryExecutor,
     ReportQueryResult,
     ReportQueryResultStatus,
+    ReportSort,
+    ReportSortCollection,
+    ReportSortDirection,
 )
 
 
@@ -32,7 +41,9 @@ class ExampleReportDataProvider(
     """
 
     @property
-    def name(self) -> str:
+    def name(
+        self,
+    ) -> str:
         return "example"
 
     def supports(
@@ -60,6 +71,10 @@ class ExampleReportQueryExecutor(
 ):
     """
     Concrete query executor used by execution-service tests.
+
+    The executor deliberately accepts the complete
+    provider-neutral execution boundary exposed by the
+    reporting execution service.
     """
 
     def __init__(
@@ -70,6 +85,8 @@ class ExampleReportQueryExecutor(
         self.options = None
         self.parameters = None
         self.context = None
+        self.filters = None
+        self.sorting = None
 
     def execute(
         self,
@@ -78,6 +95,8 @@ class ExampleReportQueryExecutor(
         options=None,
         parameters=None,
         context=None,
+        filters=None,
+        sorting=None,
     ) -> ReportQueryResult:
 
         self.provider = provider
@@ -85,6 +104,8 @@ class ExampleReportQueryExecutor(
         self.options = options
         self.parameters = parameters
         self.context = context
+        self.filters = filters
+        self.sorting = sorting
 
         data = provider.execute(
             query,
@@ -121,6 +142,8 @@ class EmptyResultQueryExecutor(
         options=None,
         parameters=None,
         context=None,
+        filters=None,
+        sorting=None,
     ):
 
         self.provider = provider
@@ -128,6 +151,8 @@ class EmptyResultQueryExecutor(
         self.options = options
         self.parameters = parameters
         self.context = context
+        self.filters = filters
+        self.sorting = sorting
 
         return ReportQueryResult(
             query=query,
@@ -154,6 +179,8 @@ class FailedResultQueryExecutor(
         options=None,
         parameters=None,
         context=None,
+        filters=None,
+        sorting=None,
     ):
 
         self.provider = provider
@@ -161,6 +188,8 @@ class FailedResultQueryExecutor(
         self.options = options
         self.parameters = parameters
         self.context = context
+        self.filters = filters
+        self.sorting = sorting
 
         return ReportQueryResult(
             query=query,
@@ -191,6 +220,9 @@ def create_request(
     query=None,
     parameters=None,
     context=None,
+    query_options=None,
+    filters=None,
+    sorting=None,
 ) -> ReportExecutionRequest:
     """
     Create a standard report execution request.
@@ -207,6 +239,17 @@ def create_request(
             context
             if context is not None
             else ReportExecutionContext()
+        ),
+        query_options=query_options,
+        filters=(
+            filters
+            if filters is not None
+            else ReportFilterCollection()
+        ),
+        sorting=(
+            sorting
+            if sorting is not None
+            else ReportSortCollection()
         ),
     )
 
@@ -248,7 +291,7 @@ def test_execution_service_requires_provider_registry():
         match="ReportDataProviderRegistry",
     ):
         ReportExecutionService(
-            provider_registry=None,
+            provider_registry=cast(ReportDataProviderRegistry, None),
             query_executor=executor,
         )
 
@@ -263,7 +306,7 @@ def test_execution_service_requires_query_executor():
     ):
         ReportExecutionService(
             provider_registry=registry,
-            query_executor=None,
+            query_executor=cast(ReportQueryExecutor, None),
         )
 
 
@@ -276,7 +319,7 @@ def test_execution_service_rejects_invalid_registry():
         match="ReportDataProviderRegistry",
     ):
         ReportExecutionService(
-            provider_registry="invalid",
+            provider_registry=cast(ReportDataProviderRegistry, "invalid"),
             query_executor=executor,
         )
 
@@ -291,7 +334,7 @@ def test_execution_service_rejects_invalid_executor():
     ):
         ReportExecutionService(
             provider_registry=registry,
-            query_executor="invalid",
+            query_executor=cast(ReportQueryExecutor, "invalid"),
         )
 
 
@@ -314,7 +357,7 @@ def test_execution_service_rejects_invalid_request():
         match="Report execution request",
     ):
         service.execute(
-            "invalid"
+            cast(ReportExecutionRequest, "invalid")
         )
 
 
@@ -475,6 +518,170 @@ def test_execution_service_preserves_execution_context_values():
     assert (
         executor.context.source
         == "api"
+    )
+
+
+def test_execution_service_passes_query_options_to_executor():
+
+    service, _, executor = (
+        create_service()
+    )
+
+    query_options = QueryOptions(
+        page=2,
+        page_size=25,
+        sort_by="name",
+        sort_direction="desc",
+        filters={
+            "is_active": True,
+        },
+    )
+
+    service.execute(
+        create_request(
+            query_options=query_options,
+        )
+    )
+
+    assert (
+        executor.options
+        is query_options
+    )
+
+
+def test_execution_service_passes_filters_to_executor():
+
+    service, _, executor = (
+        create_service()
+    )
+
+    filters = ReportFilterCollection(
+        filters=[
+            ReportFilter(
+                field="department",
+                operator=ReportFilterOperator.EQUALS,
+                value="Finance",
+            ),
+            ReportFilter(
+                field="is_active",
+                operator=ReportFilterOperator.EQUALS,
+                value=True,
+            ),
+        ]
+    )
+
+    service.execute(
+        create_request(
+            filters=filters,
+        )
+    )
+
+    assert (
+        executor.filters
+        is filters
+    )
+
+
+def test_execution_service_passes_sorting_to_executor():
+
+    service, _, executor = (
+        create_service()
+    )
+
+    sorting = ReportSortCollection(
+        sorts=[
+            ReportSort(
+                field="name",
+                direction=ReportSortDirection.ASCENDING,
+            ),
+            ReportSort(
+                field="created_at",
+                direction=ReportSortDirection.DESCENDING,
+            ),
+        ]
+    )
+
+    service.execute(
+        create_request(
+            sorting=sorting,
+        )
+    )
+
+    assert (
+        executor.sorting
+        is sorting
+    )
+
+
+def test_execution_service_passes_complete_execution_request():
+
+    service, _, executor = (
+        create_service()
+    )
+
+    query = create_query()
+
+    parameters = {
+        "year": 2026,
+        "department": "Finance",
+    }
+
+    context = ReportExecutionContext(
+        correlation_id="corr-001",
+        requested_by="user-001",
+        source="api",
+    )
+
+    query_options = QueryOptions(
+        page=2,
+        page_size=50,
+        sort_by="name",
+        sort_direction="desc",
+    )
+
+    filters = ReportFilterCollection(
+        filters=[
+            ReportFilter(
+                field="department",
+                operator=ReportFilterOperator.EQUALS,
+                value="Finance",
+            ),
+        ]
+    )
+
+    sorting = ReportSortCollection(
+        sorts=[
+            ReportSort(
+                field="name",
+                direction=ReportSortDirection.ASCENDING,
+            ),
+        ]
+    )
+
+    request = create_request(
+        query=query,
+        parameters=parameters,
+        context=context,
+        query_options=query_options,
+        filters=filters,
+        sorting=sorting,
+    )
+
+    result = service.execute(
+        request
+    )
+
+    assert executor.provider is not None
+    assert executor.query is query
+    assert executor.options is query_options
+    assert executor.parameters == parameters
+    assert executor.context is context
+    assert executor.filters is filters
+    assert executor.sorting is sorting
+
+    assert isinstance(
+        result,
+        ReportQueryResult,
     )
 
 
@@ -673,6 +880,8 @@ def test_execution_service_preserves_result_identity():
             options=None,
             parameters=None,
             context=None,
+            filters=None,
+            sorting=None,
         ):
             return expected_result
 
@@ -728,6 +937,8 @@ def test_execution_service_preserves_execution_exception():
             options=None,
             parameters=None,
             context=None,
+            filters=None,
+            sorting=None,
         ):
             raise ReportExecutionException(
                 "Expected execution failure."
@@ -768,6 +979,8 @@ def test_execution_service_wraps_unexpected_executor_failure():
             options=None,
             parameters=None,
             context=None,
+            filters=None,
+            sorting=None,
         ):
             raise RuntimeError(
                 "Unexpected provider failure."
@@ -814,6 +1027,8 @@ def test_execution_service_rejects_invalid_executor_result():
             options=None,
             parameters=None,
             context=None,
+            filters=None,
+            sorting=None,
         ):
             return {
                 "invalid": "result",

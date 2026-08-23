@@ -53,6 +53,24 @@ from app.core.reporting.exceptions import (
     AnalyticsExecutionException,
 )
 
+from app.core.reporting.filters import (
+    ReportFilter,
+    ReportFilterCollection,
+    ReportFilterOperator,
+)
+
+from app.core.reporting.sorting import (
+    ReportSort,
+    ReportSortCollection,
+    ReportSortDirection,
+)
+
+from app.core.reporting.parameter_binding import (
+    ReportParameterBinding,
+    ReportParameterBindingCollection,
+    ReportParameterBinder,
+)
+
 
 __all__ = [
 
@@ -174,4 +192,23 @@ __all__ = [
     "AnalyticsConfigurationException",
 
     "AnalyticsExecutionException",
+
+    "ReportFilter",
+
+    "ReportFilterCollection",
+
+    "ReportFilterOperator",
+
+    "ReportSort",
+
+    "ReportSortCollection",
+
+    "ReportSortDirection",
+
+    "ReportParameterBinding",
+
+    "ReportParameterBindingCollection",
+
+    "ReportParameterBinder",
+
 ]

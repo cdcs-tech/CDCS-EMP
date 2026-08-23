@@ -129,6 +129,16 @@ from app.core.reporting.exceptions import (
     ReportExecutionException,
 )
 
+# ---------------------------------------------------------
+# Report Parameter Binding Contracts
+# ---------------------------------------------------------
+
+from app.core.reporting.parameter_binding import (
+    ReportParameterBinding,
+    ReportParameterBindingCollection,
+    ReportParameterBinder,
+)
+
 
 __all__ = [
     # -----------------------------------------------------
@@ -217,4 +227,10 @@ __all__ = [
     "ReportResultStatus",
 
     "ReportResult",
+
+    "ReportParameterBinding",
+
+    "ReportParameterBindingCollection",
+
+    "ReportParameterBinder",
 ]

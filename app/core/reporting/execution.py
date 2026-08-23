@@ -20,12 +20,18 @@ from app.core.reporting.data_providers import (
 from app.core.reporting.execution_context import (
     ReportExecutionContext,
 )
+from app.core.reporting.filters import (
+    ReportFilterCollection,
+)
 from app.core.reporting.queries import (
     ReportQuery,
 )
 from app.core.reporting.query_results import (
     ReportQueryResult,
     ReportQueryResultStatus,
+)
+from app.core.reporting.sorting import (
+    ReportSortCollection,
 )
 
 
@@ -38,9 +44,10 @@ class ReportQueryExecutor(ABC):
     data provider and returning a standardized query
     result.
 
-    Report execution parameters and execution context are
-    passed through explicitly so that the execution boundary
-    does not lose request-level information.
+    Report execution parameters, context, query options,
+    filters, and sorting are passed explicitly so that
+    the execution boundary does not lose request-level
+    information.
 
     Provider resolution, authorization, governance,
     auditing, telemetry, persistence, and presentation
@@ -55,6 +62,8 @@ class ReportQueryExecutor(ABC):
         options: QueryOptions | None = None,
         parameters: dict[str, Any] | None = None,
         context: ReportExecutionContext | None = None,
+        filters: ReportFilterCollection | None = None,
+        sorting: ReportSortCollection | None = None,
     ) -> ReportQueryResult:
         """
         Execute a report query through a data provider.
@@ -76,6 +85,12 @@ class ReportQueryExecutor(ABC):
 
             context:
                 Optional report execution context.
+
+            filters:
+                Provider-neutral report filters.
+
+            sorting:
+                Provider-neutral report sorting.
 
         Returns:
             Standardized report query result.
@@ -100,6 +115,8 @@ class DefaultReportQueryExecutor(
     - passing QueryOptions through unchanged
     - preserving report execution parameters
     - preserving report execution context
+    - preserving provider-neutral filters
+    - preserving provider-neutral sorting
     - normalizing provider output into ReportQueryResult
     - identifying empty provider results
     - preserving provider and execution metadata
@@ -118,34 +135,11 @@ class DefaultReportQueryExecutor(
         options: QueryOptions | None = None,
         parameters: dict[str, Any] | None = None,
         context: ReportExecutionContext | None = None,
+        filters: ReportFilterCollection | None = None,
+        sorting: ReportSortCollection | None = None,
     ) -> ReportQueryResult:
         """
         Execute a report query through the supplied provider.
-
-        Args:
-            provider:
-                Data provider responsible for obtaining
-                the report data.
-
-            query:
-                Provider-neutral report query.
-
-            options:
-                Optional Enterprise Data Framework query
-                options.
-
-            parameters:
-                Optional report-specific execution parameters.
-
-            context:
-                Optional report execution context.
-
-        Returns:
-            Standardized ReportQueryResult.
-
-        Raises:
-            ValueError:
-                When execution inputs are invalid.
         """
 
         self._validate_provider(
@@ -168,6 +162,14 @@ class DefaultReportQueryExecutor(
             context
         )
 
+        self._validate_filters(
+            filters
+        )
+
+        self._validate_sorting(
+            sorting
+        )
+
         try:
 
             data = provider.execute(
@@ -188,6 +190,8 @@ class DefaultReportQueryExecutor(
                     options=options,
                     parameters=parameters,
                     context=context,
+                    filters=filters,
+                    sorting=sorting,
                 ),
                 message="Report query execution failed.",
                 error=str(exc),
@@ -210,6 +214,8 @@ class DefaultReportQueryExecutor(
                 options=options,
                 parameters=parameters,
                 context=context,
+                filters=filters,
+                sorting=sorting,
             ),
             message=message,
         )
@@ -308,18 +314,52 @@ class DefaultReportQueryExecutor(
                 "ReportExecutionContext instance or None."
             )
 
+    def _validate_filters(
+        self,
+        filters: ReportFilterCollection | None,
+    ) -> None:
+        """
+        Validate optional provider-neutral report filters.
+        """
+
+        if (
+            filters is not None
+            and not isinstance(
+                filters,
+                ReportFilterCollection,
+            )
+        ):
+            raise ValueError(
+                "Report execution filters must be a "
+                "ReportFilterCollection instance or None."
+            )
+
+    def _validate_sorting(
+        self,
+        sorting: ReportSortCollection | None,
+    ) -> None:
+        """
+        Validate optional provider-neutral report sorting.
+        """
+
+        if (
+            sorting is not None
+            and not isinstance(
+                sorting,
+                ReportSortCollection,
+            )
+        ):
+            raise ValueError(
+                "Report execution sorting must be a "
+                "ReportSortCollection instance or None."
+            )
+
     def _resolve_status(
         self,
         data: Any,
     ) -> ReportQueryResultStatus:
         """
         Determine the standardized result status.
-
-        None and empty collection-like results are
-        represented as EMPTY.
-
-        Other provider results are represented as
-        SUCCESS.
         """
 
         if data is None:
@@ -364,13 +404,15 @@ class DefaultReportQueryExecutor(
         options: QueryOptions | None,
         parameters: dict[str, Any] | None,
         context: ReportExecutionContext | None,
+        filters: ReportFilterCollection | None,
+        sorting: ReportSortCollection | None,
     ) -> dict[str, Any]:
         """
         Build standardized execution metadata.
 
         Provider metadata is intentionally limited to
-        execution context. Query-specific metadata remains
-        part of ReportQuery.
+        execution information. Query-specific metadata
+        remains part of ReportQuery.
         """
 
         metadata: dict[str, Any] = {
@@ -394,6 +436,18 @@ class DefaultReportQueryExecutor(
             metadata[
                 "context"
             ] = context.to_dict()
+
+        if filters is not None:
+
+            metadata[
+                "filters"
+            ] = filters.to_list()
+
+        if sorting is not None:
+
+            metadata[
+                "sorting"
+            ] = sorting.to_list()
 
         return metadata
 

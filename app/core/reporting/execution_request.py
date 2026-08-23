@@ -16,8 +16,14 @@ from app.core.data import QueryOptions
 from app.core.reporting.execution_context import (
     ReportExecutionContext,
 )
+from app.core.reporting.filters import (
+    ReportFilterCollection,
+)
 from app.core.reporting.queries import (
     ReportQuery,
+)
+from app.core.reporting.sorting import (
+    ReportSortCollection,
 )
 
 
@@ -31,8 +37,10 @@ class ReportExecutionRequest:
 
     - the report query,
     - report execution parameters,
-    - execution-level context, and
-    - optional enterprise data query options.
+    - execution-level context,
+    - optional enterprise data query options,
+    - provider-neutral reporting filters, and
+    - provider-neutral reporting sorting.
 
     The request does not perform provider resolution,
     query execution, authorization, governance, auditing,
@@ -50,6 +58,14 @@ class ReportExecutionRequest:
     )
 
     query_options: QueryOptions | None = None
+
+    filters: ReportFilterCollection = field(
+        default_factory=ReportFilterCollection
+    )
+
+    sorting: ReportSortCollection = field(
+        default_factory=ReportSortCollection
+    )
 
     def __post_init__(self) -> None:
         """
@@ -95,6 +111,24 @@ class ReportExecutionRequest:
                 "a QueryOptions instance or None."
             )
 
+        if not isinstance(
+            self.filters,
+            ReportFilterCollection,
+        ):
+            raise ValueError(
+                "Report execution filters must be "
+                "a ReportFilterCollection instance."
+            )
+
+        if not isinstance(
+            self.sorting,
+            ReportSortCollection,
+        ):
+            raise ValueError(
+                "Report execution sorting must be "
+                "a ReportSortCollection instance."
+            )
+
         object.__setattr__(
             self,
             "parameters",
@@ -137,6 +171,8 @@ class ReportExecutionRequest:
                 if self.query_options is not None
                 else None
             ),
+            "filters": self.filters.to_list(),
+            "sorting": self.sorting.to_list(),
         }
 
 
