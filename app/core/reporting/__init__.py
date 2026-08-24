@@ -127,6 +127,10 @@ from app.core.reporting.analytics import (
     ReportKPI,
 )
 
+from app.core.reporting.kpi_registry import (
+    ReportKPIRegistry,
+)
+
 
 __all__ = [
 
@@ -280,6 +284,8 @@ __all__ = [
     "ReportKPIValueType",
 
     "ReportKPI",
+
+    "ReportKPIRegistry",
 
 
     # -----------------------------------------------------
