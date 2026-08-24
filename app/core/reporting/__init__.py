@@ -118,6 +118,16 @@ from app.core.reporting.export_execution_service import (
 )
 
 
+# ---------------------------------------------------------
+# Analytics & KPI
+# ---------------------------------------------------------
+
+from app.core.reporting.analytics import (
+    ReportKPIValueType,
+    ReportKPI,
+)
+
+
 __all__ = [
 
     # -----------------------------------------------------
@@ -261,6 +271,15 @@ __all__ = [
     "ReportExporterRegistry",
 
     "ReportExportExecutionService",
+
+
+    # -----------------------------------------------------
+    # Analytics & KPI
+    # -----------------------------------------------------
+
+    "ReportKPIValueType",
+
+    "ReportKPI",
 
 
     # -----------------------------------------------------
