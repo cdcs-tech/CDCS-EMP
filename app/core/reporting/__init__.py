@@ -131,6 +131,16 @@ from app.core.reporting.kpi_registry import (
     ReportKPIRegistry,
 )
 
+# ---------------------------------------------------------
+# KPI Calculation
+# ---------------------------------------------------------
+
+from app.core.reporting.kpi_calculation import (
+    ReportKPICalculationStatus,
+    ReportKPICalculationRequest,
+    ReportKPICalculationResult,
+)
+
 
 __all__ = [
 
@@ -286,6 +296,12 @@ __all__ = [
     "ReportKPI",
 
     "ReportKPIRegistry",
+
+    "ReportKPICalculationStatus",
+
+    "ReportKPICalculationRequest",
+
+    "ReportKPICalculationResult",
 
 
     # -----------------------------------------------------
