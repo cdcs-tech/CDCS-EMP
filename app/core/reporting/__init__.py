@@ -97,6 +97,19 @@ from app.core.reporting.output import (
 )
 
 
+# ---------------------------------------------------------
+# Reporting Export Formats
+# ---------------------------------------------------------
+
+from app.core.reporting.export_formats import (
+    ReportExportFormat,
+)
+
+from app.core.reporting.exporters import (
+    ReportExporter,
+)
+
+
 __all__ = [
 
     # -----------------------------------------------------
@@ -227,6 +240,15 @@ __all__ = [
     "ReportOutputFormat",
 
     "ReportOutputRequest",
+
+
+    # -----------------------------------------------------
+    # Reporting Export Formats
+    # -----------------------------------------------------
+
+    "ReportExportFormat",
+
+    "ReportExporter",
 
 
     # -----------------------------------------------------
