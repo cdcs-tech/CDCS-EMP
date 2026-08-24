@@ -109,6 +109,14 @@ from app.core.reporting.exporters import (
     ReportExporter,
 )
 
+from app.core.reporting.exporter_registry import (
+    ReportExporterRegistry,
+)
+
+from app.core.reporting.export_execution_service import (
+    ReportExportExecutionService,
+)
+
 
 __all__ = [
 
@@ -249,6 +257,10 @@ __all__ = [
     "ReportExportFormat",
 
     "ReportExporter",
+
+    "ReportExporterRegistry",
+
+    "ReportExportExecutionService",
 
 
     # -----------------------------------------------------
