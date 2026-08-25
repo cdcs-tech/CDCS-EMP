@@ -1,7 +1,7 @@
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
-Reporting Framework Tests
+Reporting & Analytics Framework Tests
 
 Report execution service contract tests.
 """
@@ -14,6 +14,11 @@ from typing import cast
 from app.core.data import QueryOptions
 
 from app.core.reporting import (
+    ReportAuthorizationDecision,
+    ReportAuthorizationOperation,
+    ReportAuthorizationRequest,
+    ReportAuthorizationResource,
+    ReportAuthorizationSubject,
     ReportDataProvider,
     ReportDataProviderRegistry,
     ReportExecutionContext,
@@ -30,6 +35,7 @@ from app.core.reporting import (
     ReportSort,
     ReportSortCollection,
     ReportSortDirection,
+    ReportingAuthorizationAdapter,
 )
 
 
@@ -70,7 +76,7 @@ class ExampleReportQueryExecutor(
     ReportQueryExecutor,
 ):
     """
-    Concrete query executor used by execution-service tests.
+    Concrete query executor used in execution-service tests.
 
     The executor deliberately accepts the complete
     provider-neutral execution boundary exposed by the
@@ -226,6 +232,10 @@ def create_request(
 ) -> ReportExecutionRequest:
     """
     Create a standard report execution request.
+
+    The default execution context represents an identified
+    requesting subject so that normal execution tests pass
+    through the authorization boundary.
     """
 
     return ReportExecutionRequest(
@@ -238,7 +248,9 @@ def create_request(
         context=(
             context
             if context is not None
-            else ReportExecutionContext()
+            else ReportExecutionContext(
+                requested_by="user-001",
+            )
         ),
         query_options=query_options,
         filters=(
@@ -254,10 +266,12 @@ def create_request(
     )
 
 
-def create_service():
+def create_service(
+    authorization_evaluator=None,
+):
     """
-    Create a service with a registered provider and
-    concrete query executor.
+    Create a service with a registered provider,
+    authorization adapter, and concrete query executor.
     """
 
     provider = ExampleReportDataProvider()
@@ -270,15 +284,29 @@ def create_service():
 
     executor = ExampleReportQueryExecutor()
 
+    if authorization_evaluator is None:
+
+        authorization_evaluator = (
+            lambda request, permission: True
+        )
+
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=authorization_evaluator,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=executor,
+        authorization_adapter=authorization_adapter,
     )
 
     return (
         service,
         provider,
         executor,
+        authorization_adapter,
     )
 
 
@@ -286,13 +314,23 @@ def test_execution_service_requires_provider_registry():
 
     executor = ExampleReportQueryExecutor()
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     with pytest.raises(
         ValueError,
         match="ReportDataProviderRegistry",
     ):
         ReportExecutionService(
-            provider_registry=cast(ReportDataProviderRegistry, None),
+            provider_registry=cast(
+                ReportDataProviderRegistry,
+                None,
+            ),
             query_executor=executor,
+            authorization_adapter=authorization_adapter,
         )
 
 
@@ -300,13 +338,43 @@ def test_execution_service_requires_query_executor():
 
     registry = ReportDataProviderRegistry()
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     with pytest.raises(
         ValueError,
         match="ReportQueryExecutor",
     ):
         ReportExecutionService(
             provider_registry=registry,
-            query_executor=cast(ReportQueryExecutor, None),
+            query_executor=cast(
+                ReportQueryExecutor,
+                None,
+            ),
+            authorization_adapter=authorization_adapter,
+        )
+
+
+def test_execution_service_requires_authorization_adapter():
+
+    registry = ReportDataProviderRegistry()
+
+    executor = ExampleReportQueryExecutor()
+
+    with pytest.raises(
+        ValueError,
+        match="ReportingAuthorizationAdapter",
+    ):
+        ReportExecutionService(
+            provider_registry=registry,
+            query_executor=executor,
+            authorization_adapter=cast(
+                ReportingAuthorizationAdapter,
+                None,
+            ),
         )
 
 
@@ -314,13 +382,23 @@ def test_execution_service_rejects_invalid_registry():
 
     executor = ExampleReportQueryExecutor()
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     with pytest.raises(
         ValueError,
         match="ReportDataProviderRegistry",
     ):
         ReportExecutionService(
-            provider_registry=cast(ReportDataProviderRegistry, "invalid"),
+            provider_registry=cast(
+                ReportDataProviderRegistry,
+                "invalid",
+            ),
             query_executor=executor,
+            authorization_adapter=authorization_adapter,
         )
 
 
@@ -328,19 +406,49 @@ def test_execution_service_rejects_invalid_executor():
 
     registry = ReportDataProviderRegistry()
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     with pytest.raises(
         ValueError,
         match="ReportQueryExecutor",
     ):
         ReportExecutionService(
             provider_registry=registry,
-            query_executor=cast(ReportQueryExecutor, "invalid"),
+            query_executor=cast(
+                ReportQueryExecutor,
+                "invalid",
+            ),
+            authorization_adapter=authorization_adapter,
+        )
+
+
+def test_execution_service_rejects_invalid_authorization_adapter():
+
+    registry = ReportDataProviderRegistry()
+
+    executor = ExampleReportQueryExecutor()
+
+    with pytest.raises(
+        ValueError,
+        match="ReportingAuthorizationAdapter",
+    ):
+        ReportExecutionService(
+            provider_registry=registry,
+            query_executor=executor,
+            authorization_adapter=cast(
+                ReportingAuthorizationAdapter,
+                "invalid",
+            ),
         )
 
 
 def test_execution_service_accepts_valid_dependencies():
 
-    service, _, _ = create_service()
+    service, _, _, _ = create_service()
 
     assert isinstance(
         service,
@@ -350,20 +458,23 @@ def test_execution_service_accepts_valid_dependencies():
 
 def test_execution_service_rejects_invalid_request():
 
-    service, _, _ = create_service()
+    service, _, _, _ = create_service()
 
     with pytest.raises(
         ValueError,
         match="Report execution request",
     ):
         service.execute(
-            cast(ReportExecutionRequest, "invalid")
+            cast(
+                ReportExecutionRequest,
+                "invalid",
+            )
         )
 
 
 def test_execution_service_resolves_provider():
 
-    service, provider, executor = (
+    service, provider, executor, _ = (
         create_service()
     )
 
@@ -384,7 +495,7 @@ def test_execution_service_resolves_provider():
 
 def test_execution_service_passes_query_to_executor():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -411,7 +522,7 @@ def test_execution_service_passes_query_to_executor():
 
 def test_execution_service_passes_parameters_to_executor():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -434,7 +545,7 @@ def test_execution_service_passes_parameters_to_executor():
 
 def test_execution_service_copies_parameter_boundary():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -462,7 +573,7 @@ def test_execution_service_copies_parameter_boundary():
 
 def test_execution_service_passes_context_to_executor():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -489,7 +600,7 @@ def test_execution_service_passes_context_to_executor():
 
 def test_execution_service_preserves_execution_context_values():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -523,7 +634,7 @@ def test_execution_service_preserves_execution_context_values():
 
 def test_execution_service_passes_query_options_to_executor():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -551,7 +662,7 @@ def test_execution_service_passes_query_options_to_executor():
 
 def test_execution_service_passes_filters_to_executor():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -584,7 +695,7 @@ def test_execution_service_passes_filters_to_executor():
 
 def test_execution_service_passes_sorting_to_executor():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -615,7 +726,7 @@ def test_execution_service_passes_sorting_to_executor():
 
 def test_execution_service_passes_complete_execution_request():
 
-    service, _, executor = (
+    service, _, executor, _ = (
         create_service()
     )
 
@@ -687,7 +798,7 @@ def test_execution_service_passes_complete_execution_request():
 
 def test_execution_service_returns_success_result():
 
-    service, _, _ = create_service()
+    service, _, _, _ = create_service()
 
     result = service.execute(
         create_request()
@@ -711,7 +822,7 @@ def test_execution_service_returns_success_result():
 
 def test_execution_service_preserves_success_result_data():
 
-    service, _, _ = create_service()
+    service, _, _, _ = create_service()
 
     result = service.execute(
         create_request()
@@ -730,7 +841,7 @@ def test_execution_service_preserves_success_result_data():
 
 def test_execution_service_preserves_success_result_metadata():
 
-    service, _, _ = create_service()
+    service, _, _, _ = create_service()
 
     result = service.execute(
         create_request()
@@ -754,9 +865,16 @@ def test_execution_service_preserves_empty_result():
 
     executor = EmptyResultQueryExecutor()
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=executor,
+        authorization_adapter=authorization_adapter,
     )
 
     result = service.execute(
@@ -801,9 +919,16 @@ def test_execution_service_preserves_failed_result():
 
     executor = FailedResultQueryExecutor()
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=executor,
+        authorization_adapter=authorization_adapter,
     )
 
     result = service.execute(
@@ -843,9 +968,16 @@ def test_execution_service_does_not_raise_for_failed_result():
 
     executor = FailedResultQueryExecutor()
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=executor,
+        authorization_adapter=authorization_adapter,
     )
 
     result = service.execute(
@@ -893,9 +1025,16 @@ def test_execution_service_preserves_result_identity():
         ]
     )
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=FixedResultExecutor(),
+        authorization_adapter=authorization_adapter,
     )
 
     result = service.execute(
@@ -907,7 +1046,7 @@ def test_execution_service_preserves_result_identity():
 
 def test_execution_service_rejects_unsupported_query():
 
-    service, _, _ = create_service()
+    service, _, _, _ = create_service()
 
     request = create_request(
         query=ReportQuery(
@@ -952,9 +1091,16 @@ def test_execution_service_preserves_execution_exception():
         ]
     )
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=FailingExecutor(),
+        authorization_adapter=authorization_adapter,
     )
 
     with pytest.raises(
@@ -994,9 +1140,16 @@ def test_execution_service_wraps_unexpected_executor_failure():
         ]
     )
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=FailingExecutor(),
+        authorization_adapter=authorization_adapter,
     )
 
     with pytest.raises(
@@ -1042,14 +1195,575 @@ def test_execution_service_rejects_invalid_executor_result():
         ]
     )
 
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: True,
+        )
+    )
+
     service = ReportExecutionService(
         provider_registry=registry,
         query_executor=InvalidExecutor(),
+        authorization_adapter=authorization_adapter,
     )
 
     with pytest.raises(
         ReportExecutionException,
         match="invalid result",
+    ):
+        service.execute(
+            create_request()
+        )
+
+
+# ---------------------------------------------------------------------------
+# Stage 1.16.8.4
+# Report Execution Authorization Integration
+# ---------------------------------------------------------------------------
+
+
+def test_execution_service_authorizes_before_execution():
+
+    calls = []
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        calls.append(
+            (
+                "authorize",
+                request,
+                permission_code,
+            )
+        )
+
+        return True
+
+    service, provider, executor, _ = (
+        create_service(
+            authorization_evaluator=evaluator,
+        )
+    )
+
+    context = ReportExecutionContext(
+        requested_by="user-001",
+    )
+
+    service.execute(
+        create_request(
+            context=context,
+        )
+    )
+
+    assert len(calls) == 1
+
+    assert (
+        calls[0][0]
+        == "authorize"
+    )
+
+    assert (
+        calls[0][2]
+        == "reporting.report.execute"
+    )
+
+    assert executor.provider is provider
+
+
+def test_execution_service_builds_correct_authorization_request():
+
+    captured = {}
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        captured["request"] = request
+        captured["permission"] = permission_code
+
+        return True
+
+    service, _, _, _ = create_service(
+        authorization_evaluator=evaluator,
+    )
+
+    context = ReportExecutionContext(
+        correlation_id="corr-001",
+        requested_by="user-001",
+        source="api",
+        metadata={
+            "environment": "test",
+        },
+    )
+
+    query = create_query()
+
+    service.execute(
+        create_request(
+            query=query,
+            context=context,
+        )
+    )
+
+    authorization_request = (
+        captured["request"]
+    )
+
+    assert isinstance(
+        authorization_request,
+        ReportAuthorizationRequest,
+    )
+
+    assert (
+        authorization_request.subject.identifier
+        == "user-001"
+    )
+
+    assert (
+        authorization_request.operation
+        == ReportAuthorizationOperation.EXECUTE
+    )
+
+    assert (
+        authorization_request.resource.resource_type
+        == "report"
+    )
+
+    assert (
+        authorization_request.resource.identifier
+        == query.identifier
+    )
+
+    assert (
+        authorization_request.resource.metadata[
+            "report_code"
+        ]
+        == query.report_code
+    )
+
+    assert (
+        authorization_request.context.metadata[
+            "correlation_id"
+        ]
+        == "corr-001"
+    )
+
+    assert (
+        authorization_request.context.metadata[
+            "source"
+        ]
+        == "api"
+    )
+
+    assert (
+        authorization_request.context.metadata[
+            "environment"
+        ]
+        == "test"
+    )
+
+    assert (
+        captured["permission"]
+        == "reporting.report.execute"
+    )
+
+
+def test_execution_service_rejects_missing_requesting_subject():
+
+    service, _, _, _ = create_service()
+
+    context = ReportExecutionContext()
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="identified requesting subject",
+    ):
+        service.execute(
+            create_request(
+                context=context,
+            )
+        )
+
+
+def test_execution_service_denied_authorization_stops_execution():
+
+    service, _, executor, _ = create_service(
+        authorization_evaluator=(
+            lambda request, permission: False
+        ),
+    )
+
+    context = ReportExecutionContext(
+        requested_by="user-001",
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Reporting authorization denied",
+    ):
+        service.execute(
+            create_request(
+                context=context,
+            )
+        )
+
+    assert executor.provider is None
+    assert executor.query is None
+
+
+def test_execution_service_preserves_authorization_denial_reason():
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        return ReportAuthorizationDecision(
+            status="deny",
+            reason=(
+                "User lacks report execution permission."
+            ),
+            metadata={
+                "permission_code": permission_code,
+            },
+        )
+
+    service, _, executor, _ = create_service(
+        authorization_evaluator=evaluator,
+    )
+
+    context = ReportExecutionContext(
+        requested_by="user-001",
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="User lacks report execution permission",
+    ):
+        service.execute(
+            create_request(
+                context=context,
+            )
+        )
+
+    assert executor.provider is None
+    assert executor.query is None
+
+
+def test_execution_service_wraps_authorization_failure():
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        raise RuntimeError(
+            "security backend unavailable"
+        )
+
+    service, _, executor, _ = create_service(
+        authorization_evaluator=evaluator,
+    )
+
+    context = ReportExecutionContext(
+        requested_by="user-001",
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Report execution authorization failed",
+    ) as exc_info:
+
+        service.execute(
+            create_request(
+                context=context,
+            )
+        )
+
+    assert isinstance(
+        exc_info.value.__cause__,
+        RuntimeError,
+    )
+
+    assert executor.provider is None
+    assert executor.query is None
+
+
+def test_execution_service_authorization_receives_report_resource():
+
+    captured = {}
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        captured["request"] = request
+        return True
+
+    service, _, _, _ = create_service(
+        authorization_evaluator=evaluator,
+    )
+
+    service.execute(
+        create_request()
+    )
+
+    request = captured["request"]
+
+    assert isinstance(
+        request.resource,
+        ReportAuthorizationResource,
+    )
+
+    assert (
+        request.resource.canonical_identifier
+        == "report:EXAMPLE"
+    )
+
+
+def test_execution_service_authorization_receives_subject():
+
+    captured = {}
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        captured["request"] = request
+        return True
+
+    service, _, _, _ = create_service(
+        authorization_evaluator=evaluator,
+    )
+
+    context = ReportExecutionContext(
+        requested_by="user-001",
+    )
+
+    service.execute(
+        create_request(
+            context=context,
+        )
+    )
+
+    request = captured["request"]
+
+    assert isinstance(
+        request.subject,
+        ReportAuthorizationSubject,
+    )
+
+    assert (
+        request.subject.identifier
+        == "user-001"
+    )
+
+    assert (
+        request.subject.canonical_identifier
+        == "user:user-001"
+    )
+
+
+def test_execution_service_authorization_receives_execute_operation():
+
+    captured = {}
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        captured["request"] = request
+        return True
+
+    service, _, _, _ = create_service(
+        authorization_evaluator=evaluator,
+    )
+
+    service.execute(
+        create_request()
+    )
+
+    request = captured["request"]
+
+    assert (
+        request.operation
+        == ReportAuthorizationOperation.EXECUTE
+    )
+
+    assert (
+        request.operation.code
+        == "execute"
+    )
+
+
+def test_execution_service_authorization_receives_execution_context():
+
+    captured = {}
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        captured["request"] = request
+        return True
+
+    service, _, _, _ = create_service(
+        authorization_evaluator=evaluator,
+    )
+
+    context = ReportExecutionContext(
+        correlation_id="corr-001",
+        requested_by="user-001",
+        source="web",
+        metadata={
+            "environment": "test",
+            "tenant": "cdcs",
+        },
+    )
+
+    service.execute(
+        create_request(
+            context=context,
+        )
+    )
+
+    authorization_context = (
+        captured["request"].context
+    )
+
+    assert (
+        authorization_context.metadata[
+            "correlation_id"
+        ]
+        == "corr-001"
+    )
+
+    assert (
+        authorization_context.metadata[
+            "source"
+        ]
+        == "web"
+    )
+
+    assert (
+        authorization_context.metadata[
+            "environment"
+        ]
+        == "test"
+    )
+
+    assert (
+        authorization_context.metadata[
+            "tenant"
+        ]
+        == "cdcs"
+    )
+
+
+def test_execution_service_authorization_failure_prevents_provider_resolution():
+
+    calls = []
+
+    class TrackingProviderRegistry(
+        ReportDataProviderRegistry,
+    ):
+
+        def resolve(
+            self,
+            query,
+        ):
+            calls.append(
+                "resolve"
+            )
+
+            return super().resolve(
+                query
+            )
+
+    provider = ExampleReportDataProvider()
+
+    registry = TrackingProviderRegistry(
+        providers=[
+            provider,
+        ]
+    )
+
+    executor = ExampleReportQueryExecutor()
+
+    authorization_adapter = (
+        ReportingAuthorizationAdapter(
+            evaluator=lambda request, permission: False,
+        )
+    )
+
+    service = ReportExecutionService(
+        provider_registry=registry,
+        query_executor=executor,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Reporting authorization denied",
+    ):
+        service.execute(
+            create_request()
+        )
+
+    assert calls == []
+
+
+def test_execution_service_authorization_failure_prevents_query_execution():
+
+    service, _, executor, _ = create_service(
+        authorization_evaluator=(
+            lambda request, permission: False
+        ),
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Reporting authorization denied",
+    ):
+        service.execute(
+            create_request()
+        )
+
+    assert executor.provider is None
+    assert executor.query is None
+
+
+def test_execution_service_authorization_failure_is_execution_boundary():
+
+    service, _, _, _ = create_service(
+        authorization_evaluator=(
+            lambda request, permission: False
+        ),
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+    ) as exc_info:
+
+        service.execute(
+            create_request()
+        )
+
+    assert (
+        str(exc_info.value)
+        == "Reporting authorization denied."
+    )
+
+
+def test_execution_service_authorization_decision_is_not_exposed_as_result():
+
+    service, _, _, _ = create_service(
+        authorization_evaluator=(
+            lambda request, permission: False
+        ),
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
     ):
         service.execute(
             create_request()
