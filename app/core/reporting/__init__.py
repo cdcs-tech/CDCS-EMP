@@ -195,6 +195,19 @@ from app.core.reporting.authorization import (
     ReportAuthorizationDecision,
 )
 
+# ---------------------------------------------------------
+# Reporting Permissions
+# ---------------------------------------------------------
+
+from app.core.reporting.permissions import (
+    ReportPermissionCode,
+    permission_for_operation,
+    permission_code_for_operation,
+    all_report_permissions,
+    register_report_permissions,
+    report_permission_mapping,
+)
+
 
 __all__ = [
 
@@ -418,5 +431,21 @@ __all__ = [
     "ReportAuthorizationDecisionStatus",
 
     "ReportAuthorizationDecision",
+
+    # -----------------------------------------------------
+    # Reporting Permissions
+    # -----------------------------------------------------
+
+    "ReportPermissionCode",
+
+    "permission_for_operation",
+
+    "permission_code_for_operation",
+
+    "all_report_permissions",
+
+    "register_report_permissions",
+
+    "report_permission_mapping",
 
 ]
