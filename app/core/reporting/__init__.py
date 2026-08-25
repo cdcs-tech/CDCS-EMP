@@ -181,6 +181,20 @@ from app.core.reporting.analytics_execution_service import (
     ReportAnalyticsExecutionService,
 )
 
+# ---------------------------------------------------------
+# Reporting Authorization
+# ---------------------------------------------------------
+
+from app.core.reporting.authorization import (
+    ReportAuthorizationOperation,
+    ReportAuthorizationResource,
+    ReportAuthorizationSubject,
+    ReportAuthorizationContext,
+    ReportAuthorizationRequest,
+    ReportAuthorizationDecisionStatus,
+    ReportAuthorizationDecision,
+)
+
 
 __all__ = [
 
@@ -385,5 +399,24 @@ __all__ = [
     "AnalyticsConfigurationException",
 
     "AnalyticsExecutionException",
+
+
+    # -----------------------------------------------------
+    # Reporting Authorization
+    # -----------------------------------------------------
+
+    "ReportAuthorizationOperation",
+
+    "ReportAuthorizationResource",
+
+    "ReportAuthorizationSubject",
+
+    "ReportAuthorizationContext",
+
+    "ReportAuthorizationRequest",
+
+    "ReportAuthorizationDecisionStatus",
+
+    "ReportAuthorizationDecision",
 
 ]
