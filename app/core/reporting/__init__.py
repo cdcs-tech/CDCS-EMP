@@ -141,6 +141,15 @@ from app.core.reporting.kpi_calculation import (
     ReportKPICalculationResult,
 )
 
+# ---------------------------------------------------------
+# Analytics Metrics & Aggregation
+# ---------------------------------------------------------
+
+from app.core.reporting.analytics_metrics import (
+    AnalyticsAggregationType,
+    AnalyticsMetric,
+)
+
 
 __all__ = [
 
@@ -302,6 +311,15 @@ __all__ = [
     "ReportKPICalculationRequest",
 
     "ReportKPICalculationResult",
+
+
+    # -----------------------------------------------------
+    # Analytics Metrics & Aggregation
+    # -----------------------------------------------------
+
+    "AnalyticsAggregationType",
+
+    "AnalyticsMetric",
 
 
     # -----------------------------------------------------
