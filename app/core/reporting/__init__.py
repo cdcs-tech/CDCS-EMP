@@ -105,13 +105,28 @@ from app.core.reporting.export_formats import (
     ReportExportFormat,
 )
 
+
+# ---------------------------------------------------------
+# Reporting Exporters
+# ---------------------------------------------------------
+
 from app.core.reporting.exporters import (
     ReportExporter,
 )
 
+
+# ---------------------------------------------------------
+# Reporting Exporter Registry
+# ---------------------------------------------------------
+
 from app.core.reporting.exporter_registry import (
     ReportExporterRegistry,
 )
+
+
+# ---------------------------------------------------------
+# Reporting Export Execution
+# ---------------------------------------------------------
 
 from app.core.reporting.export_execution_service import (
     ReportExportExecutionService,
@@ -119,7 +134,7 @@ from app.core.reporting.export_execution_service import (
 
 
 # ---------------------------------------------------------
-# Analytics & KPI
+# Analytics & KPI Contracts
 # ---------------------------------------------------------
 
 from app.core.reporting.analytics import (
@@ -127,9 +142,15 @@ from app.core.reporting.analytics import (
     ReportKPI,
 )
 
+
+# ---------------------------------------------------------
+# KPI Registry
+# ---------------------------------------------------------
+
 from app.core.reporting.kpi_registry import (
     ReportKPIRegistry,
 )
+
 
 # ---------------------------------------------------------
 # KPI Calculation
@@ -141,6 +162,7 @@ from app.core.reporting.kpi_calculation import (
     ReportKPICalculationResult,
 )
 
+
 # ---------------------------------------------------------
 # Analytics Metrics & Aggregation
 # ---------------------------------------------------------
@@ -148,6 +170,15 @@ from app.core.reporting.kpi_calculation import (
 from app.core.reporting.analytics_metrics import (
     AnalyticsAggregationType,
     AnalyticsMetric,
+)
+
+
+# ---------------------------------------------------------
+# Analytics Execution
+# ---------------------------------------------------------
+
+from app.core.reporting.analytics_execution_service import (
+    ReportAnalyticsExecutionService,
 )
 
 
@@ -217,17 +248,7 @@ __all__ = [
 
     "ReportDataProvider",
 
-
-    # -----------------------------------------------------
-    # Reporting Provider Registry
-    # -----------------------------------------------------
-
     "ReportDataProviderRegistry",
-
-
-    # -----------------------------------------------------
-    # Reporting Provider
-    # -----------------------------------------------------
 
     "ReportProvider",
 
@@ -306,6 +327,11 @@ __all__ = [
 
     "ReportKPIRegistry",
 
+
+    # -----------------------------------------------------
+    # KPI Calculation
+    # -----------------------------------------------------
+
     "ReportKPICalculationStatus",
 
     "ReportKPICalculationRequest",
@@ -320,6 +346,13 @@ __all__ = [
     "AnalyticsAggregationType",
 
     "AnalyticsMetric",
+
+
+    # -----------------------------------------------------
+    # Analytics Execution
+    # -----------------------------------------------------
+
+    "ReportAnalyticsExecutionService",
 
 
     # -----------------------------------------------------
