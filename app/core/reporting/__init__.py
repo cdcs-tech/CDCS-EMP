@@ -204,6 +204,16 @@ from app.core.reporting.authorization_adapter import (
     ReportingAuthorizationAdapter,
 )
 
+# ---------------------------------------------------------
+# Reporting Audit Integration
+# ---------------------------------------------------------
+
+from app.core.reporting.audit import (
+    ReportAuditEvent,
+    ReportingGovernanceAdapter,
+    ReportingAuditAdapter,
+)
+
 
 # ---------------------------------------------------------
 # Reporting Permissions
@@ -443,6 +453,13 @@ __all__ = [
     "ReportAuthorizationDecision",
 
     "ReportingAuthorizationAdapter",
+
+    "ReportAuditEvent",
+
+    "ReportingGovernanceAdapter",
+
+    "ReportingAuditAdapter",
+
 
 
     # -----------------------------------------------------
