@@ -14,6 +14,12 @@ from typing import Any
 from app.core.reporting.analytics import (
     ReportKPI,
 )
+from app.core.reporting.authorization import (
+    ReportAuthorizationRequest,
+)
+from app.core.reporting.authorization_adapter import (
+    ReportingAuthorizationAdapter,
+)
 from app.core.reporting.exceptions import (
     ReportExecutionException,
 )
@@ -31,6 +37,7 @@ class ReportAnalyticsExecutionService:
     The service coordinates:
 
     - analytics execution request validation,
+    - optional analytics authorization,
     - KPI resolution,
     - KPI calculation request construction,
     - calculation delegation,
@@ -39,8 +46,8 @@ class ReportAnalyticsExecutionService:
 
     Concrete calculation logic, database access, query
     generation, aggregation implementation, persistence,
-    presentation, authorization, governance, auditing,
-    telemetry, and scheduling remain outside this service.
+    presentation, governance, auditing, telemetry, and
+    scheduling remain outside this service.
     """
 
     def __init__(
@@ -49,6 +56,7 @@ class ReportAnalyticsExecutionService:
             [ReportKPICalculationRequest],
             ReportKPICalculationResult,
         ],
+        authorization_adapter: ReportingAuthorizationAdapter | None = None,
     ) -> None:
         """
         Initialize the analytics execution service.
@@ -58,9 +66,14 @@ class ReportAnalyticsExecutionService:
                 Callable responsible for executing the KPI
                 calculation contract.
 
+            authorization_adapter:
+                Optional reporting authorization adapter used
+                when an authorization request is supplied.
+
         Raises:
             ValueError:
-                When an invalid calculator is supplied.
+                When an invalid calculator or authorization
+                adapter is supplied.
         """
 
         if not callable(
@@ -70,7 +83,22 @@ class ReportAnalyticsExecutionService:
                 "An analytics KPI calculator is required."
             )
 
+        if (
+            authorization_adapter is not None
+            and not isinstance(
+                authorization_adapter,
+                ReportingAuthorizationAdapter,
+            )
+        ):
+            raise ValueError(
+                "A ReportingAuthorizationAdapter is required."
+            )
+
         self.calculator = calculator
+
+        self.authorization_adapter = (
+            authorization_adapter
+        )
 
     def execute(
         self,
@@ -79,12 +107,14 @@ class ReportAnalyticsExecutionService:
         data: Any = None,
         parameters: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
+        authorization_request: ReportAuthorizationRequest | None = None,
     ) -> ReportKPICalculationResult:
         """
         Execute an analytics KPI calculation.
 
         The service constructs a provider-neutral
-        ReportKPICalculationRequest and delegates calculation
+        ReportKPICalculationRequest, optionally evaluates
+        analytics authorization, and delegates calculation
         to the supplied calculator.
 
         Args:
@@ -100,6 +130,9 @@ class ReportAnalyticsExecutionService:
             metadata:
                 Optional execution metadata.
 
+            authorization_request:
+                Optional reporting authorization request.
+
         Returns:
             ReportKPICalculationResult:
                 The calculation result returned by the
@@ -111,8 +144,8 @@ class ReportAnalyticsExecutionService:
                 invalid.
 
             ReportExecutionException:
-                When calculation execution fails or produces
-                an invalid result.
+                When authorization or calculation execution
+                fails or produces an invalid result.
         """
 
         if not isinstance(
@@ -158,12 +191,15 @@ class ReportAnalyticsExecutionService:
         )
 
         return self.execute_request(
-            request
+            request,
+            authorization_request=authorization_request,
         )
 
     def execute_request(
         self,
         request: ReportKPICalculationRequest,
+        *,
+        authorization_request: ReportAuthorizationRequest | None = None,
     ) -> ReportKPICalculationResult:
         """
         Execute a preconstructed KPI calculation request.
@@ -175,6 +211,9 @@ class ReportAnalyticsExecutionService:
             request:
                 Provider-neutral KPI calculation request.
 
+            authorization_request:
+                Optional reporting authorization request.
+
         Returns:
             ReportKPICalculationResult:
                 The calculation result returned by the
@@ -185,12 +224,16 @@ class ReportAnalyticsExecutionService:
                 When the request is invalid.
 
             ReportExecutionException:
-                When calculation execution fails or produces
-                an invalid result.
+                When authorization or calculation execution
+                fails or produces an invalid result.
         """
 
         self._validate_request(
             request
+        )
+
+        self._authorize(
+            authorization_request
         )
 
         try:
@@ -224,6 +267,47 @@ class ReportAnalyticsExecutionService:
             )
 
         return result
+
+    def _authorize(
+        self,
+        authorization_request: ReportAuthorizationRequest | None,
+    ) -> None:
+        """
+        Evaluate analytics execution authorization when an
+        authorization request is supplied.
+        """
+
+        if authorization_request is None:
+            return
+
+        if self.authorization_adapter is None:
+            raise ReportExecutionException(
+                "Analytics authorization adapter is required."
+            )
+
+        if authorization_request.operation.value != "execute":
+            raise ReportExecutionException(
+                "Analytics execution authorization requires the "
+                "execute operation."
+            )
+
+        try:
+
+            decision = self.authorization_adapter.authorize(
+                authorization_request
+            )
+
+        except Exception as exc:
+
+            raise ReportExecutionException(
+                "Analytics authorization failed."
+            ) from exc
+
+        if not decision.is_allowed:
+            raise ReportExecutionException(
+                decision.reason
+                or "Analytics execution authorization denied."
+            )
 
     @staticmethod
     def _validate_request(

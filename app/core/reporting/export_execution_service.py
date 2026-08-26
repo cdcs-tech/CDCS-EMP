@@ -10,6 +10,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.core.reporting.authorization import (
+    ReportAuthorizationRequest,
+)
+from app.core.reporting.authorization_adapter import (
+    ReportingAuthorizationAdapter,
+)
 from app.core.reporting.exceptions import (
     ReportExecutionException,
 )
@@ -32,19 +38,21 @@ class ReportExportExecutionService:
     The service coordinates:
 
     - output request validation,
+    - optional export authorization,
     - output-format normalization,
     - exporter resolution,
     - exporter invocation, and
     - export execution failure translation.
 
     Concrete export generation, file storage, transport,
-    presentation, authorization, governance, auditing,
-    telemetry, and persistence remain outside this service.
+    presentation, governance, auditing, telemetry, and
+    persistence remain outside this service.
     """
 
     def __init__(
         self,
         exporter_registry: ReportExporterRegistry,
+        authorization_adapter: ReportingAuthorizationAdapter | None = None,
     ) -> None:
         """
         Initialize the report export execution service.
@@ -53,9 +61,14 @@ class ReportExportExecutionService:
             exporter_registry:
                 Registry responsible for resolving exporters.
 
+            authorization_adapter:
+                Optional reporting authorization adapter used
+                when an authorization request is supplied.
+
         Raises:
             ValueError:
-                When an invalid exporter registry is supplied.
+                When an invalid exporter registry or
+                authorization adapter is supplied.
         """
 
         if not isinstance(
@@ -66,20 +79,38 @@ class ReportExportExecutionService:
                 "A ReportExporterRegistry is required."
             )
 
+        if (
+            authorization_adapter is not None
+            and not isinstance(
+                authorization_adapter,
+                ReportingAuthorizationAdapter,
+            )
+        ):
+            raise ValueError(
+                "A ReportingAuthorizationAdapter is required."
+            )
+
         self.exporter_registry = (
             exporter_registry
+        )
+
+        self.authorization_adapter = (
+            authorization_adapter
         )
 
     def execute(
         self,
         request: ReportOutputRequest,
+        *,
+        authorization_request: ReportAuthorizationRequest | None = None,
     ) -> Any:
         """
         Execute a report export request.
 
-        The service validates the request, resolves the
-        appropriate exporter, delegates export execution,
-        and returns the exporter output unchanged.
+        The service validates the request, optionally evaluates
+        export authorization, resolves the appropriate exporter,
+        delegates export execution, and returns the exporter
+        output unchanged.
 
         Exceptions raised during exporter resolution or
         execution are translated into the reporting
@@ -88,6 +119,10 @@ class ReportExportExecutionService:
 
         self._validate_request(
             request
+        )
+
+        self._authorize(
+            authorization_request
         )
 
         try:
@@ -132,6 +167,47 @@ class ReportExportExecutionService:
             raise ValueError(
                 "Report output request must be a "
                 "ReportOutputRequest instance."
+            )
+
+    def _authorize(
+        self,
+        authorization_request: ReportAuthorizationRequest | None,
+    ) -> None:
+        """
+        Evaluate export authorization when an authorization
+        request is supplied.
+        """
+
+        if authorization_request is None:
+            return
+
+        if self.authorization_adapter is None:
+            raise ReportExecutionException(
+                "Report export authorization adapter is required."
+            )
+
+        if authorization_request.operation.value != "export":
+            raise ReportExecutionException(
+                "Report export authorization requires the "
+                "export operation."
+            )
+
+        try:
+
+            decision = self.authorization_adapter.authorize(
+                authorization_request
+            )
+
+        except Exception as exc:
+
+            raise ReportExecutionException(
+                "Report export authorization failed."
+            ) from exc
+
+        if not decision.is_allowed:
+            raise ReportExecutionException(
+                decision.reason
+                or "Report export authorization denied."
             )
 
     def _resolve_export_format(

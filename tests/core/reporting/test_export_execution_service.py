@@ -549,3 +549,275 @@ def test_export_execution_service_supports_pdf_output():
     assert result == {
         "format": "pdf",
     }
+
+# ---------------------------------------------------------------------------
+# Stage 1.16.8.5 — Export Authorization Integration Tests
+# ---------------------------------------------------------------------------
+
+from app.core.reporting import (
+    ReportAuthorizationContext,
+    ReportAuthorizationDecision,
+    ReportAuthorizationRequest,
+    ReportAuthorizationResource,
+    ReportAuthorizationSubject,
+    ReportingAuthorizationAdapter,
+)
+
+
+def create_export_authorization_request(
+    operation="export",
+) -> ReportAuthorizationRequest:
+    """
+    Create a minimal authorization request for export execution.
+    """
+
+    return ReportAuthorizationRequest(
+        subject=ReportAuthorizationSubject(
+            identifier="user-001",
+        ),
+        operation=operation,
+        resource=ReportAuthorizationResource(
+            resource_type="report",
+            identifier="TEST-REPORT",
+        ),
+        context=ReportAuthorizationContext(
+            metadata={
+                "module": "reporting",
+            },
+        ),
+    )
+
+
+def test_export_execution_authorization_allow_executes_exporter():
+
+    exporter = CSVExporter()
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: True,
+    )
+
+    service = ReportExportExecutionService(
+        exporter_registry=ReportExporterRegistry(
+            exporters=[exporter],
+        ),
+        authorization_adapter=authorization_adapter,
+    )
+
+    request = create_request()
+
+    result = service.execute(
+        request,
+        authorization_request=(
+            create_export_authorization_request()
+        ),
+    )
+
+    assert result == {
+        "format": "csv",
+        "report_code": "TEST-REPORT",
+    }
+
+    assert exporter.received_request is request
+
+
+def test_export_execution_authorization_deny_blocks_exporter():
+
+    exporter = CSVExporter()
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: False,
+    )
+
+    service = ReportExportExecutionService(
+        exporter_registry=ReportExporterRegistry(
+            exporters=[exporter],
+        ),
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Reporting authorization denied",
+    ):
+        service.execute(
+            create_request(),
+            authorization_request=(
+                create_export_authorization_request()
+            ),
+        )
+
+    assert exporter.received_request is None
+
+
+def test_export_execution_authorization_passes_export_permission():
+
+    captured = {}
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        captured["request"] = request
+        captured["permission"] = permission_code
+
+        return True
+
+    exporter = CSVExporter()
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=evaluator,
+    )
+
+    service = ReportExportExecutionService(
+        exporter_registry=ReportExporterRegistry(
+            exporters=[exporter],
+        ),
+        authorization_adapter=authorization_adapter,
+    )
+
+    authorization_request = (
+        create_export_authorization_request()
+    )
+
+    service.execute(
+        create_request(),
+        authorization_request=authorization_request,
+    )
+
+    assert captured["request"] is authorization_request
+
+    assert (
+        captured["permission"]
+        == "reporting.report.export"
+    )
+
+
+def test_export_execution_authorization_rejects_non_export_operation():
+
+    exporter = CSVExporter()
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: True,
+    )
+
+    service = ReportExportExecutionService(
+        exporter_registry=ReportExporterRegistry(
+            exporters=[exporter],
+        ),
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="requires the export operation",
+    ):
+        service.execute(
+            create_request(),
+            authorization_request=(
+                create_export_authorization_request(
+                    operation="execute",
+                )
+            ),
+        )
+
+    assert exporter.received_request is None
+
+
+def test_export_execution_authorization_requires_adapter():
+
+    exporter = CSVExporter()
+
+    service = ReportExportExecutionService(
+        exporter_registry=ReportExporterRegistry(
+            exporters=[exporter],
+        ),
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="authorization adapter is required",
+    ):
+        service.execute(
+            create_request(),
+            authorization_request=(
+                create_export_authorization_request()
+            ),
+        )
+
+    assert exporter.received_request is None
+
+
+def test_export_execution_authorization_preserves_decision_denial():
+
+    expected_decision = ReportAuthorizationDecision(
+        status="deny",
+        reason="Export denied by security policy.",
+        metadata={
+            "source": "security",
+        },
+    )
+
+    exporter = CSVExporter()
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: (
+            expected_decision
+        ),
+    )
+
+    service = ReportExportExecutionService(
+        exporter_registry=ReportExporterRegistry(
+            exporters=[exporter],
+        ),
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Export denied by security policy",
+    ):
+        service.execute(
+            create_request(),
+            authorization_request=(
+                create_export_authorization_request()
+            ),
+        )
+
+    assert exporter.received_request is None
+
+
+def test_export_execution_authorization_failure_blocks_export():
+
+    exporter = CSVExporter()
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        raise RuntimeError(
+            "security evaluator failure"
+        )
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=evaluator,
+    )
+
+    service = ReportExportExecutionService(
+        exporter_registry=ReportExporterRegistry(
+            exporters=[exporter],
+        ),
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Report export authorization failed",
+    ):
+        service.execute(
+            create_request(),
+            authorization_request=(
+                create_export_authorization_request()
+            ),
+        )
+
+    assert exporter.received_request is None

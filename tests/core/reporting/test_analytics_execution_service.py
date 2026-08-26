@@ -740,3 +740,360 @@ def test_analytics_execution_service_accepts_callable_object():
     )
 
     assert result.value == 7
+
+# ---------------------------------------------------------------------------
+# Stage 1.16.8.5 — Analytics Authorization Integration Tests
+# ---------------------------------------------------------------------------
+
+from app.core.reporting import (
+    ReportAuthorizationContext,
+    ReportAuthorizationDecision,
+    ReportAuthorizationRequest,
+    ReportAuthorizationResource,
+    ReportAuthorizationSubject,
+    ReportingAuthorizationAdapter,
+)
+
+
+def create_analytics_authorization_request(
+    operation="execute",
+) -> ReportAuthorizationRequest:
+    """
+    Create a minimal authorization request for analytics execution.
+    """
+
+    return ReportAuthorizationRequest(
+        subject=ReportAuthorizationSubject(
+            identifier="user-001",
+        ),
+        operation=operation,
+        resource=ReportAuthorizationResource(
+            resource_type="report",
+            identifier="TOTAL_USERS",
+        ),
+        context=ReportAuthorizationContext(
+            metadata={
+                "module": "reporting",
+            },
+        ),
+    )
+
+
+def test_analytics_execution_authorization_allow_executes_calculator():
+
+    calls = []
+
+    def calculator(
+        request,
+    ):
+        calls.append(request)
+
+        return make_result(
+            request.kpi,
+            25,
+        )
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: True,
+    )
+
+    service = ReportAnalyticsExecutionService(
+        calculator,
+        authorization_adapter=authorization_adapter,
+    )
+
+    kpi = make_kpi()
+
+    result = service.execute(
+        kpi,
+        authorization_request=(
+            create_analytics_authorization_request()
+        ),
+    )
+
+    assert result.value == 25
+    assert len(calls) == 1
+    assert calls[0].kpi is kpi
+
+
+def test_analytics_execution_authorization_deny_blocks_calculator():
+
+    calls = []
+
+    def calculator(
+        request,
+    ):
+        calls.append(request)
+
+        return make_result(
+            request.kpi,
+        )
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: False,
+    )
+
+    service = ReportAnalyticsExecutionService(
+        calculator,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Reporting authorization denied",
+    ):
+        service.execute(
+            make_kpi(),
+            authorization_request=(
+                create_analytics_authorization_request()
+            ),
+        )
+
+    assert calls == []
+
+
+def test_analytics_execution_authorization_passes_execute_permission():
+
+    captured = {}
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        captured["request"] = request
+        captured["permission"] = permission_code
+
+        return True
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=evaluator,
+    )
+
+    service = ReportAnalyticsExecutionService(
+        lambda request: make_result(
+            request.kpi,
+        ),
+        authorization_adapter=authorization_adapter,
+    )
+
+    authorization_request = (
+        create_analytics_authorization_request()
+    )
+
+    service.execute(
+        make_kpi(),
+        authorization_request=authorization_request,
+    )
+
+    assert captured["request"] is authorization_request
+
+    assert (
+        captured["permission"]
+        == "reporting.report.execute"
+    )
+
+
+def test_analytics_execution_authorization_rejects_non_execute_operation():
+
+    calls = []
+
+    def calculator(
+        request,
+    ):
+        calls.append(request)
+
+        return make_result(
+            request.kpi,
+        )
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: True,
+    )
+
+    service = ReportAnalyticsExecutionService(
+        calculator,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="requires the execute operation",
+    ):
+        service.execute(
+            make_kpi(),
+            authorization_request=(
+                create_analytics_authorization_request(
+                    operation="export",
+                )
+            ),
+        )
+
+    assert calls == []
+
+
+def test_analytics_execution_authorization_requires_adapter():
+
+    calls = []
+
+    def calculator(
+        request,
+    ):
+        calls.append(request)
+
+        return make_result(
+            request.kpi,
+        )
+
+    service = ReportAnalyticsExecutionService(
+        calculator,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="authorization adapter is required",
+    ):
+        service.execute(
+            make_kpi(),
+            authorization_request=(
+                create_analytics_authorization_request()
+            ),
+        )
+
+    assert calls == []
+
+
+def test_analytics_execution_authorization_preserves_decision_denial():
+
+    expected_decision = ReportAuthorizationDecision(
+        status="deny",
+        reason="Analytics denied by security policy.",
+        metadata={
+            "source": "security",
+        },
+    )
+
+    calls = []
+
+    def calculator(
+        request,
+    ):
+        calls.append(request)
+
+        return make_result(
+            request.kpi,
+        )
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: (
+            expected_decision
+        ),
+    )
+
+    service = ReportAnalyticsExecutionService(
+        calculator,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Analytics denied by security policy",
+    ):
+        service.execute(
+            make_kpi(),
+            authorization_request=(
+                create_analytics_authorization_request()
+            ),
+        )
+
+    assert calls == []
+
+
+def test_analytics_execution_authorization_failure_blocks_calculator():
+
+    calls = []
+
+    def calculator(
+        request,
+    ):
+        calls.append(request)
+
+        return make_result(
+            request.kpi,
+        )
+
+    def evaluator(
+        request,
+        permission_code,
+    ):
+        raise RuntimeError(
+            "security evaluator failure"
+        )
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=evaluator,
+    )
+
+    service = ReportAnalyticsExecutionService(
+        calculator,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        ReportExecutionException,
+        match="Analytics authorization failed",
+    ):
+        service.execute(
+            make_kpi(),
+            authorization_request=(
+                create_analytics_authorization_request()
+            ),
+        )
+
+    assert calls == []
+
+
+def test_analytics_execute_request_supports_authorization():
+
+    captured = {}
+
+    def calculator(
+        request,
+    ):
+        captured["request"] = request
+
+        return make_result(
+            request.kpi,
+            42,
+        )
+
+    authorization_adapter = ReportingAuthorizationAdapter(
+        evaluator=lambda request, permission: True,
+    )
+
+    service = ReportAnalyticsExecutionService(
+        calculator,
+        authorization_adapter=authorization_adapter,
+    )
+
+    kpi = make_kpi()
+
+    calculation_request = ReportKPICalculationRequest(
+        kpi=kpi,
+        data=[1, 2, 3],
+        parameters={
+            "period": "2026",
+        },
+        metadata={
+            "source": "test",
+        },
+    )
+
+    result = service.execute_request(
+        calculation_request,
+        authorization_request=(
+            create_analytics_authorization_request()
+        ),
+    )
+
+    assert result.value == 42
+    assert captured["request"] is calculation_request
