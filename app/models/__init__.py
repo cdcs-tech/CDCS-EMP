@@ -14,6 +14,10 @@ from .user_role import UserRole
 from .organization import Organization
 from .organization_membership import OrganizationMembership
 from .tenant import Tenant
+from app.modules.catering.models import (
+    Product,
+    ProductCategory,
+)
 
 __all__ = [
     "BaseModel",
@@ -27,5 +31,7 @@ __all__ = [
     "RolePermission",
     "Organization",
     "OrganizationMembership",
-    "Tenant"
+    "Tenant",
+    "ProductCategory",
+    "Product",
 ]
