@@ -77,3 +77,34 @@ def test_catering_manifest_is_enabled():
     """
 
     assert MODULE_MANIFEST.enabled is True
+
+def test_catering_module_register_models_loads_module_models():
+    """
+    Catering model registration must load the module-local
+    SQLAlchemy models without exposing them through app.models.
+    """
+
+    from app import create_app
+    from app.extensions import db
+
+    app = create_app()
+
+    with app.app_context():
+        module = CateringModule()
+
+        module.register_models(app)
+
+        assert "product_categories" in db.metadata.tables
+        assert "products" in db.metadata.tables
+
+
+def test_catering_module_models_remain_outside_global_model_package():
+    """
+    Catering models must remain outside the global platform
+    model package even after registration.
+    """
+
+    import app.models as platform_models
+
+    assert not hasattr(platform_models, "Product")
+    assert not hasattr(platform_models, "ProductCategory")

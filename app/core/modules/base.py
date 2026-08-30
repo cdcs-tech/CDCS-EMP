@@ -168,6 +168,16 @@ class BaseModule(ABC):
 
         return []
 
+    def register_models(self, app):
+        """
+        Register module models.
+
+        Modules override this method when
+        they expose SQLAlchemy models.
+        """
+
+        return None
+
     def initialize(self, app):
         """
         Initialize module.
@@ -175,6 +185,8 @@ class BaseModule(ABC):
         This method is executed by the
         ModuleManager during application startup.
         """
+
+        self.register_models(app)
 
         self.register_blueprints(app)
 
