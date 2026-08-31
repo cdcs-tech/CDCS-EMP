@@ -1,0 +1,36 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Catering
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Catering",
+    subtitle="Catering operations management."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <h2 class="h5">
+                Catering Module
+            </h2>
+
+            <p class="text-muted mb-0">
+                Catering operations management is being prepared.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

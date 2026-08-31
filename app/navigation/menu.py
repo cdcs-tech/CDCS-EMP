@@ -42,7 +42,7 @@ MENU_ITEMS = [
 
     {
         "title": "Catering",
-        "endpoint": None,
+        "endpoint": "catering.index",
         "icon": "bi-cup-hot",
     },
 

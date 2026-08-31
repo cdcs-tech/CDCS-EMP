@@ -81,6 +81,23 @@ class CateringModule(BaseModule):
             CATERING_PERMISSIONS
         )
 
+    def register_blueprints(self, app):
+        """
+        Register the Catering HTTP blueprint.
+
+        The blueprint is registered through the
+        Enterprise Module Framework lifecycle.
+        """
+
+        from app.modules.catering.routes import (
+            catering_bp,
+        )
+
+        app.register_blueprint(
+            catering_bp,
+            url_prefix=self.metadata.url_prefix,
+        )
+
 
 __all__ = [
     "CateringModule",
