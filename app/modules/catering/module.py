@@ -9,6 +9,10 @@ from app.core.modules import (
     ModuleMetadata,
 )
 
+from app.modules.catering.security import (
+    CATERING_PERMISSIONS,
+)
+
 
 class CateringModule(BaseModule):
     """
@@ -63,6 +67,18 @@ class CateringModule(BaseModule):
             navigation_enabled=True,
             dashboard_enabled=False,
             active=True,
+        )
+
+    def get_permissions(self):
+        """
+        Return Catering enterprise security permissions.
+
+        Permission registration is delegated to the
+        enterprise BaseModule lifecycle.
+        """
+
+        return list(
+            CATERING_PERMISSIONS
         )
 
 
