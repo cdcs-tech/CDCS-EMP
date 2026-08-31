@@ -3,6 +3,11 @@ User Factory
 """
 
 from app.models.user import User
+from app.models.user_role import UserRole
+from app.models.role_permission import RolePermission
+
+from tests.factories.permission_factory import PermissionFactory
+from tests.factories.role_factory import RoleFactory
 
 
 class UserFactory:
@@ -47,14 +52,48 @@ class UserFactory:
     @staticmethod
     def create_admin(session):
         """
-        Create a default administrator.
+        Create a default administrator with dashboard access.
         """
 
-        return UserFactory.create(
+        user = UserFactory.create(
             session=session,
             username="admin",
             email="admin@test.local",
             first_name="System",
             last_name="Administrator",
             password="Admin@123",
+            commit=False,
         )
+
+        role = RoleFactory.create(
+            session=session,
+            name="Administrator",
+            description="System administrator role",
+            is_system=True,
+            commit=False,
+        )
+
+        permission = PermissionFactory.create(
+            session=session,
+            name="dashboard.view",
+            module="Dashboard",
+            description="View dashboard",
+            commit=False,
+        )
+
+        role_permission = RolePermission(
+            role=role,
+            permission=permission,
+        )
+
+        user_role = UserRole(
+            user=user,
+            role=role,
+        )
+
+        session.add(role_permission)
+        session.add(user_role)
+
+        session.commit()
+
+        return user
