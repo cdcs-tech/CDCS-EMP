@@ -16,13 +16,19 @@ from app.security.decorators import require_permission
 
 from app.modules.catering.forms import (
     ProductCategoryForm,
+    ProductForm,
 )
+
 from app.modules.catering.security import (
     CATERING_PRODUCT_CATEGORY_CREATE,
     CATERING_PRODUCT_CATEGORY_READ,
+    CATERING_PRODUCT_CREATE,
+    CATERING_PRODUCT_READ,
 )
+
 from app.modules.catering.services import (
     ProductCategoryService,
+    ProductService,
 )
 
 from . import catering_bp
@@ -107,8 +113,89 @@ def create_category():
     )
 
 
+@catering_bp.route("/products/")
+@login_required
+@require_permission(
+    CATERING_PRODUCT_READ.name
+)
+def products():
+    """
+    Render the Product management list.
+    """
+
+    service = ProductService()
+
+    products = service.get_all()
+
+    return render_template(
+        "modules/catering/products/index.html",
+        products=products,
+    )
+
+
+@catering_bp.route(
+    "/products/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_PRODUCT_CREATE.name
+)
+def create_product():
+    """
+    Create a Catering Product.
+    """
+
+    form = ProductForm()
+
+    category_service = ProductCategoryService()
+
+    product_categories = category_service.get_all()
+
+    form.category_id.choices = [
+        (
+            category.id,
+            category.name,
+        )
+        for category in product_categories
+        if category.is_active
+    ]
+
+    if form.validate_on_submit():
+
+        service = ProductService()
+
+        product = service.create(
+            service.repository.model(
+                category_id=form.category_id.data,
+                name=form.name.data,
+                code=form.code.data,
+                description=form.description.data,
+                unit=form.unit.data,
+            )
+        )
+
+        flash(
+            "Product created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.products"
+            )
+        )
+
+    return render_template(
+        "modules/catering/products/create.html",
+        form=form,
+    )
+
+
 __all__ = [
     "index",
     "categories",
     "create_category",
+    "products",
+    "create_product",
 ]

@@ -1,0 +1,101 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+New Product
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="New Product",
+    subtitle="Create a Catering product."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <form method="POST">
+
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.category_id.label(class="form-label") }}
+                    {{ form.category_id(class="form-select") }}
+
+                    {% for error in form.category_id.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
+
+                    {% for error in form.name.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.code.label(class="form-label") }}
+                    {{ form.code(class="form-control") }}
+
+                    {% for error in form.code.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control", rows="4") }}
+
+                    {% for error in form.description.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.unit.label(class="form-label") }}
+                    {{ form.unit(class="form-control") }}
+
+                    {% for error in form.unit.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Create Product
+                    </button>
+
+                    <a href="{{ url_for('catering.products') }}" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
