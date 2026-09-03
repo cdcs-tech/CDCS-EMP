@@ -13,6 +13,7 @@ from typing import Generic, List, Optional, TypeVar
 
 from app.core.data.entity import BaseEntity
 from app.core.data.query import QueryOptions
+from app.core.data.pagination import PaginatedResult
 
 
 TEntity = TypeVar(
@@ -68,6 +69,26 @@ class BaseRepository(
 
         Returns:
             Entities matching the supplied query options.
+        """
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def paginate(
+        self,
+        options: QueryOptions,
+    ) -> PaginatedResult[TEntity]:
+        """
+        Execute a paginated provider-neutral data query.
+
+        Args:
+            options:
+                Enterprise Data Framework query and
+                pagination options.
+
+        Returns:
+            Paginated result containing the matching
+            entities and pagination metadata.
         """
 
         raise NotImplementedError

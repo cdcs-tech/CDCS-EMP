@@ -21,6 +21,10 @@ from app.modules.catering.services import (
     ProductCategoryService,
 )
 
+from unittest.mock import Mock
+
+from app.core.data import PaginatedResult, QueryOptions
+
 
 def test_product_service_uses_product_repository():
     """
@@ -214,4 +218,84 @@ def test_product_category_service_public_import_boundary():
     )
 
     assert Imported is ProductCategoryService
+
+def test_product_service_paginate_delegates_to_repository():
+    """
+    ProductService pagination must delegate to the injected repository.
+    """
+
+    repository = Mock(
+        spec=ProductRepository,
+    )
+
+    expected = PaginatedResult(
+        items=[],
+        total_records=0,
+        page=2,
+        page_size=10,
+    )
+
+    repository.paginate.return_value = expected
+
+    service = ProductService(
+        repository=repository,
+    )
+
+    options = QueryOptions(
+        page=2,
+        page_size=10,
+        sort_by="name",
+        sort_direction="asc",
+    )
+
+    result = service.paginate(
+        options
+    )
+
+    assert result is expected
+
+    repository.paginate.assert_called_once_with(
+        options
+    )
+
+
+def test_product_category_service_paginate_delegates_to_repository():
+    """
+    ProductCategoryService pagination must delegate to
+    the injected repository.
+    """
+
+    repository = Mock(
+        spec=ProductCategoryRepository,
+    )
+
+    expected = PaginatedResult(
+        items=[],
+        total_records=0,
+        page=2,
+        page_size=10,
+    )
+
+    repository.paginate.return_value = expected
+
+    service = ProductCategoryService(
+        repository=repository,
+    )
+
+    options = QueryOptions(
+        page=2,
+        page_size=10,
+        sort_by="name",
+        sort_direction="asc",
+    )
+
+    result = service.paginate(
+        options
+    )
+
+    assert result is expected
+
+    repository.paginate.assert_called_once_with(
+        options
+    )
 

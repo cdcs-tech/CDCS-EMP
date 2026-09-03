@@ -17,6 +17,7 @@ from typing import Generic, List, Optional, Type, TypeVar
 from sqlalchemy import String, func, or_, select
 
 from app.core.data.entity import BaseEntity
+from app.core.data.pagination import PaginatedResult
 from app.core.data.query import QueryOptions
 from app.core.data.repository import BaseRepository
 from app.extensions import db
@@ -141,7 +142,97 @@ class SQLAlchemyRepository(
 
         Raises:
             ValueError:
-                When an unsupported model field is requested.
+                When invalid query options are supplied.
+        """
+
+        statement = self._build_query(
+            options
+        )
+
+        statement = self._apply_pagination(
+            statement,
+            options,
+        )
+
+        return list(
+            db.session.execute(
+                statement
+            ).scalars().all()
+        )
+
+    def paginate(
+        self,
+        options: QueryOptions,
+    ) -> PaginatedResult[TModel]:
+        """
+        Execute a paginated query and return pagination metadata.
+
+        Filtering and searching are applied before calculating
+        the total record count so the metadata represents the
+        same result set as the returned page.
+
+        Args:
+            options:
+                Enterprise Data Framework query options.
+
+        Returns:
+            PaginatedResult containing matching entities and
+            pagination metadata.
+
+        Raises:
+            ValueError:
+                When invalid query options are supplied.
+        """
+
+        statement = self._build_query(
+            options
+        )
+
+        count_statement = (
+            select(
+                func.count()
+            )
+            .select_from(
+                statement
+                .order_by(None)
+                .subquery()
+            )
+        )
+
+        total_records = int(
+            db.session.execute(
+                count_statement
+            ).scalar_one()
+        )
+
+        paginated_statement = self._apply_pagination(
+            statement,
+            options,
+        )
+
+        items = list(
+            db.session.execute(
+                paginated_statement
+            ).scalars().all()
+        )
+
+        return PaginatedResult(
+            items=items,
+            total_records=total_records,
+            page=options.page,
+            page_size=options.page_size,
+        )
+
+    def _build_query(
+        self,
+        options: QueryOptions,
+    ):
+        """
+        Build the common filtered, searched, and sorted query.
+
+        Pagination is deliberately excluded so that the same
+        query can be used both for total-count calculation
+        and page retrieval.
         """
 
         if not isinstance(
@@ -171,16 +262,7 @@ class SQLAlchemyRepository(
             options,
         )
 
-        statement = self._apply_pagination(
-            statement,
-            options,
-        )
-
-        return list(
-            db.session.execute(
-                statement
-            ).scalars().all()
-        )
+        return statement
 
     def add(
         self,

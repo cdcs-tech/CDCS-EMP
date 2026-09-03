@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.data.pagination import PaginatedResult
 from app.core.data.query import QueryOptions
 from app.core.data.sqlalchemy_repository import (
     SQLAlchemyRepository,
@@ -629,3 +630,180 @@ class TestSQLAlchemyRepository:
         assert first in result
         assert second in result
         assert len(result) == 2
+
+    # ------------------------------------------------------------------
+    # PaginatedResult integration
+    # ------------------------------------------------------------------
+
+    def test_paginate_returns_paginated_result(
+        self,
+        repository,
+    ):
+        """
+        Repository paginate returns the reusable
+        PaginatedResult contract.
+        """
+
+        tenants = [
+            Tenant(
+                code=f"PAGINATE-{index:03d}",
+                name=f"Tenant {index}",
+            )
+            for index in range(1, 6)
+        ]
+
+        for tenant in tenants:
+            repository.add(
+                tenant
+            )
+
+        options = QueryOptions(
+            page=2,
+            page_size=2,
+            sort_by="id",
+            sort_direction="asc",
+        )
+
+        result = repository.paginate(
+            options
+        )
+
+        assert isinstance(
+            result,
+            PaginatedResult,
+        )
+
+        assert result.items == [
+            tenants[2],
+            tenants[3],
+        ]
+
+        assert result.total_records == 5
+        assert result.page == 2
+        assert result.page_size == 2
+        assert result.total_pages == 3
+        assert result.has_previous is True
+        assert result.has_next is True
+
+    def test_paginate_counts_filtered_records(
+        self,
+        repository,
+    ):
+        """
+        Pagination metadata reflects the filtered result set.
+        """
+
+        matching = [
+            Tenant(
+                code=f"FILTER-PAGE-{index:03d}",
+                name=f"Matching {index}",
+            )
+            for index in range(1, 4)
+        ]
+
+        non_matching = Tenant(
+            code="OTHER-PAGE-001",
+            name="Other",
+        )
+
+        for tenant in matching:
+            repository.add(
+                tenant
+            )
+
+        repository.add(
+            non_matching
+        )
+
+        options = QueryOptions(
+            page=1,
+            page_size=2,
+            sort_by="id",
+            sort_direction="asc",
+            filters={
+                "name": "Matching 1",
+            },
+        )
+
+        result = repository.paginate(
+            options
+        )
+
+        assert result.total_records == 1
+        assert len(result.items) == 1
+        assert result.items[0].name == "Matching 1"
+        assert result.total_pages == 1
+        assert result.has_previous is False
+        assert result.has_next is False
+
+    def test_paginate_counts_searched_records(
+        self,
+        repository,
+    ):
+        """
+        Pagination metadata reflects the searched result set.
+        """
+
+        matching = Tenant(
+            code="SEARCH-PAGE-001",
+            name="Finance Department",
+            description="Finance operations",
+        )
+
+        non_matching = Tenant(
+            code="SEARCH-PAGE-002",
+            name="Human Resources",
+            description="HR operations",
+        )
+
+        repository.add(
+            matching
+        )
+
+        repository.add(
+            non_matching
+        )
+
+        options = QueryOptions(
+            page=1,
+            page_size=10,
+            sort_by="id",
+            search="Finance",
+        )
+
+        result = repository.paginate(
+            options
+        )
+
+        assert result.total_records == 1
+        assert result.items == [
+            matching,
+        ]
+
+    def test_paginate_supports_empty_result_set(
+        self,
+        repository,
+    ):
+        """
+        Pagination returns a valid empty result when
+        no entities match.
+        """
+
+        options = QueryOptions(
+            page=1,
+            page_size=10,
+            sort_by="id",
+            filters={
+                "code": "DOES-NOT-EXIST",
+            },
+        )
+
+        result = repository.paginate(
+            options
+        )
+
+        assert result.items == []
+        assert result.total_records == 0
+        assert result.total_pages == 0
+        assert result.has_previous is False
+        assert result.has_next is False

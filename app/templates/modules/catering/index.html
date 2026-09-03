@@ -15,19 +15,65 @@ Catering
     {% include "components/page_header.html" %}
     {% endwith %}
 
-    <div class="card shadow-sm">
+    <div class="row g-4">
 
-        <div class="card-body">
+        {% if can_read_categories %}
 
-            <h2 class="h5">
-                Catering Module
-            </h2>
+        <div class="col-md-6">
 
-            <p class="text-muted mb-0">
-                Catering operations management is being prepared.
-            </p>
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <h2 class="h5">
+                        Product Categories
+                    </h2>
+
+                    <p class="text-muted">
+                        Manage the categories used to organize
+                        Catering products.
+                    </p>
+
+                    <a href="{{ url_for('catering.categories') }}" class="btn btn-primary">
+                        Manage Categories
+                    </a>
+
+                </div>
+
+            </div>
 
         </div>
+
+        {% endif %}
+
+        {% if can_read_products %}
+
+        <div class="col-md-6">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <h2 class="h5">
+                        Products
+                    </h2>
+
+                    <p class="text-muted">
+                        Manage Catering products and their
+                        lifecycle status.
+                    </p>
+
+                    <a href="{{ url_for('catering.products') }}" class="btn btn-primary">
+                        Manage Products
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endif %}
 
     </div>
 

@@ -211,6 +211,13 @@ __all__ = [
     "compliance_registry",
 
 
+    # Module Permission Synchronization
+
+    "ModulePermissionSynchronizer",
+
+    "SYSTEM_ADMINISTRATOR_ROLE",
+
+
     # Governance Manager
 
     "SecurityGovernanceManager",
@@ -218,3 +225,12 @@ __all__ = [
     "security_governance",
 
 ]
+
+# ---------------------------------------------------------
+# Module Permission Synchronization
+# ---------------------------------------------------------
+
+from app.core.security.module_permissions import (
+    ModulePermissionSynchronizer,
+    SYSTEM_ADMINISTRATOR_ROLE,
+)

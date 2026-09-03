@@ -23,16 +23,153 @@ Product Categories
                 Product Categories
             </h2>
 
-            <a
-                href="{{ url_for('catering.create_category') }}"
-                class="btn btn-primary btn-sm"
-            >
+            <a href="{{ url_for('catering.create_category') }}" class="btn btn-primary btn-sm">
                 New Category
             </a>
 
         </div>
 
         <div class="card-body">
+
+            <form method="GET" action="{{ url_for('catering.categories') }}" class="row g-3 mb-4">
+
+                <div class="col-md-4">
+
+                    <label for="category-search" class="form-label">
+                        Search
+                    </label>
+
+                    <input
+                        type="search"
+                        id="category-search"
+                        name="search"
+                        value="{{ request.args.get('search', '') }}"
+                        class="form-control"
+                        placeholder="Search categories..."
+                    >
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="category-status" class="form-label">
+                        Status
+                    </label>
+
+                    <select id="category-status" name="status" class="form-select">
+
+                        {% set current_status = request.args.get('status', 'active') %}
+
+                        <option value="active" {% if current_status == 'active' %}selected{% endif %}>
+                            Active
+                        </option>
+
+                        <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>
+                            Inactive
+                        </option>
+
+                        <option value="all" {% if current_status == 'all' %}selected{% endif %}>
+                            All
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="category-sort" class="form-label">
+                        Sort by
+                    </label>
+
+                    {% set current_sort = request.args.get('sort', 'name') %}
+
+                    <select id="category-sort" name="sort" class="form-select">
+
+                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>
+                            Name
+                        </option>
+
+                        <option value="code" {% if current_sort == 'code' %}selected{% endif %}>
+                            Code
+                        </option>
+
+                        <option value="is_active" {% if current_sort == 'is_active' %}selected{% endif %}>
+                            Status
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="category-direction" class="form-label">
+                        Direction
+                    </label>
+
+                    {% set current_direction = request.args.get('direction', 'asc') %}
+
+                    <select id="category-direction" name="direction" class="form-select">
+
+                        <option value="asc" {% if current_direction == 'asc' %}selected{% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if current_direction == 'desc' %}selected{% endif %}>
+                            Descending
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="category-page-size" class="form-label">
+                        Page size
+                    </label>
+
+                    {% set current_page_size = request.args.get('page_size', '25') %}
+
+                    <select id="category-page-size" name="page_size" class="form-select">
+
+                        <option value="10" {% if current_page_size == '10' %}selected{% endif %}>
+                            10
+                        </option>
+
+                        <option value="25" {% if current_page_size == '25' %}selected{% endif %}>
+                            25
+                        </option>
+
+                        <option value="50" {% if current_page_size == '50' %}selected{% endif %}>
+                            50
+                        </option>
+
+                        <option value="100" {% if current_page_size == '100' %}selected{% endif %}>
+                            100
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('catering.categories') }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Clear
+                    </a>
+
+                </div>
+
+            </form>
 
             {% if product_categories %}
 
@@ -46,6 +183,7 @@ Product Categories
                             <th>Name</th>
                             <th>Description</th>
                             <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
 
@@ -54,20 +192,79 @@ Product Categories
                         {% for category in product_categories %}
 
                         <tr>
+
                             <td>{{ category.code }}</td>
+
                             <td>{{ category.name }}</td>
+
                             <td>{{ category.description or "-" }}</td>
+
                             <td>
+
                                 {% if category.is_active %}
+
                                 <span class="badge text-bg-success">
                                     Active
                                 </span>
+
                                 {% else %}
+
                                 <span class="badge text-bg-secondary">
                                     Inactive
                                 </span>
+
                                 {% endif %}
+
                             </td>
+
+                            <td>
+
+                                {% if category.is_active %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'catering.deactivate_category',
+                                        category_id=category.id
+                                    ) }}"
+                                    class="d-inline"
+                                >
+                                    {{ csrf_token() }}
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-outline-warning btn-sm"
+                                    >
+                                        Deactivate
+                                    </button>
+
+                                </form>
+
+                                {% else %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'catering.activate_category',
+                                        category_id=category.id
+                                    ) }}"
+                                    class="d-inline"
+                                >
+                                    {{ csrf_token() }}
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-outline-success btn-sm"
+                                    >
+                                        Activate
+                                    </button>
+
+                                </form>
+
+                                {% endif %}
+
+                            </td>
+
                         </tr>
 
                         {% endfor %}
@@ -78,11 +275,114 @@ Product Categories
 
             </div>
 
+            {% if pagination.total_pages > 1 %}
+
+            <nav aria-label="Category pagination">
+
+                <ul class="pagination justify-content-end mb-0">
+
+                    <li class="page-item {% if not pagination.has_previous %}disabled{% endif %}">
+
+                        {% if pagination.has_previous %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.categories',
+                                page=pagination.page - 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'name'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            Previous
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Previous
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    {% for page_number in range(1, pagination.total_pages + 1) %}
+
+                    <li class="page-item {% if page_number == pagination.page %}active{% endif %}">
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.categories',
+                                page=page_number,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'name'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            {{ page_number }}
+                        </a>
+
+                    </li>
+
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+
+                        {% if pagination.has_next %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.categories',
+                                page=pagination.page + 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'name'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            Next
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Next
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+            {% endif %}
+
+            {% else %}
+
+            {% if request.args.get('search') or request.args.get('status') in ['inactive', 'all'] %}
+
+            <p class="text-muted mb-0">
+                No product categories match the current query.
+            </p>
+
             {% else %}
 
             <p class="text-muted mb-0">
                 No product categories have been created yet.
             </p>
+
+            {% endif %}
 
             {% endif %}
 

@@ -8,6 +8,7 @@ Seed Orchestrator
 from .permissions import PermissionSeeder
 from .roles import RoleSeeder
 from .role_permissions import RolePermissionSeeder
+from .module_permissions import ModulePermissionSeeder
 from .users import UserSeeder
 from .user_roles import UserRoleSeeder
 
@@ -28,6 +29,8 @@ class SeedManager:
             RoleSeeder(),
 
             RolePermissionSeeder(),
+
+            ModulePermissionSeeder(),
 
             UserSeeder(),
 
