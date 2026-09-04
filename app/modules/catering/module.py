@@ -33,8 +33,13 @@ class CateringModule(BaseModule):
         """
 
         from app.modules.catering.models import (
+            InventoryLocation,
             Product,
             ProductCategory,
+            StockBalance,
+            StockItem,
+            StockMovement,
+            StockTransfer,
         )
 
         # Keep explicit references so the imports are intentional
@@ -42,6 +47,11 @@ class CateringModule(BaseModule):
         _ = (
             Product,
             ProductCategory,
+            StockItem,
+            InventoryLocation,
+            StockBalance,
+            StockMovement,
+            StockTransfer,
         )
 
     def get_metadata(self) -> ModuleMetadata:
