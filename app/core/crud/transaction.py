@@ -12,6 +12,8 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import Iterator
 
+from app.extensions import db
+
 
 class TransactionManager(
     ABC
@@ -79,8 +81,7 @@ class SimpleTransactionManager(
     """
     Basic transaction manager implementation.
 
-    Used for framework testing until the
-    SQLAlchemy transaction layer is introduced.
+    Used for framework testing.
     """
 
     def __init__(self):
@@ -122,3 +123,65 @@ class SimpleTransactionManager(
         self.active = False
 
         self.rolled_back = True
+
+
+class SQLAlchemyTransactionManager(
+    TransactionManager
+):
+    """
+    SQLAlchemy-backed transaction manager.
+
+    Owns the lifecycle of a transaction created
+    through the Flask-SQLAlchemy session.
+    """
+
+    def __init__(self):
+        self.active = False
+
+    def begin(self) -> None:
+        """
+        Begin a SQLAlchemy transaction.
+
+        A transaction already active on the session
+        is rejected because this manager must retain
+        clear ownership of the transaction lifecycle.
+        """
+
+        if db.session().in_transaction():
+            raise RuntimeError(
+                "A SQLAlchemy transaction is already active."
+            )
+
+        db.session.begin()
+
+        self.active = True
+
+    def commit(self) -> None:
+        """
+        Commit the active SQLAlchemy transaction.
+        """
+
+        if not self.active:
+            raise RuntimeError(
+                "No active SQLAlchemy transaction."
+            )
+
+        try:
+            db.session.commit()
+        finally:
+            self.active = False
+
+    def rollback(self) -> None:
+        """
+        Roll back the active SQLAlchemy transaction.
+        """
+
+        if not self.active:
+            raise RuntimeError(
+                "No active SQLAlchemy transaction."
+            )
+
+        try:
+            db.session.rollback()
+        finally:
+            self.active = False

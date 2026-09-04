@@ -33,6 +33,7 @@ from app.core.crud.repository import (
 from app.core.crud.transaction import (
     TransactionManager,
     SimpleTransactionManager,
+    SQLAlchemyTransactionManager,
 )
 
 
@@ -117,6 +118,8 @@ __all__ = [
     "TransactionManager",
 
     "SimpleTransactionManager",
+
+    "SQLAlchemyTransactionManager",
 
 
     # Exceptions
