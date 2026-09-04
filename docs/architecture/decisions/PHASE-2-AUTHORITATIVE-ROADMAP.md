@@ -525,7 +525,7 @@ The Phase 2 architectural record currently consists of:
 | ADR-004 | Catering Repository Architecture                | Approved — Retrospective            |
 | ADR-005 | Catering Service Architecture                   | Approved — Retrospective            |
 | ADR-006 | Catering Security & Governance Integration      | Approved — Retrospective           |
-| ADR-007 | Catering Application Surface Architecture       | Planned for documentation           |
+| ADR-007 | Catering Application Surface Architecture       | Approved — Retrospective             |
 | ADR-008 | Catering Inventory Domain Boundary              | Planned for documentation           |
 | ADR-009 | Inventory Stock Item Architecture               | Planned for documentation           |
 | ADR-010 | Inventory Location Architecture                 | Planned for documentation           |
