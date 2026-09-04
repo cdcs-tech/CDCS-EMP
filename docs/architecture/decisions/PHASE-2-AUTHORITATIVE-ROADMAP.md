@@ -522,7 +522,7 @@ The Phase 2 architectural record currently consists of:
 | ADR-001 | Phase 2 Business Module Architecture & Strategy | Approved — Retrospective            |
 | ADR-002 | Catering Model Registration Boundary            | Approved / Authoritative            |
 | ADR-003 | Catering Relationships & Database Constraints   | Approved / Complete / Authoritative |
-| ADR-004 | Catering Repository Architecture                | Planned for documentation           |
+| ADR-004 | Catering Repository Architecture                | Approved — Retrospective            |
 | ADR-005 | Catering Service Architecture                   | Planned for documentation           |
 | ADR-006 | Catering Security & Governance Integration      | Planned for documentation           |
 | ADR-007 | Catering Application Surface Architecture       | Planned for documentation           |
