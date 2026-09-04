@@ -173,3 +173,61 @@ def test_sqlalchemy_transaction_manager_rejects_rollback_without_transaction(
             match="No active SQLAlchemy transaction",
         ):
             manager.rollback()
+
+def test_sqlalchemy_transaction_context_rolls_back_when_commit_fails(
+    app,
+    monkeypatch,
+):
+    """
+    The transaction context rolls back when commit fails.
+    """
+
+    with app.app_context():
+
+        manager = SQLAlchemyTransactionManager()
+
+        original_commit = db.session.commit
+        original_rollback = db.session.rollback
+
+        commit_called = False
+        rollback_called = False
+
+        def failing_commit():
+            nonlocal commit_called
+
+            commit_called = True
+
+            raise RuntimeError(
+                "commit failed"
+            )
+
+        def tracking_rollback():
+            nonlocal rollback_called
+
+            rollback_called = True
+
+            original_rollback()
+
+        monkeypatch.setattr(
+            db.session,
+            "commit",
+            failing_commit,
+        )
+
+        monkeypatch.setattr(
+            db.session,
+            "rollback",
+            tracking_rollback,
+        )
+
+        with pytest.raises(
+            RuntimeError,
+            match="commit failed",
+        ):
+            with manager.transaction():
+                assert manager.active is True
+
+        assert commit_called is True
+        assert rollback_called is True
+        assert manager.active is False
+        assert db.session().in_transaction() is False

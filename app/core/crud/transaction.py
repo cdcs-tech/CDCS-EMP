@@ -164,12 +164,11 @@ class SQLAlchemyTransactionManager(
         if not self.active:
             raise RuntimeError(
                 "No active SQLAlchemy transaction."
-            )
+        )
 
-        try:
-            db.session.commit()
-        finally:
-            self.active = False
+        db.session.commit()
+
+        self.active = False
 
     def rollback(self) -> None:
         """
