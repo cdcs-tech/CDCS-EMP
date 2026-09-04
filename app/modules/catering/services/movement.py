@@ -9,11 +9,15 @@ Stock movement service.
 from __future__ import annotations
 
 from app.core.crud import CRUDService
+from app.core.crud import (
+    CRUDService,
+    SQLAlchemyTransactionManager,
+    TransactionManager,
+)
 from app.core.data import PaginatedResult, QueryOptions
 
 from app.modules.catering.models import StockMovement
 from app.modules.catering.repositories import StockMovementRepository
-
 
 class StockMovementService(
     CRUDService[StockMovement],
@@ -33,6 +37,7 @@ class StockMovementService(
     def __init__(
         self,
         repository: StockMovementRepository | None = None,
+        transaction_manager: TransactionManager | None = None,
     ) -> None:
         """
         Initialize the StockMovement service.
@@ -41,12 +46,21 @@ class StockMovementService(
             repository:
                 Optional StockMovement repository. A default
                 repository is created when one is not supplied.
+
+            transaction_manager:
+                Optional transaction manager. A default SQLAlchemy
+                transaction manager is created when one is not supplied.
         """
 
         super().__init__(
             repository
             or StockMovementRepository(),
             entity_name="StockMovement",
+        )
+
+        self.transaction_manager = (
+            transaction_manager
+            or SQLAlchemyTransactionManager()
         )
 
     def paginate(
