@@ -1,916 +1,723 @@
-﻿# CDCS-EMP — Phase 2 Business Modules
+﻿# CDCS-EMP — Phase 2 Authoritative Roadmap
 
-# Authoritative Architecture & Implementation Roadmap
-
-**Document Type:** Authoritative Phase Roadmap
+**Version:** 2.0
 **Status:** Approved / Active
-**Version:** 1.0
-**Phase:** Phase 2 — Business Modules
-**Current Module:** Catering
-**Authoritative Location:** `docs/architecture/decisions/`
-**Last Updated:** 30 August 2026
+**Phase:** Phase 2 — First Business Modules
+**Current Business Module:** Catering
+**Pilot:** SSRC-IBMS
+**Original Version:** 1.0
+**Reconciled:** 4 September 2026
 
 ---
 
-## 1. Purpose
+# 1. Purpose
 
-This document establishes the authoritative roadmap for **Phase 2 of the CDCS Enterprise Management Platform (CDCS-EMP)**.
+This document is the authoritative implementation roadmap for Phase 2 of the CDCS Enterprise Management Platform (CDCS-EMP).
 
-It consolidates the previously developed Phase 2 planning, architecture, persistence design, implementation sequencing, and verification decisions into a single source of truth.
+Phase 2 moves CDCS-EMP from reusable enterprise foundation into the implementation of real business capabilities.
 
-Where earlier planning notes, duplicated roadmap fragments, or chat discussions conflict with this document, this document takes precedence unless a subsequent approved Architecture Decision Record (ADR) explicitly supersedes a decision.
+The first business module is Catering, developed initially for the SSRC-IBMS pilot.
+
+This Version 2.0 reconciles the original Phase 2 roadmap with the architectural decisions and implementation completed after Version 1.0.
 
 ---
 
 # 2. Phase 2 Objective
 
-Phase 2 introduces the first real business modules into CDCS-EMP.
+The objective of Phase 2 is to prove that the CDCS-EMP platform can support complete, bounded business capabilities without duplicating the enterprise platform foundation.
 
-The objective is to demonstrate that the existing CDCS-EMP enterprise platform foundation can support complete, independently bounded business capabilities without creating separate applications or duplicating platform infrastructure.
+Phase 2 shall therefore:
 
-The first Phase 2 pilot business module is:
-
-**Catering**
-
-The Catering module is being implemented as the first business-domain implementation against the established CDCS-EMP platform architecture.
+1. implement real business modules;
+2. establish clear business-data ownership;
+3. consume existing platform capabilities;
+4. maintain security and governance;
+5. maintain auditable business operations;
+6. validate persistence and transaction boundaries;
+7. establish reusable patterns through real implementation;
+8. avoid premature enterprise-wide generalization; and
+9. provide a foundation for subsequent business modules.
 
 ---
 
 # 3. Phase 2 Architectural Principles
 
-All Phase 2 business modules shall:
+All Phase 2 implementation shall follow these principles.
 
-1. Consume the existing CDCS-EMP platform foundation.
-2. Remain bounded within their own business-domain package.
-3. Use the established module lifecycle and discovery framework.
-4. Use the established persistence architecture.
-5. Use the established security and governance framework.
-6. Avoid duplicating platform infrastructure.
-7. Avoid introducing unnecessary dependencies between business modules.
-8. Preserve organization-level data isolation.
-9. Preserve enterprise auditability.
-10. Be implemented incrementally with focused verification gates.
+## 3.1 Existing Platform First
 
-A business module must not become a second independent application inside CDCS-EMP.
+Business modules shall consume existing CDCS-EMP capabilities before introducing new infrastructure.
 
----
+## 3.2 Bounded Business Ownership
 
-# 4. Catering Module Boundary
+Each module shall own a clearly defined business capability and its authoritative business data.
 
-The initial Catering module covers the operational management of catering activities, including:
+## 3.3 No Duplicate Infrastructure
 
-* Customers
-* Catering services / engagements
-* Menus
-* Menu items
-* Products and product categories
-* Suppliers
-* Inventory items
-* Food stores
-* Stock movements
-* Purchases
-* Purchase lines
-* Catering expenses
-* Invoices
-* Invoice lines
-* Catering payments
+Modules shall not create parallel:
 
-The module deliberately does **not** initially implement:
+* persistence frameworks;
+* ORM foundations;
+* CRUD frameworks;
+* transaction managers;
+* security frameworks;
+* identity models;
+* module lifecycle systems; or
+* application frameworks.
 
-* Full accounting ledgers
-* General Finance functionality
-* Payroll
-* Staffing management
-* Production planning
-* Recipe management
-* Asset management
-* Enterprise-wide Procurement
-* Enterprise-wide Inventory
-* Other business modules
+## 3.4 Explicit Cross-Module Integration
 
-Those capabilities may be introduced later as independent platform or business capabilities.
+Cross-module dependencies shall be implemented through explicit interfaces and approved integration mechanisms.
 
----
+## 3.5 Security and Governance by Default
 
-# 5. Phase 2.1 — Catering Implementation Roadmap
+Business modules shall use the existing authentication, RBAC, authorization, audit, and governance infrastructure.
 
-## 5.1 Phase 2.1.1 — Catering Module Selection & Scope
+## 3.6 Incremental Verification
 
-**Status:** Complete
+Every significant implementation stage shall undergo focused verification followed by broader regression verification.
 
-Established Catering as the first Phase 2 business module and defined its initial operational scope.
+## 3.7 Architecture Must Be Documented
 
----
+Meaningful architectural decisions shall be documented through ADRs.
 
-## 5.2 Phase 2.1.2 — Catering Domain Boundaries
-
-**Status:** Complete
-
-Established the Catering domain boundary and its relationship with the wider CDCS-EMP platform.
-
----
-
-## 5.3 Phase 2.1.3 — Domain Entities & Relationships
-
-**Status:** Complete
-
-Established the initial Catering domain entities and their relationships.
-
-The domain model was subsequently refined through the persistence-design stage and the approved master-data foundation.
-
----
-
-## 5.4 Phase 2.1.4 — Data Model & Persistence Design
-
-**Status:** Complete — Approved for implementation
-
-The persistence architecture is based entirely on the existing CDCS-EMP persistence stack.
-
-### Persistence flow
+The permanent completion sequence is:
 
 ```text
-Catering Domain
-      │
-      ▼
-SQLAlchemy Models
-      │
-      ▼
-Existing BaseModel + Mixins
-      │
-      ▼
-Existing SQLAlchemy db Extension
-      │
-      ▼
-Existing Repository / Data Framework
-      │
-      ▼
-SQL Server
+Implementation
+      ↓
+Architecture Review
+      ↓
+ADR Creation / Update
+      ↓
+Roadmap Reconciliation
+      ↓
+Regression Verification
+      ↓
+Git Checkpoint
 ```
 
-The Catering module shall not introduce:
+---
 
-* A second database abstraction
-* A Catering-specific ORM base
-* A second transaction mechanism
-* Module-specific generic CRUD infrastructure
-* A separate tenant model
+# 4. Phase 2 Architecture
+
+The Phase 2 architecture is:
+
+```text
+CDCS-EMP Platform
+│
+├── Core Enterprise Capabilities
+│   ├── Configuration
+│   ├── CRUD
+│   ├── Data
+│   ├── Discovery
+│   ├── Events
+│   ├── Execution
+│   ├── Integration
+│   ├── Modules
+│   ├── Notifications
+│   ├── Platform
+│   ├── Reporting
+│   ├── Security
+│   ├── Services
+│   ├── Startup
+│   ├── Validation
+│   └── Workflow
+│
+└── Business Modules
+    │
+    └── Catering
+```
+
+Future business modules shall follow the same bounded-module architecture.
 
 ---
 
-# 6. Common Persistence Contract
+# 5. Catering Module
 
-Persistent Catering entities shall use the existing CDCS-EMP model foundation.
+Catering is the first Phase 2 business module.
 
-Where applicable, entities inherit:
+Its initial scope is being implemented incrementally.
 
-```text
-BaseModel
-TimestampMixin
-AuditMixin
-SoftDeleteMixin
-```
-
-## BaseModel
-
-Provides:
-
-* `id` — integer primary key
-* `guid` — SQL Server `UNIQUEIDENTIFIER`
-
-## TimestampMixin
-
-Provides:
-
-* `created_at`
-* `updated_at`
-
-## AuditMixin
-
-Provides:
-
-* `created_by`
-* `updated_by`
-
-## SoftDeleteMixin
-
-Provides:
-
-* `is_deleted`
-* `deleted_at`
-
-The Catering module shall not redefine these platform-wide concerns.
+The current architecture separates Catering master data from Inventory and future operational capabilities.
 
 ---
 
-# 7. Organization Ownership
+# 6. Catering Implementation Status
 
-Organizational Catering records shall contain:
+## 6.1 Catering Module Foundation
+
+**Status: COMPLETE**
+
+Implemented:
+
+* Catering module package;
+* module manifest;
+* module lifecycle integration;
+* model registration boundary;
+* Catering security integration;
+* application surface integration.
+
+---
+
+## 6.2 Catering Master Data
+
+**Status: COMPLETE**
+
+Implemented:
+
+* ProductCategory;
+* Product;
+* model relationships;
+* database constraints;
+* repositories;
+* services;
+* security permissions;
+* application routes;
+* forms;
+* templates;
+* navigation integration;
+* focused verification.
+
+Authoritative decisions:
+
+* ADR-002 — Catering Model Registration Boundary;
+* ADR-003 — Catering Relationships & Database Constraints.
+
+---
+
+## 6.3 Catering Application Surface
+
+**Status: COMPLETE**
+
+Implemented application surface includes:
+
+* Catering landing surface;
+* Product Category listing;
+* Product Category creation;
+* Product listing;
+* Product creation;
+* permission enforcement;
+* enterprise navigation integration.
+
+Architectural decision:
+
+* ADR-007 — Catering Application Surface Architecture.
+
+---
+
+# 7. Catering Inventory
+
+Inventory has been established as a distinct bounded capability within Catering.
+
+**Status: FOUNDATION COMPLETE — OPERATIONAL POSTING CONTINUES**
+
+Inventory owns:
+
+* Stock Items;
+* Inventory Locations;
+* Stock Balances;
+* Stock Movements;
+* Stock Transfers;
+* inventory thresholds and stock configuration.
+
+Inventory does not own:
+
+* Purchasing;
+* Supplier financial transactions;
+* Expenses;
+* Income;
+* Invoicing;
+* Payments;
+* General accounting.
+
+The Catering Product remains the authoritative product master.
+
+Inventory does not create a duplicate product registry.
+
+---
+
+# 8. Inventory Architecture
+
+## 8.1 Stock Item
+
+**Status: COMPLETE**
+
+A StockItem represents inventory configuration for an existing Catering Product.
+
+Relationship:
 
 ```text
-organization_id
+Product
+   │
+   └── 0..1 StockItem
 ```
 
-with:
+A Product may therefore exist without being inventory-managed.
+
+StockItem owns:
+
+* Product relationship;
+* minimum level;
+* reorder level;
+* active state.
+
+Current quantity is not stored on StockItem.
+
+---
+
+## 8.2 Inventory Location
+
+**Status: COMPLETE**
+
+Inventory locations provide the physical/logical locations at which stock is held.
+
+Each location has:
+
+* code;
+* name;
+* description;
+* active state.
+
+The current architecture deliberately uses a flat location structure.
+
+---
+
+## 8.3 Stock Balance
+
+**Status: COMPLETE**
+
+StockBalance represents the current persisted quantity for:
 
 ```text
-FOREIGN KEY → organizations.id
-nullable = False
+Stock Item + Location
 ```
 
-where the record represents organizationally owned data.
+The database enforces one balance per StockItem/location pair.
 
-The tenant boundary is established through the existing:
+Quantity cannot be negative.
+
+Zero is valid.
+
+---
+
+## 8.4 Stock Movement Ledger
+
+**Status: FOUNDATION COMPLETE — POSTING IMPLEMENTATION IN PROGRESS**
+
+Stock movements form the auditable inventory ledger.
+
+Movement types:
 
 ```text
-Tenant
-  │
-  └── Organization
+OPENING_BALANCE
+RECEIPT
+ISSUE
+ADJUSTMENT
+TRANSFER
+```
+
+Movement quantity is signed.
+
+Examples:
+
+```text
+RECEIPT          positive
+ISSUE            negative
+OPENING_BALANCE  signed
+ADJUSTMENT       signed
+TRANSFER         reserved for transfer posting
+```
+
+Posted movements are immutable.
+
+Corrections shall use compensating movements rather than destructive modification.
+
+---
+
+## 8.5 Stock Transfer
+
+**Status: MODEL FOUNDATION COMPLETE — POSTING OPERATION PENDING**
+
+StockTransfer represents movement of stock between two distinct locations.
+
+A transfer contains:
+
+* StockItem;
+* source location;
+* destination location;
+* positive quantity;
+* reference;
+* reason;
+* status;
+* occurrence timestamp;
+* posting timestamp.
+
+Posting shall create the corresponding source and destination inventory effects atomically.
+
+---
+
+# 9. Inventory Repository and Service Architecture
+
+**Status: COMPLETE FOUNDATION**
+
+Inventory repositories use the existing Enterprise Data Framework.
+
+Repositories remain persistence-focused.
+
+Inventory services own:
+
+* business validation;
+* business rules;
+* orchestration;
+* transaction coordination;
+* balance updates;
+* movement creation;
+* transfer posting.
+
+No repository owns application transaction lifecycle.
+
+Architectural decision:
+
+* ADR-014 — Inventory Repository & Service Boundary.
+
+---
+
+# 10. Transaction and Posting Architecture
+
+**Status: COMPLETE FOUNDATION**
+
+The platform now provides a concrete SQLAlchemy implementation of the existing TransactionManager abstraction.
+
+Inventory user-facing services use the TransactionManager abstraction rather than depending directly on the execution layer.
+
+The execution layer can wrap a TransactionManager through the existing execution transaction boundary.
+
+This preserves dependency direction and prevents transaction ownership from leaking into repositories.
+
+Architectural decision:
+
+* ADR-015 — Inventory Transaction & Posting Boundary.
+
+---
+
+# 11. Remaining Catering Capabilities
+
+The following capabilities remain planned.
+
+## 11.1 Product and Category Management
+
+**Status: COMPLETE**
+
+Already implemented.
+
+---
+
+## 11.2 Inventory / Food Stock Management
+
+**Status: IN PROGRESS**
+
+Foundation implemented.
+
+Remaining operational work includes, as justified:
+
+* stock movement posting completion;
+* transfer posting;
+* operational inventory workflows;
+* further business-rule verification;
+* application surface for inventory operations;
+* reporting integration;
+* appropriate integration boundaries.
+
+---
+
+## 11.3 Purchasing & Expense Management
+
+**Status: PLANNED**
+
+Future capability.
+
+Purchasing shall remain distinct from Inventory.
+
+Inventory may receive stock from purchasing through an explicit integration boundary.
+
+---
+
+## 11.4 Catering Income Management
+
+**Status: PLANNED**
+
+Future capability.
+
+---
+
+## 11.5 Invoice & Receipt Management
+
+**Status: PLANNED**
+
+Future capability.
+
+---
+
+## 11.6 Catering Reporting & Analytics
+
+**Status: PLANNED**
+
+Catering reporting shall consume the existing CDCS-EMP Reporting Framework.
+
+A parallel reporting infrastructure shall not be created.
+
+---
+
+## 11.7 Workflow & Business Rules
+
+**Status: PLANNED / INCREMENTAL**
+
+Business-specific workflow shall be introduced only where operational requirements justify it.
+
+Existing workflow infrastructure shall be reused.
+
+---
+
+## 11.8 Integration & Cross-Module Services
+
+**Status: PLANNED**
+
+Cross-module integration shall be implemented through explicit interfaces and contracts.
+
+Potential future relationships include:
+
+```text
+Purchasing
+     │
+     ▼
+Inventory
+     │
+     ▼
+Reporting
+```
+
+and:
+
+```text
+Catering Operations
         │
-        └── Catering Data
+        ▼
+     Income
+        │
+        ▼
+    Invoicing
 ```
 
-The Catering module shall **not add `tenant_id` to every table** unless a future platform-level requirement demonstrates that this is necessary.
+Exact integration contracts shall be defined when the corresponding business capabilities are implemented.
 
 ---
 
-# 8. Initial Catering Persistence Surface
+# 12. ADR Register
 
-The approved initial persistence boundary consists of the following tables.
+The Phase 2 architectural record currently consists of:
 
-| #  | Table               | Purpose                      |
-| -- | ------------------- | ---------------------------- |
-| 1  | `customers`         | Catering customers           |
-| 2  | `catering_services` | Catering engagements/events  |
-| 3  | `menus`             | Menu definitions             |
-| 4  | `menu_items`        | Menu offerings               |
-| 5  | `suppliers`         | Suppliers                    |
-| 6  | `stock_items`       | Inventory master             |
-| 7  | `food_stores`       | Storage locations            |
-| 8  | `stock_movements`   | Inventory transaction ledger |
-| 9  | `purchases`         | Procurement headers          |
-| 10 | `purchase_lines`    | Procurement details          |
-| 11 | `catering_expenses` | Catering expenses            |
-| 12 | `invoices`          | Customer billing             |
-| 13 | `invoice_lines`     | Billing details              |
-| 14 | `catering_payments` | Customer payments            |
+| ADR     | Decision                                        | Status                              |
+| ------- | ----------------------------------------------- | ----------------------------------- |
+| ADR-001 | Phase 2 Business Module Architecture & Strategy | Approved — Retrospective            |
+| ADR-002 | Catering Model Registration Boundary            | Approved / Authoritative            |
+| ADR-003 | Catering Relationships & Database Constraints   | Approved / Complete / Authoritative |
+| ADR-004 | Catering Repository Architecture                | Planned for documentation           |
+| ADR-005 | Catering Service Architecture                   | Planned for documentation           |
+| ADR-006 | Catering Security & Governance Integration      | Planned for documentation           |
+| ADR-007 | Catering Application Surface Architecture       | Planned for documentation           |
+| ADR-008 | Catering Inventory Domain Boundary              | Planned for documentation           |
+| ADR-009 | Inventory Stock Item Architecture               | Planned for documentation           |
+| ADR-010 | Inventory Location Architecture                 | Planned for documentation           |
+| ADR-011 | Inventory Stock Balance Architecture            | Planned for documentation           |
+| ADR-012 | Inventory Stock Movement Ledger Architecture    | Planned for documentation           |
+| ADR-013 | Inventory Stock Transfer Architecture           | Planned for documentation           |
+| ADR-014 | Inventory Repository & Service Boundary         | Planned for documentation           |
+| ADR-015 | Inventory Transaction & Posting Boundary        | Planned for documentation           |
+
+The register may be adjusted when architectural review determines that two decisions should be consolidated or that a new superseding ADR is required.
+
+ADR numbers shall not be assigned merely to fill numerical gaps.
 
 ---
 
-# 9. Core Data Model Rules
+# 13. Version 1.0 Reconciliation
 
-## 9.1 Business identifiers
+Version 1.0 remains part of the architectural history of CDCS-EMP.
 
-Organizational business identifiers shall use composite uniqueness where appropriate.
+Version 2.0 supersedes Version 1.0 as the active implementation roadmap.
 
-Examples:
+The following changes are material:
+
+### 13.1 Completed Work Reconciled
+
+The roadmap now records as completed:
+
+* Catering module foundation;
+* Catering model registration;
+* ProductCategory;
+* Product;
+* relationships and constraints;
+* repositories;
+* services;
+* security integration;
+* application surface;
+* inventory domain models;
+* inventory schema;
+* inventory repositories;
+* inventory services;
+* transaction-manager integration.
+
+### 13.2 Inventory Architecture Refined
+
+The original roadmap described stock movement concepts differently from the architecture subsequently implemented.
+
+The current authoritative Inventory architecture is governed by the forthcoming Inventory ADRs, particularly the:
+
+* Inventory Domain Boundary;
+* Stock Movement Ledger;
+* Stock Transfer; and
+* Transaction & Posting Boundary
+
+decisions.
+
+Where Version 1.0 conflicts with those approved decisions, the approved ADRs govern the architecture.
+
+### 13.3 Roadmap Does Not Override ADRs
+
+The roadmap describes:
+
+**what is planned and when.**
+
+ADRs describe:
+
+**why the architecture is designed that way.**
+
+A subsequent approved ADR supersedes an earlier roadmap assumption where the two conflict.
+
+---
+
+# 14. Verification and Completion Process
+
+Every significant Phase 2 implementation stage shall follow:
 
 ```text
-UNIQUE(organization_id, customer_code)
-UNIQUE(organization_id, service_number)
-UNIQUE(organization_id, supplier_code)
-UNIQUE(organization_id, item_code)
-UNIQUE(organization_id, invoice_number)
-UNIQUE(organization_id, purchase_number)
-UNIQUE(organization_id, payment_number)
+1. Implement
+2. Focused Tests
+3. Architecture Review
+4. ADR Creation / Update
+5. Roadmap Reconciliation
+6. Module / Integration Verification
+7. Full Regression
+8. Git Status
+9. Checkpoint Commit
+10. Push
 ```
 
-This permits different organizations to use the same local business identifier without violating organizational isolation.
+A stage is not considered architecturally complete until the documentation checkpoint has been completed.
 
 ---
 
-## 9.2 Monetary precision
+# 15. Change Control
 
-All financial values shall use SQLAlchemy `Numeric` / SQL Server `DECIMAL`.
+Material changes require architectural review.
 
-Default monetary precision:
+These include changes to:
 
-```text
-Numeric(18, 2)
-```
+* business-module boundaries;
+* authoritative data ownership;
+* persistence architecture;
+* tenant/organization architecture;
+* module lifecycle;
+* security;
+* repository architecture;
+* service architecture;
+* transaction architecture;
+* migration strategy;
+* cross-module integration;
+* major domain relationships.
 
-Floating-point types shall not be used for monetary values.
+Material architectural changes shall be documented through a new ADR or superseding ADR.
 
----
-
-## 9.3 Inventory precision
-
-Inventory quantities shall use:
-
-```text
-Numeric(18, 3)
-```
-
-This supports fractional quantities such as:
-
-```text
-1.500 kg
-0.250 kg
-2.750 litres
-```
-
-Greater precision may be considered later if required by a platform-wide inventory capability.
+The roadmap shall then be reconciled.
 
 ---
 
-# 10. Stock Movement Design
+# 16. Source of Truth
 
-`stock_movements` is the inventory transaction ledger for the initial Catering implementation.
+The following hierarchy applies:
 
-The stored movement quantity represents a **positive quantity**.
+### Architectural Decisions
 
-Movement direction is determined by the movement type.
+Approved ADRs are authoritative for the architectural decisions they document.
 
-Examples:
+### Implementation Roadmap
 
-| Movement Type  | Direction      |
-| -------------- | -------------- |
-| `PURCHASE`     | +              |
-| `RECEIPT`      | +              |
-| `RETURN`       | +              |
-| `ISSUE`        | −              |
-| `WASTAGE`      | −              |
-| `TRANSFER_OUT` | −              |
-| `TRANSFER_IN`  | +              |
-| `ADJUSTMENT`   | Domain-defined |
+This document is authoritative for Phase 2 sequencing, implementation status, and planned work.
 
-The domain/service layer shall control movement direction rather than allowing arbitrary positive/negative quantities from user input.
+### Implementation
 
----
+The repository is authoritative for the actual implementation.
 
-# 11. Invoice Design
+### Verification
 
-An invoice is a billable financial document.
+Tests and verification results provide evidence that the implementation satisfies the documented design.
 
-`invoice_lines` intentionally does **not** require a `menu_item_id`.
+When these sources appear inconsistent:
 
-An invoice line represents a billable item and may therefore describe:
-
-* A menu item
-* A service
-* A custom charge
-* Another billable item
-
-This preserves flexibility while avoiding unnecessary coupling between billing and menu definitions.
+1. determine whether an architectural decision has changed;
+2. document the change through an ADR;
+3. reconcile the roadmap;
+4. verify the implementation;
+5. preserve the historical record.
 
 ---
 
-# 12. Payment Design
+# 17. Current Phase 2 Position
 
-`catering_payments` supports multiple payments against a single invoice.
-
-Each payment has its own:
-
-* Payment number
-* Payment date
-* Amount
-* Payment method
-* Optional reference
-* Optional notes
-
-Payment numbers are unique within an organization.
-
----
-
-# 13. Foreign-Key Strategy
-
-The principal relationships are:
-
-```text
-Organization
-│
-├── Customers
-│     └── Catering Services
-│
-├── Menus
-│     └── Menu Items
-│
-├── Suppliers
-│     └── Purchases
-│           └── Purchase Lines
-│                 └── Stock Items
-│
-├── Food Stores
-│     └── Stock Movements
-│
-├── Stock Items
-│     └── Stock Movements
-│
-├── Catering Services
-│     └── Catering Expenses
-│
-└── Invoices
-      ├── Invoice Lines
-      └── Catering Payments
-```
-
-Individual foreign keys shall be enforced by the database.
-
-Cross-organization consistency shall be enforced through domain/application services and tests.
-
-The database shall not introduce unnecessarily complex composite foreign keys solely to enforce organization consistency between related entities.
-
----
-
-# 14. Delete Strategy
-
-Catering business records are auditable business data.
-
-Therefore:
-
-* Organization deletion shall not physically cascade into Catering transactional data.
-* Soft deletion shall be preferred for business entities where appropriate.
-* Blanket `ON DELETE CASCADE` shall not be used across transactional Catering tables.
-* Aggregate-dependent records may have controlled lifecycle handling.
-* Physical deletion of transactional data shall be treated as an exceptional operation subject to enterprise governance.
-
----
-
-# 15. Indexing Strategy
-
-Indexes shall support actual organizational, relational, operational, and reporting queries.
-
-## Organizational indexes
-
-`organization_id` shall be indexed on organization-owned tables.
-
-## Foreign-key indexes
-
-Likely indexed foreign keys include:
-
-* `customer_id`
-* `supplier_id`
-* `catering_service_id`
-* `menu_id`
-* `purchase_id`
-* `stock_item_id`
-* `food_store_id`
-* `invoice_id`
-
-## Business identifier indexes
-
-Composite unique indexes shall support organizational identifiers.
-
-## Operational indexes
-
-Likely operational indexes include:
-
-* `service_date`
-* `purchase_date`
-* `expense_date`
-* `invoice_date`
-* `payment_date`
-* `movement_date`
-* `status`
-
-Indexes shall not be added indiscriminately to every column.
-
----
-
-# 16. Audit User Foreign Keys
-
-The existing `AuditMixin` defines:
-
-```text
-created_by
-updated_by
-```
-
-as integer fields without foreign-key constraints.
-
-Catering shall follow this existing platform contract.
-
-The Catering implementation shall **not modify `AuditMixin`** merely to introduce user foreign keys.
-
-Any future formalization of audit-user foreign keys shall be implemented as a platform-wide enhancement.
-
----
-
-# 17. Module Package Architecture
-
-The Catering module is a proper Phase 2 business module.
-
-Its package resides under:
-
-```text
-app/modules/catering/
-```
-
-The module is discovered through the existing CDCS-EMP module discovery framework.
-
-The architectural flow is:
-
-```text
-app.modules
-      │
-      ▼
-ModuleDiscovery
-      │
-      ▼
-catering.manifest
-      │
-      ▼
-MODULE_MANIFEST
-      │
-      ▼
-CateringModule
-      │
-      ▼
-ModuleLoader
-      │
-      ▼
-ModuleManager
-      │
-      ▼
-CateringModule.initialize()
-```
-
-No Catering-specific startup modification is required in `app/__init__.py`.
-
----
-
-# 18. Catering Module Foundation
-
-The initial package foundation consists of:
-
-```text
-app/modules/catering/
-├── __init__.py
-├── manifest.py
-├── module.py
-└── models/
-    └── __init__.py
-```
-
-The model package consumes the existing platform model foundation:
-
-```text
-BaseModel
-TimestampMixin
-AuditMixin
-SoftDeleteMixin
-```
-
-No Catering-specific ORM base or database abstraction shall be introduced.
-
----
-
-# 19. Phase 2.1.5 — Catering Module Package & Model Implementation
-
-## 19.1 Phase 2.1.5.1 — Catering Module Package & Manifest Foundation
-
-**Status: COMPLETE**
-
-Delivered:
-
-* Catering package
-* `CateringModule`
-* `ModuleMetadata`
-* Catering discovery manifest
-* Catering public API
-* Focused architecture tests
-* Automatic discovery integration
-
-Verification:
-
-* Catering foundation tests: **5 passed**
-* Full regression at checkpoint: **1,716 passed**
-* No startup modification required
-
----
-
-## 19.2 Phase 2.1.5.2 — Catering Model Package Foundation
-
-**Status: COMPLETE**
-
-Delivered:
-
-```text
-app/modules/catering/models/__init__.py
-```
-
-The model package exposes:
-
-* `BaseModel`
-* `TimestampMixin`
-* `AuditMixin`
-* `SoftDeleteMixin`
-
-Verification:
-
-* Model package contents verified
-* Shared model foundation imports successfully
-* `BaseModel.__abstract__ == True`
-* Catering unit tests: **5 passed**
-
----
-
-## 19.3 Phase 2.1.5.3 — Core Catering Domain Models
-
-**Status: COMPLETE — COMMITTED — PENDING GIT PUSH**
-
-The first actual Catering domain model implementation has been completed.
-
-The approved master-data foundation consists initially of:
-
-* `ProductCategory`
-* `Product`
-
-These models provide the classification and product foundation required for subsequent:
-
-* Inventory
-* Purchasing
-* Stock
-* Sales
-* Reporting
-
-capabilities.
-
-The corresponding architectural decision is documented in:
-
-```text
-docs/architecture/decisions/ADR-002-catering-model-registration-boundary.md
-```
-
-Current repository state:
-
-```text
-Phase 2.1.5.3
-    COMPLETE
-    COMMITTED
-    PENDING GIT PUSH
-```
-
----
-
-# 20. Remaining Phase 2.1.5 Roadmap
-
-## 20.1 Phase 2.1.5.4 — Relationships & Database Constraints
-
-**Status: NEXT**
-
-Scope:
-
-* Model relationships
-* Foreign keys
-* Organizational ownership
-* Composite uniqueness
-* Check constraints where appropriate
-* Relationship validation
-* Cross-organization consistency tests
-* Aggregate relationship behavior
-
-No unrelated platform changes should be introduced.
-
----
-
-## 20.2 Phase 2.1.5.5 — Model Registration & Migration
-
-Scope:
-
-* Controlled model registration/import boundary
-* Alembic migration
-* Catering-owned database tables
-* Catering indexes
-* Catering constraints
-* Migration verification
-
-The original enterprise migration:
-
-```text
-d8196139a024_initial_enterprise_schema
-```
-
-shall not be modified.
-
-Catering shall be introduced through a new Alembic revision.
-
-Conceptually:
-
-```text
-d8196139a024
-      │
-      ▼
-<new Catering revision>
-      │
-      ▼
-future Phase 2 migrations
-```
-
----
-
-## 20.3 Phase 2.1.5.6 — Catering Repositories
-
-Repositories shall consume the existing:
-
-* `BaseRepository`
-* `SQLAlchemyRepository`
-* Existing Data Framework
-
-No second repository abstraction shall be introduced.
-
----
-
-## 20.4 Phase 2.1.5.7 — Catering Services
-
-Business services shall implement domain behavior such as:
-
-* Customer operations
-* Catering-service operations
-* Product/menu operations
-* Purchasing
-* Inventory movements
-* Expense recording
-* Invoicing
-* Payment processing
-* Business-rule validation
-
-Services shall enforce invariants that are intentionally not represented as complex database constraints.
-
----
-
-## 20.5 Phase 2.1.5.8 — Security & Governance Integration
-
-Catering shall integrate with the existing:
-
-* Authentication
-* RBAC
-* Permissions
-* Authorization
-* Security policies
-* Audit
-* Governance
-
-framework.
-
-No independent Catering security mechanism shall be created.
-
----
-
-## 20.6 Phase 2.1.5.9 — Module Verification & Baseline
-
-Final verification shall include:
-
-* Focused Catering tests
-* Model tests
-* Repository tests
-* Service tests
-* Security tests
-* Migration tests
-* Module discovery tests
-* Full regression suite
-* Git status verification
-* Clean working-tree checkpoint
-* Final Phase 2.1 baseline
-
----
-
-# 21. Verification Strategy
-
-Implementation shall follow controlled verification gates.
-
-The standard sequence is:
-
-```text
-Implement
-   │
-   ▼
-Focused verification
-   │
-   ▼
-Module-level tests
-   │
-   ▼
-Integration verification
-   │
-   ▼
-Full regression
-   │
-   ▼
-Git status
-   │
-   ▼
-Commit
-   │
-   ▼
-Push
-   │
-   ▼
-Checkpoint
-```
-
-The full regression suite should not be unnecessarily repeated after every tiny implementation increment.
-
-A full regression is required at meaningful architectural checkpoints.
-
----
-
-# 22. Explicit Non-Goals
-
-The following shall not be introduced merely for convenience:
-
-* Second ORM base
-* Second database extension
-* Second transaction manager
-* Catering-specific tenant model
-* Duplicate repository framework
-* Duplicate CRUD framework
-* Duplicate audit mechanism
-* Duplicate authorization system
-* Automatic blanket cascade deletion
-* Premature Finance integration
-* Premature Procurement integration
-* Premature Asset integration
-* Premature Payroll integration
-* Recipe management
-* Production planning
-* Full accounting ledger
-* Unnecessary cross-module dependencies
-
----
-
-# 23. Architectural Change Control
-
-This document is the **authoritative Phase 2 roadmap**.
-
-Any material change to:
-
-* Module boundaries
-* Persistence architecture
-* Domain entities
-* Organizational ownership
-* Migration strategy
-* Module lifecycle integration
-* Security architecture
-* Repository architecture
-* Service architecture
-
-shall be explicitly reviewed before implementation.
-
-Where a change constitutes an architectural decision, it should be documented through an ADR in:
-
-```text
-docs/architecture/decisions/
-```
-
-The roadmap shall then be updated to reflect the approved decision.
-
----
-
-# 24. Current Status
-
-As of **30 August 2026**:
+As of Version 2.0:
 
 ```text
 Phase 2
 │
-└── Phase 2.1 — Catering
-      │
-      ├── 2.1.1 Scope & Selection ................ COMPLETE
-      ├── 2.1.2 Domain Boundaries ................ COMPLETE
-      ├── 2.1.3 Entities & Relationships ........ COMPLETE
-      ├── 2.1.4 Persistence Design ............... COMPLETE
-      │
-      └── 2.1.5 Module & Model Implementation
-            │
-            ├── 2.1.5.1 Module Foundation ........ COMPLETE
-            ├── 2.1.5.2 Model Foundation ......... COMPLETE
-            ├── 2.1.5.3 Core Domain Models ........ COMPLETE*
-            ├── 2.1.5.4 Relationships & Constraints PENDING
-            ├── 2.1.5.5 Registration & Migration .. PENDING
-            ├── 2.1.5.6 Repositories .............. PENDING
-            ├── 2.1.5.7 Services .................. PENDING
-            ├── 2.1.5.8 Security & Governance ..... PENDING
-            └── 2.1.5.9 Verification & Baseline ... PENDING
-
-* Complete and committed; git push pending.
+└── Catering
+    │
+    ├── Module Foundation              ✅
+    ├── Master Data                    ✅
+    ├── Relationships & Constraints   ✅
+    ├── Repositories                   ✅
+    ├── Services                       ✅
+    ├── Security & Governance          ✅
+    ├── Application Surface            ✅
+    │
+    └── Inventory
+        ├── Domain Models              ✅
+        ├── Schema                     ✅
+        ├── Repositories               ✅
+        ├── Services                   ✅
+        ├── Transaction Foundation     ✅
+        ├── Movement Posting           🔄
+        └── Transfer Posting           ⏳
 ```
 
----
+The next architectural documentation group is:
 
-# 25. Immediate Next Step
+```text
+Group 2 — Catering Application Architecture
+├── ADR-004 Repository Architecture
+├── ADR-005 Service Architecture
+├── ADR-006 Security & Governance Integration
+└── ADR-007 Application Surface Architecture
+```
 
-The next implementation stage is:
-
-## **Phase 2.1.5.4 — Relationships & Database Constraints**
-
-Before implementation, the existing `ProductCategory` and `Product` models should be inspected against the approved Phase 2.1.4 persistence design.
-
-The stage should establish the actual SQLAlchemy relationship and constraint implementation without prematurely moving into repositories, services, security, or migration work.
-
----
-
-# 26. Source-of-Truth Statement
-
-**This document is the authoritative roadmap for Phase 2 of CDCS-EMP.**
-
-It consolidates the approved Phase 2 planning and implementation decisions available as of 30 August 2026.
-
-Earlier duplicated roadmap fragments and informal planning notes are superseded where they conflict with this document.
-
-Individual ADRs remain authoritative for the specific architectural decisions they document. This roadmap incorporates those decisions into the overall Phase 2 implementation sequence.
-
-Future architectural changes must be explicitly approved and recorded through the appropriate ADR and reflected in this roadmap.
+This will be followed by the Inventory architectural ADR group.
 
 ---
 
-**End of Document**
+# 18. Status
+
+**Version 2.0 — Approved / Active**
+
+This version supersedes Version 1.0 as the active Phase 2 implementation roadmap.
+
+Version 1.0 is retained as historical architectural planning evidence.
