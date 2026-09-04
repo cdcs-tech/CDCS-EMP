@@ -13,8 +13,13 @@ from app.models.mixins import (
     TimestampMixin,
 )
 
+from .location import InventoryLocation
 from .product import Product
 from .product_category import ProductCategory
+from .stock_balance import StockBalance
+from .stock_item import StockItem
+from .stock_movement import StockMovement
+from .stock_transfer import StockTransfer
 
 __all__ = [
     "BaseModel",
@@ -23,4 +28,9 @@ __all__ = [
     "SoftDeleteMixin",
     "ProductCategory",
     "Product",
+    "StockItem",
+    "InventoryLocation",
+    "StockBalance",
+    "StockMovement",
+    "StockTransfer",
 ]
