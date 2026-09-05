@@ -533,7 +533,7 @@ The Phase 2 architectural record currently consists of:
 | ADR-012 | Inventory Stock Movement Ledger Architecture    | Approved — Retrospective            |
 | ADR-013 | Inventory Stock Transfer Architecture           | Approved — Retrospective            |
 | ADR-014 | Inventory Repository & Service Boundary         | Approved — Retrospective            |
-| ADR-015 | Inventory Transaction & Posting Boundary        | Planned for documentation           |
+| ADR-015 | Inventory Transaction & Posting Boundary        | Approved — Retrospective            |
 
 The register may be adjusted when architectural review determines that two decisions should be consolidated or that a new superseding ADR is required.
 
