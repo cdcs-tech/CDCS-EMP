@@ -1,4 +1,4 @@
-﻿# CDCS-EMP — Phase 2 Authoritative Roadmap
+# CDCS-EMP — Phase 2 Authoritative Roadmap
 
 **Version:** 2.0
 **Status:** Approved / Active
@@ -417,14 +417,19 @@ Already implemented.
 
 **Status: IN PROGRESS**
 
-Foundation implemented.
+Foundation and service-level posting operations implemented.
+
+Completed:
+
+* stock movement posting;
+* transfer posting;
+* core inventory business-rule verification;
+* inventory repositories and services;
+* transaction boundary integration.
 
 Remaining operational work includes, as justified:
 
-* stock movement posting completion;
-* transfer posting;
 * operational inventory workflows;
-* further business-rule verification;
 * application surface for inventory operations;
 * reporting integration;
 * appropriate integration boundaries.
@@ -696,22 +701,16 @@ Phase 2
         ├── Repositories               ✅
         ├── Services                   ✅
         ├── Transaction Foundation     ✅
-        ├── Movement Posting           🔄
-        └── Transfer Posting           ⏳
+        ├── Movement Posting           ✅
+        ├── Transfer Posting           ✅
+        └── Operational Workflows      🔄
 ```
 
-The next architectural documentation group is:
+The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 
-```text
-Group 2 — Catering Application Architecture
-├── ADR-004 Repository Architecture
-├── ADR-005 Service Architecture
-├── ADR-006 Security & Governance Integration
-└── ADR-007 Application Surface Architecture
-```
+ADR-001 through ADR-015 are approved and recorded in the architectural decision register.
 
-This will be followed by the Inventory architectural ADR group.
-
+No additional ADR is currently planned. Future ADRs shall be introduced only if a genuinely new architectural decision requires formal documentation.
 ---
 
 # 18. Status
