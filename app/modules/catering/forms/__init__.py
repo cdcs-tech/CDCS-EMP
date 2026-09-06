@@ -23,10 +23,15 @@ from app.modules.catering.forms.movement import (
     StockMovementForm,
 )
 
+from app.modules.catering.forms.transfer import (
+    StockTransferForm,
+)
+
 __all__ = [
     "ProductForm",
     "ProductCategoryForm",
     "StockItemForm",
     "InventoryLocationForm",
     "StockMovementForm",
+    "StockTransferForm",
 ]

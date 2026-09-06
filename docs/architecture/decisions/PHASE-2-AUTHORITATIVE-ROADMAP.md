@@ -692,7 +692,8 @@ Phase 2
         └── OW-1.3  Inventory Forms    🔄
             ├── OW-1.3.1 Stock Item Forms       [COMPLETE]
             ├── OW-1.3.2 Inventory Location Forms [COMPLETE]
-            └── OW-1.3.3 Stock Movement Forms     [COMPLETE]
+            ├── OW-1.3.3 Stock Movement Forms     [COMPLETE]
+            └── OW-1.3.4 Stock Transfer Forms     [COMPLETE]
 
 The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 
