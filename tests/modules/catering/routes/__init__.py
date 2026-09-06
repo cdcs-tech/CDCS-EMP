@@ -1,0 +1,3 @@
+"""
+Catering route tests.
+"""

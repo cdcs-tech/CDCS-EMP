@@ -689,11 +689,16 @@ Phase 2
         ├── Transfer Posting           ✅
         ├── Operational Workflows      🔄
         ├── OW-1.2 Operational Permissions  [COMPLETE]
-        └── OW-1.3  Inventory Forms    🔄
-            ├── OW-1.3.1 Stock Item Forms       [COMPLETE]
-            ├── OW-1.3.2 Inventory Location Forms [COMPLETE]
-            ├── OW-1.3.3 Stock Movement Forms     [COMPLETE]
-            └── OW-1.3.4 Stock Transfer Forms     [COMPLETE]
+        ├── OW-1.3  Inventory Forms    ✅
+        │   ├── OW-1.3.1 Stock Item Forms       [COMPLETE]
+        │   ├── OW-1.3.2 Inventory Location Forms [COMPLETE]
+        │   ├── OW-1.3.3 Stock Movement Forms     [COMPLETE]
+        │   └── OW-1.3.4 Stock Transfer Forms     [COMPLETE]
+        └── OW-1.4 Inventory Routes ✅
+            ├── OW-1.4.1 Stock Item & Location Routes [COMPLETE]
+            ├── OW-1.4.2 Stock Balance Routes         [COMPLETE]
+            ├── OW-1.4.3 Stock Movement Routes        [COMPLETE]
+            └── OW-1.4.4 Stock Transfer Routes        [COMPLETE]
 
 The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 
