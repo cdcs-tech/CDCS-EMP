@@ -13,7 +13,12 @@ from app.modules.catering.forms.product_category import (
     ProductCategoryForm,
 )
 
+from app.modules.catering.forms.stock_item import (
+    StockItemForm,
+)
+
 __all__ = [
     "ProductForm",
     "ProductCategoryForm",
+    "StockItemForm",
 ]
