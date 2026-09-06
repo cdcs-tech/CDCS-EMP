@@ -19,9 +19,14 @@ from app.modules.catering.forms.stock_item import (
 
 from app.modules.catering.forms.location import InventoryLocationForm
 
+from app.modules.catering.forms.movement import (
+    StockMovementForm,
+)
+
 __all__ = [
     "ProductForm",
     "ProductCategoryForm",
     "StockItemForm",
     "InventoryLocationForm",
+    "StockMovementForm",
 ]
