@@ -17,7 +17,43 @@ from app.core.crud import (
 from app.core.data import PaginatedResult, QueryOptions
 from app.modules.catering.models import StockMovement
 from app.modules.catering.repositories import StockMovementRepository
+from app.modules.catering.security.authorization import (
+    CateringAuthorizationAdapter,
+)
 from app.modules.catering.services import StockMovementService
+
+
+TEST_SUBJECT = "test-user"
+
+
+def _allow_authorization():
+    """Create an authorization adapter that allows the requested permission."""
+
+    return CateringAuthorizationAdapter(
+        evaluator=lambda subject, permission: True,
+    )
+
+
+def _deny_authorization():
+    """Create an authorization adapter that denies the requested permission."""
+
+    return CateringAuthorizationAdapter(
+        evaluator=lambda subject, permission: False,
+    )
+
+
+def _recording_authorization():
+    """Create an authorization adapter that records authorization requests."""
+
+    evaluator = Mock(
+        return_value=True
+    )
+
+    adapter = CateringAuthorizationAdapter(
+        evaluator=evaluator,
+    )
+
+    return adapter, evaluator
 
 
 def test_service_creates_default_repository():
@@ -137,6 +173,87 @@ def test_service_preserves_injected_transaction_manager():
     assert service.transaction_manager is transaction_manager
 
 
+def test_service_preserves_injected_authorization_adapter():
+    """Verify authorization dependency injection is preserved."""
+
+    repository = Mock(
+        spec=StockMovementRepository
+    )
+
+    authorization_adapter = _allow_authorization()
+
+    service = StockMovementService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    assert service.authorization_adapter is authorization_adapter
+
+
+def test_create_authorizes_before_repository_mutation():
+    """Verify movement creation requires the CREATE permission."""
+
+    repository = Mock(
+        spec=StockMovementRepository
+    )
+
+    movement = Mock(
+        spec=StockMovement
+    )
+
+    authorization_adapter, evaluator = (
+        _recording_authorization()
+    )
+
+    repository.add.return_value = movement
+
+    service = StockMovementService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    result = service.create(
+        movement,
+        subject=TEST_SUBJECT,
+    )
+
+    assert result is movement
+
+    evaluator.assert_called_once_with(
+        TEST_SUBJECT,
+        "CATERING.STOCK_MOVEMENT.CREATE",
+    )
+
+    repository.add.assert_called_once_with(
+        movement
+    )
+
+
+def test_create_denied_does_not_mutate_repository():
+    """Verify denied movement creation never reaches the repository."""
+
+    repository = Mock(
+        spec=StockMovementRepository
+    )
+
+    movement = Mock(
+        spec=StockMovement
+    )
+
+    service = StockMovementService(
+        repository=repository,
+        authorization_adapter=_deny_authorization(),
+    )
+
+    with pytest.raises(Exception):
+        service.create(
+            movement,
+            subject=TEST_SUBJECT,
+        )
+
+    repository.add.assert_not_called()
+
+
 def test_post_movement_updates_existing_balance():
     """Verify posting updates an existing stock balance."""
 
@@ -168,10 +285,12 @@ def test_post_movement_updates_existing_balance():
         repository=repository,
         transaction_manager=transaction_manager,
         balance_repository=balance_repository,
+        authorization_adapter=_allow_authorization(),
     )
 
     result = service.post_movement(
-        movement
+        movement,
+        subject=TEST_SUBJECT,
     )
 
     assert result is movement
@@ -219,10 +338,12 @@ def test_post_movement_creates_balance_for_positive_movement():
         repository=repository,
         transaction_manager=transaction_manager,
         balance_repository=balance_repository,
+        authorization_adapter=_allow_authorization(),
     )
 
     result = service.post_movement(
-        movement
+        movement,
+        subject=TEST_SUBJECT,
     )
 
     assert result is movement
@@ -271,11 +392,13 @@ def test_post_movement_rejects_negative_movement_without_balance():
         repository=repository,
         transaction_manager=transaction_manager,
         balance_repository=balance_repository,
+        authorization_adapter=_allow_authorization(),
     )
 
     with pytest.raises(ValueError):
         service.post_movement(
-            movement
+            movement,
+            subject=TEST_SUBJECT,
         )
 
     balance_repository.add.assert_not_called()
@@ -316,11 +439,13 @@ def test_post_movement_rejects_negative_resulting_balance():
         repository=repository,
         transaction_manager=transaction_manager,
         balance_repository=balance_repository,
+        authorization_adapter=_allow_authorization(),
     )
 
     with pytest.raises(ValueError):
         service.post_movement(
-            movement
+            movement,
+            subject=TEST_SUBJECT,
         )
 
     assert balance.quantity == 3
@@ -351,11 +476,13 @@ def test_post_movement_rejects_already_posted_movement():
     service = StockMovementService(
         repository=repository,
         transaction_manager=transaction_manager,
+        authorization_adapter=_allow_authorization(),
     )
 
     with pytest.raises(ValueError):
         service.post_movement(
-            movement
+            movement,
+            subject=TEST_SUBJECT,
         )
 
     transaction_manager.transaction.assert_not_called()
@@ -384,14 +511,107 @@ def test_post_movement_rejects_zero_quantity():
     service = StockMovementService(
         repository=repository,
         transaction_manager=transaction_manager,
+        authorization_adapter=_allow_authorization(),
     )
 
     with pytest.raises(ValueError):
         service.post_movement(
-            movement
+            movement,
+            subject=TEST_SUBJECT,
         )
 
     transaction_manager.transaction.assert_not_called()
+    repository.update.assert_not_called()
+
+
+def test_post_movement_authorizes_post_operation():
+    """Verify posting requests the POST permission."""
+
+    repository = Mock(
+        spec=StockMovementRepository
+    )
+
+    balance_repository = Mock()
+    transaction_manager = SimpleTransactionManager()
+
+    movement = Mock(
+        spec=StockMovement
+    )
+
+    movement.status = "DRAFT"
+    movement.movement_type = "RECEIPT"
+    movement.quantity = 5
+    movement.stock_item_id = 1
+    movement.location_id = 1
+
+    balance = Mock()
+    balance.quantity = 10
+
+    balance_repository.get_by_stock_item_and_location.return_value = (
+        balance
+    )
+
+    authorization_adapter, evaluator = (
+        _recording_authorization()
+    )
+
+    service = StockMovementService(
+        repository=repository,
+        transaction_manager=transaction_manager,
+        balance_repository=balance_repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    service.post_movement(
+        movement,
+        subject=TEST_SUBJECT,
+    )
+
+    evaluator.assert_called_once_with(
+        TEST_SUBJECT,
+        "CATERING.STOCK_MOVEMENT.POST",
+    )
+
+
+def test_post_movement_denied_does_not_enter_transaction():
+    """Verify denied posting stops before transaction or persistence."""
+
+    repository = Mock(
+        spec=StockMovementRepository
+    )
+
+    balance_repository = Mock()
+    transaction_manager = Mock(
+        spec=TransactionManager
+    )
+
+    movement = Mock(
+        spec=StockMovement
+    )
+
+    movement.status = "DRAFT"
+    movement.movement_type = "RECEIPT"
+    movement.quantity = 5
+    movement.stock_item_id = 1
+    movement.location_id = 1
+
+    service = StockMovementService(
+        repository=repository,
+        transaction_manager=transaction_manager,
+        balance_repository=balance_repository,
+        authorization_adapter=_deny_authorization(),
+    )
+
+    with pytest.raises(Exception):
+        service.post_movement(
+            movement,
+            subject=TEST_SUBJECT,
+        )
+
+    transaction_manager.transaction.assert_not_called()
+    balance_repository.get_by_stock_item_and_location.assert_not_called()
+    balance_repository.add.assert_not_called()
+    balance_repository.update.assert_not_called()
     repository.update.assert_not_called()
 
 
@@ -426,10 +646,12 @@ def test_post_movement_uses_transaction_boundary():
         repository=repository,
         transaction_manager=transaction_manager,
         balance_repository=balance_repository,
+        authorization_adapter=_allow_authorization(),
     )
 
     service.post_movement(
-        movement
+        movement,
+        subject=TEST_SUBJECT,
     )
 
     assert transaction_manager.committed is True
@@ -468,11 +690,13 @@ def test_post_movement_rolls_back_on_failure():
         repository=repository,
         transaction_manager=transaction_manager,
         balance_repository=balance_repository,
+        authorization_adapter=_allow_authorization(),
     )
 
     with pytest.raises(ValueError):
         service.post_movement(
-            movement
+            movement,
+            subject=TEST_SUBJECT,
         )
 
     assert transaction_manager.committed is False

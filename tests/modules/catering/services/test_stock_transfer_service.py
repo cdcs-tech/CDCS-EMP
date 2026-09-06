@@ -28,7 +28,43 @@ from app.modules.catering.repositories import (
     StockMovementRepository,
     StockTransferRepository,
 )
+from app.modules.catering.security.authorization import (
+    CateringAuthorizationAdapter,
+)
 from app.modules.catering.services import StockTransferService
+
+
+TEST_SUBJECT = "test-user"
+
+
+def _allow_authorization():
+    """Create an authorization adapter that allows the requested permission."""
+
+    return CateringAuthorizationAdapter(
+        evaluator=lambda subject, permission: True,
+    )
+
+
+def _deny_authorization():
+    """Create an authorization adapter that denies the requested permission."""
+
+    return CateringAuthorizationAdapter(
+        evaluator=lambda subject, permission: False,
+    )
+
+
+def _recording_authorization():
+    """Create an authorization adapter that records authorization requests."""
+
+    evaluator = Mock(
+        return_value=True
+    )
+
+    adapter = CateringAuthorizationAdapter(
+        evaluator=evaluator,
+    )
+
+    return adapter, evaluator
 
 
 def test_service_creates_default_repository():
@@ -117,6 +153,23 @@ def test_get_by_reference_delegates_to_repository():
     )
 
 
+def test_service_preserves_injected_authorization_adapter():
+    """Verify authorization dependency injection is preserved."""
+
+    repository = Mock(
+        spec=StockTransferRepository
+    )
+
+    authorization_adapter = _allow_authorization()
+
+    service = StockTransferService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    assert service.authorization_adapter is authorization_adapter
+
+
 def _make_transfer(
     *,
     transfer_id=100,
@@ -177,6 +230,7 @@ def _make_service(
     balance_repository=None,
     movement_repository=None,
     transaction_manager=None,
+    authorization_adapter=None,
 ):
     """Create a transfer service with isolated test dependencies."""
 
@@ -203,7 +257,71 @@ def _make_service(
                 spec=StockMovementRepository
             )
         ),
+        authorization_adapter=(
+            authorization_adapter
+            or _allow_authorization()
+        ),
     )
+
+
+def test_create_authorizes_before_repository_mutation():
+    """Verify transfer creation requires the CREATE permission."""
+
+    transfer_repository = Mock(
+        spec=StockTransferRepository
+    )
+
+    transfer = _make_transfer()
+
+    authorization_adapter, evaluator = (
+        _recording_authorization()
+    )
+
+    transfer_repository.add.return_value = transfer
+
+    service = _make_service(
+        transfer_repository=transfer_repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    result = service.create(
+        transfer,
+        subject=TEST_SUBJECT,
+    )
+
+    assert result is transfer
+
+    evaluator.assert_called_once_with(
+        TEST_SUBJECT,
+        "CATERING.STOCK_TRANSFER.CREATE",
+    )
+
+    transfer_repository.add.assert_called_once_with(
+        transfer
+    )
+
+
+def test_create_denied_does_not_mutate_repository():
+    """Verify denied transfer creation never reaches the repository."""
+
+    transfer_repository = Mock(
+        spec=StockTransferRepository
+    )
+
+    transfer = _make_transfer()
+
+    service = _make_service(
+        transfer_repository=transfer_repository,
+        authorization_adapter=_deny_authorization(),
+    )
+
+    with pytest.raises(Exception):
+        service.create(
+            transfer,
+            subject=TEST_SUBJECT,
+        )
+
+    transfer_repository.add.assert_not_called()
 
 
 def test_post_transfer_updates_source_and_destination_balances():
@@ -256,7 +374,8 @@ def test_post_transfer_updates_source_and_destination_balances():
     )
 
     result = service.post_transfer(
-        transfer
+        transfer,
+        subject=TEST_SUBJECT,
     )
 
     assert result is transfer
@@ -313,7 +432,8 @@ def test_post_transfer_creates_destination_balance_when_missing():
     )
 
     service.post_transfer(
-        transfer
+        transfer,
+        subject=TEST_SUBJECT,
     )
 
     assert source_balance.quantity == Decimal("6.000")
@@ -330,7 +450,7 @@ def test_post_transfer_creates_destination_balance_when_missing():
     )
     assert created_destination_balance.stock_item_id == 10
     assert created_destination_balance.location_id == 2
-    assert created_destination_balance.quantity == 4
+    assert created_destination_balance.quantity == Decimal("4.000")
 
     assert transaction_manager.committed is True
     assert transaction_manager.rolled_back is False
@@ -358,10 +478,11 @@ def test_post_transfer_rejects_missing_source_balance():
 
     with pytest.raises(
         ValueError,
-        match="Source balance does not exist",
+        match="Source stock balance does not exist",
     ):
         service.post_transfer(
-            transfer
+            transfer,
+            subject=TEST_SUBJECT,
         )
 
     assert transaction_manager.committed is False
@@ -396,10 +517,11 @@ def test_post_transfer_rejects_insufficient_source_stock():
 
     with pytest.raises(
         ValueError,
-        match="Insufficient source stock",
+        match="Insufficient stock for transfer",
     ):
         service.post_transfer(
-            transfer
+            transfer,
+            subject=TEST_SUBJECT,
         )
 
     assert transaction_manager.committed is False
@@ -434,7 +556,8 @@ def test_post_transfer_rejects_non_positive_quantity(
         match="Transfer quantity must be greater than zero",
     ):
         service.post_transfer(
-            transfer
+            transfer,
+            subject=TEST_SUBJECT,
         )
 
     assert transaction_manager.committed is False
@@ -458,10 +581,11 @@ def test_post_transfer_rejects_same_source_and_destination():
 
     with pytest.raises(
         ValueError,
-        match="Source and destination locations must differ",
+        match="Source and destination locations must be different",
     ):
         service.post_transfer(
-            transfer
+            transfer,
+            subject=TEST_SUBJECT,
         )
 
     assert transaction_manager.committed is False
@@ -484,15 +608,102 @@ def test_post_transfer_rejects_already_posted_transfer():
 
     with pytest.raises(
         ValueError,
-        match="Transfer is already posted",
+        match="Stock transfer is already posted",
     ):
         service.post_transfer(
-            transfer
+            transfer,
+            subject=TEST_SUBJECT,
         )
 
     assert transaction_manager.committed is False
     assert transaction_manager.rolled_back is False
     assert transaction_manager.active is False
+
+
+def test_post_transfer_authorizes_post_operation():
+    """Verify posting requests the POST permission."""
+
+    transfer = _make_transfer()
+
+    balance_repository = Mock(
+        spec=StockBalanceRepository
+    )
+
+    balance_repository.get_by_stock_item_and_location.side_effect = [
+        _make_balance(
+            quantity=Decimal("10.000"),
+            location_id=1,
+        ),
+        _make_balance(
+            quantity=Decimal("3.000"),
+            location_id=2,
+        ),
+    ]
+
+    authorization_adapter, evaluator = (
+        _recording_authorization()
+    )
+
+    transaction_manager = SimpleTransactionManager()
+
+    service = _make_service(
+        balance_repository=balance_repository,
+        transaction_manager=transaction_manager,
+        authorization_adapter=authorization_adapter,
+    )
+
+    service.post_transfer(
+        transfer,
+        subject=TEST_SUBJECT,
+    )
+
+    evaluator.assert_called_once_with(
+        TEST_SUBJECT,
+        "CATERING.STOCK_TRANSFER.POST",
+    )
+
+
+def test_post_transfer_denied_does_not_enter_transaction():
+    """Verify denied posting stops before transaction or persistence."""
+
+    transfer = _make_transfer()
+
+    transfer_repository = Mock(
+        spec=StockTransferRepository
+    )
+
+    balance_repository = Mock(
+        spec=StockBalanceRepository
+    )
+
+    movement_repository = Mock(
+        spec=StockMovementRepository
+    )
+
+    transaction_manager = Mock(
+        spec=TransactionManager
+    )
+
+    service = _make_service(
+        transfer_repository=transfer_repository,
+        balance_repository=balance_repository,
+        movement_repository=movement_repository,
+        transaction_manager=transaction_manager,
+        authorization_adapter=_deny_authorization(),
+    )
+
+    with pytest.raises(Exception):
+        service.post_transfer(
+            transfer,
+            subject=TEST_SUBJECT,
+        )
+
+    transaction_manager.transaction.assert_not_called()
+    balance_repository.get_by_stock_item_and_location.assert_not_called()
+    balance_repository.add.assert_not_called()
+    balance_repository.update.assert_not_called()
+    movement_repository.add.assert_not_called()
+    transfer_repository.update.assert_not_called()
 
 
 def test_post_transfer_creates_two_transfer_movements():
@@ -539,7 +750,8 @@ def test_post_transfer_creates_two_transfer_movements():
     )
 
     service.post_transfer(
-        transfer
+        transfer,
+        subject=TEST_SUBJECT,
     )
 
     assert movement_repository.add.call_count == 2
@@ -611,7 +823,8 @@ def test_post_transfer_marks_transfer_posted():
     )
 
     result = service.post_transfer(
-        transfer
+        transfer,
+        subject=TEST_SUBJECT,
     )
 
     assert result.status == "POSTED"
@@ -660,7 +873,8 @@ def test_post_transfer_uses_transaction_boundary():
     )
 
     service.post_transfer(
-        transfer
+        transfer,
+        subject=TEST_SUBJECT,
     )
 
     transaction_manager.transaction.assert_called_once_with()
@@ -720,7 +934,8 @@ def test_post_transfer_rolls_back_on_failure():
         match="Movement persistence failed",
     ):
         service.post_transfer(
-            transfer
+            transfer,
+            subject=TEST_SUBJECT,
         )
 
     assert transaction_manager.committed is False

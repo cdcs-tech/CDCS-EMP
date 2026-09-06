@@ -1,42 +1,32 @@
-"""
-CDCS Enterprise Management Platform (CDCS-EMP)
-
-Catering Module
-
-Stock movement service.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
-from app.core.crud import (
-    CRUDService,
+from app.core.crud.service import CRUDService
+from app.core.crud.transaction import (
     SQLAlchemyTransactionManager,
     TransactionManager,
 )
-from app.core.data import PaginatedResult, QueryOptions
-from app.modules.catering.models import StockMovement
+from app.core.data.pagination import PaginatedResult
+from app.core.data.query import QueryOptions
 from app.modules.catering.models.stock_balance import StockBalance
-from app.modules.catering.repositories import StockMovementRepository
-from app.modules.catering.repositories.balance import (
-    StockBalanceRepository,
+from app.modules.catering.models.stock_movement import StockMovement
+from app.modules.catering.repositories.balance import StockBalanceRepository
+from app.modules.catering.repositories.movement import StockMovementRepository
+from app.modules.catering.security.authorization import (
+    CateringAuthorizationAdapter,
 )
 
 
-class StockMovementService(
-    CRUDService[StockMovement],
-):
+class StockMovementService(CRUDService[StockMovement]):
     """
-    Application service for Catering StockMovement entities.
+    Service layer for Catering stock movements.
 
-    Provides the standard enterprise CRUD service boundary,
-    pagination support, movement-specific retrieval operations,
-    and inventory movement posting.
-
-    Movement posting is performed atomically through the enterprise
-    transaction boundary. Posted movements update the authoritative
-    StockBalance and become immutable business transactions.
+    Movement posting is implemented atomically. A posted movement
+    updates the authoritative StockBalance and becomes immutable.
+    Operational actions are protected through the Catering
+    authorization adapter.
     """
 
     def __init__(
@@ -44,26 +34,11 @@ class StockMovementService(
         repository: StockMovementRepository | None = None,
         transaction_manager: TransactionManager | None = None,
         balance_repository: StockBalanceRepository | None = None,
+        authorization_adapter: CateringAuthorizationAdapter | None = None,
     ) -> None:
-        """
-        Initialize the StockMovement service.
-
-        Args:
-            repository:
-                Optional StockMovement repository. A default
-                repository is created when one is not supplied.
-
-            transaction_manager:
-                Optional transaction manager. A default SQLAlchemy
-                transaction manager is created when one is not supplied.
-
-            balance_repository:
-                Optional StockBalance repository. A default repository
-                is created when one is not supplied.
-        """
-
         super().__init__(
-            repository or StockMovementRepository(),
+            repository
+            or StockMovementRepository(),
             entity_name="StockMovement",
         )
 
@@ -77,23 +52,58 @@ class StockMovementService(
             or StockBalanceRepository()
         )
 
+        self.authorization_adapter = authorization_adapter
+
+    def _authorize(
+        self,
+        subject: Any,
+        permission_code: str,
+    ) -> None:
+        """
+        Authorize a protected Catering operation.
+
+        Authorization is fail-closed when no adapter has been
+        configured.
+        """
+
+        if self.authorization_adapter is None:
+            raise RuntimeError(
+                "Catering authorization adapter is required "
+                "for protected stock movement operations."
+            )
+
+        self.authorization_adapter.authorize(
+            subject,
+            permission_code,
+        )
+
+    def create(
+        self,
+        entity: StockMovement,
+        *,
+        subject: Any,
+    ) -> StockMovement:
+        """
+        Create a stock movement after authorization.
+        """
+
+        self._authorize(
+            subject,
+            "CATERING.STOCK_MOVEMENT.CREATE",
+        )
+
+        return super().create(entity)
+
     def paginate(
         self,
-        options: QueryOptions,
+        options: QueryOptions | None = None,
     ) -> PaginatedResult[StockMovement]:
         """
-        Return a paginated StockMovement result.
-
-        Args:
-            options:
-                Query, filtering, sorting, and pagination options.
-
-        Returns:
-            A paginated StockMovement result.
+        Paginate stock movements.
         """
 
         return self.repository.paginate(
-            options
+            options or QueryOptions()
         )
 
     def get_by_reference(
@@ -101,15 +111,7 @@ class StockMovementService(
         reference: str,
     ) -> StockMovement | None:
         """
-        Retrieve a StockMovement by its reference.
-
-        Args:
-            reference:
-                Movement reference.
-
-        Returns:
-            The matching StockMovement, or None when no movement
-            exists with the supplied reference.
+        Retrieve a stock movement by reference.
         """
 
         return self.repository.get_by_reference(
@@ -119,30 +121,29 @@ class StockMovementService(
     def post_movement(
         self,
         movement: StockMovement,
+        *,
+        subject: Any,
     ) -> StockMovement:
         """
-        Post an inventory movement atomically.
+        Post a stock movement atomically.
 
-        A posted movement updates the authoritative StockBalance
-        and becomes immutable.
-
-        Draft movements have no inventory effect.
-
-        Raises:
-            ValueError:
-                If the movement is invalid, already posted, references
-                incomplete inventory data, or would produce an invalid
-                stock balance.
+        Posting updates the authoritative stock balance and marks
+        the movement as POSTED. Draft movements do not affect stock.
         """
+
+        self._authorize(
+            subject,
+            "CATERING.STOCK_MOVEMENT.POST",
+        )
 
         if movement is None:
             raise ValueError(
-                "Movement is required."
+                "Stock movement is required."
             )
 
         if movement.status == "POSTED":
             raise ValueError(
-                "Movement is already posted."
+                "Stock movement is already posted."
             )
 
         if movement.movement_type not in {
@@ -153,12 +154,12 @@ class StockMovementService(
             "TRANSFER",
         }:
             raise ValueError(
-                "Invalid movement type."
+                "Invalid stock movement type."
             )
 
         if movement.quantity == 0:
             raise ValueError(
-                "Movement quantity cannot be zero."
+                "Stock movement quantity cannot be zero."
             )
 
         if movement.stock_item_id is None:
@@ -172,7 +173,6 @@ class StockMovementService(
             )
 
         with self.transaction_manager.transaction():
-
             balance = (
                 self.balance_repository
                 .get_by_stock_item_and_location(
@@ -182,11 +182,10 @@ class StockMovementService(
             )
 
             if balance is None:
-
                 if movement.quantity < 0:
                     raise ValueError(
-                        "A negative movement cannot be "
-                        "posted without an existing balance."
+                        "Cannot post a negative movement "
+                        "without an existing stock balance."
                     )
 
                 balance = StockBalance(
@@ -200,7 +199,6 @@ class StockMovementService(
                 )
 
             else:
-
                 resulting_quantity = (
                     balance.quantity
                     + movement.quantity
@@ -208,8 +206,7 @@ class StockMovementService(
 
                 if resulting_quantity < 0:
                     raise ValueError(
-                        "Movement would result in "
-                        "a negative stock balance."
+                        "Stock balance cannot become negative."
                     )
 
                 balance.quantity = resulting_quantity

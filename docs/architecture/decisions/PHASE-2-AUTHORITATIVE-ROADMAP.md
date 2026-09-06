@@ -83,7 +83,6 @@ Meaningful architectural decisions shall be documented through ADRs.
 
 The permanent completion sequence is:
 
-```text
 Implementation
       ↓
 Architecture Review
@@ -95,7 +94,6 @@ Roadmap Reconciliation
 Regression Verification
       ↓
 Git Checkpoint
-```
 
 ---
 
@@ -103,7 +101,6 @@ Git Checkpoint
 
 The Phase 2 architecture is:
 
-```text
 CDCS-EMP Platform
 │
 ├── Core Enterprise Capabilities
@@ -127,7 +124,6 @@ CDCS-EMP Platform
 └── Business Modules
     │
     └── Catering
-```
 
 Future business modules shall follow the same bounded-module architecture.
 
@@ -247,11 +243,9 @@ A StockItem represents inventory configuration for an existing Catering Product.
 
 Relationship:
 
-```text
 Product
    │
    └── 0..1 StockItem
-```
 
 A Product may therefore exist without being inventory-managed.
 
@@ -289,9 +283,7 @@ The current architecture deliberately uses a flat location structure.
 
 StockBalance represents the current persisted quantity for:
 
-```text
 Stock Item + Location
-```
 
 The database enforces one balance per StockItem/location pair.
 
@@ -309,25 +301,21 @@ Stock movements form the auditable inventory ledger.
 
 Movement types:
 
-```text
 OPENING_BALANCE
 RECEIPT
 ISSUE
 ADJUSTMENT
 TRANSFER
-```
 
 Movement quantity is signed.
 
 Examples:
 
-```text
 RECEIPT          positive
 ISSUE            negative
 OPENING_BALANCE  signed
 ADJUSTMENT       signed
 TRANSFER         reserved for transfer posting
-```
 
 Posted movements are immutable.
 
@@ -492,7 +480,6 @@ Cross-module integration shall be implemented through explicit interfaces and co
 
 Potential future relationships include:
 
-```text
 Purchasing
      │
      ▼
@@ -500,11 +487,9 @@ Inventory
      │
      ▼
 Reporting
-```
 
 and:
 
-```text
 Catering Operations
         │
         ▼
@@ -512,7 +497,6 @@ Catering Operations
         │
         ▼
     Invoicing
-```
 
 Exact integration contracts shall be defined when the corresponding business capabilities are implemented.
 
@@ -572,6 +556,9 @@ The roadmap now records as completed:
 * inventory repositories;
 * inventory services;
 * transaction-manager integration.
+* inventory operational permissions;
+* inventory authorization adapter;
+* inventory movement and transfer service authorization.
 
 ### 13.2 Inventory Architecture Refined
 
@@ -606,7 +593,6 @@ A subsequent approved ADR supersedes an earlier roadmap assumption where the two
 
 Every significant Phase 2 implementation stage shall follow:
 
-```text
 1. Implement
 2. Focused Tests
 3. Architecture Review
@@ -617,7 +603,6 @@ Every significant Phase 2 implementation stage shall follow:
 8. Git Status
 9. Checkpoint Commit
 10. Push
-```
 
 A stage is not considered architecturally complete until the documentation checkpoint has been completed.
 
@@ -682,7 +667,6 @@ When these sources appear inconsistent:
 
 As of Version 2.0:
 
-```text
 Phase 2
 │
 └── Catering
@@ -703,8 +687,8 @@ Phase 2
         ├── Transaction Foundation     ✅
         ├── Movement Posting           ✅
         ├── Transfer Posting           ✅
-        └── Operational Workflows      🔄
-```
+        ├── Operational Workflows      🔄
+        └── OW-1.2 Operational Permissions  [COMPLETE]
 
 The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 

@@ -18,6 +18,11 @@ from app.modules.catering.security.permissions import (
     CATERING_PRODUCT_DELETE,
 )
 
+from .authorization import (
+    AuthorizationEvaluator,
+    CateringAuthorizationAdapter,
+)
+
 
 __all__ = [
     "CATERING_PERMISSIONS",
@@ -29,4 +34,6 @@ __all__ = [
     "CATERING_PRODUCT_READ",
     "CATERING_PRODUCT_UPDATE",
     "CATERING_PRODUCT_DELETE",
+    "AuthorizationEvaluator",
+    "CateringAuthorizationAdapter",
 ]

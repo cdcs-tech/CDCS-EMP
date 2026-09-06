@@ -1,47 +1,34 @@
-"""
-CDCS Enterprise Management Platform (CDCS-EMP)
-
-Catering Module
-
-Stock transfer service.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
-from app.core.crud import CRUDService
+from app.core.crud.service import CRUDService
 from app.core.crud.transaction import (
     SQLAlchemyTransactionManager,
     TransactionManager,
 )
-from app.core.data import PaginatedResult, QueryOptions
-
-from app.modules.catering.models import (
-    StockBalance,
-    StockMovement,
-    StockTransfer,
+from app.core.data.pagination import PaginatedResult
+from app.core.data.query import QueryOptions
+from app.modules.catering.models.stock_balance import StockBalance
+from app.modules.catering.models.stock_movement import StockMovement
+from app.modules.catering.models.stock_transfer import StockTransfer
+from app.modules.catering.repositories.balance import StockBalanceRepository
+from app.modules.catering.repositories.movement import StockMovementRepository
+from app.modules.catering.repositories.transfer import StockTransferRepository
+from app.modules.catering.security.authorization import (
+    CateringAuthorizationAdapter,
 )
-from app.modules.catering.repositories import (
-    StockBalanceRepository,
-    StockMovementRepository,
-    StockTransferRepository,
-)
 
 
-class StockTransferService(
-    CRUDService[StockTransfer],
-):
+class StockTransferService(CRUDService[StockTransfer]):
     """
-    Application service for Catering StockTransfer entities.
+    Service layer for Catering stock transfers.
 
-    Provides the standard enterprise CRUD service boundary,
-    pagination support, transfer-specific retrieval operations,
-    and atomic inventory transfer posting.
-
-    Transfer posting coordinates source and destination
-    StockBalance updates together with the immutable transfer
-    movement records inside one enterprise transaction.
+    Transfer posting is implemented atomically. A posted transfer
+    decreases the source balance, increases the destination balance,
+    creates the corresponding transfer movements, and becomes
+    immutable.
     """
 
     def __init__(
@@ -50,24 +37,8 @@ class StockTransferService(
         transaction_manager: TransactionManager | None = None,
         balance_repository: StockBalanceRepository | None = None,
         movement_repository: StockMovementRepository | None = None,
+        authorization_adapter: CateringAuthorizationAdapter | None = None,
     ) -> None:
-        """
-        Initialize the StockTransfer service.
-
-        Args:
-            repository:
-                Optional StockTransfer repository.
-
-            transaction_manager:
-                Optional enterprise transaction manager.
-
-            balance_repository:
-                Optional StockBalance repository.
-
-            movement_repository:
-                Optional StockMovement repository.
-        """
-
         super().__init__(
             repository
             or StockTransferRepository(),
@@ -89,16 +60,58 @@ class StockTransferService(
             or StockMovementRepository()
         )
 
+        self.authorization_adapter = authorization_adapter
+
+    def _authorize(
+        self,
+        subject: Any,
+        permission_code: str,
+    ) -> None:
+        """
+        Authorize a protected Catering operation.
+
+        Authorization is fail-closed when no adapter has been
+        configured.
+        """
+
+        if self.authorization_adapter is None:
+            raise RuntimeError(
+                "Catering authorization adapter is required "
+                "for protected stock transfer operations."
+            )
+
+        self.authorization_adapter.authorize(
+            subject,
+            permission_code,
+        )
+
+    def create(
+        self,
+        entity: StockTransfer,
+        *,
+        subject: Any,
+    ) -> StockTransfer:
+        """
+        Create a stock transfer after authorization.
+        """
+
+        self._authorize(
+            subject,
+            "CATERING.STOCK_TRANSFER.CREATE",
+        )
+
+        return super().create(entity)
+
     def paginate(
         self,
-        options: QueryOptions,
+        options: QueryOptions | None = None,
     ) -> PaginatedResult[StockTransfer]:
         """
-        Return a paginated StockTransfer result.
+        Paginate stock transfers.
         """
 
         return self.repository.paginate(
-            options
+            options or QueryOptions()
         )
 
     def get_by_reference(
@@ -106,7 +119,7 @@ class StockTransferService(
         reference: str,
     ) -> StockTransfer | None:
         """
-        Retrieve a StockTransfer by its unique reference.
+        Retrieve a stock transfer by reference.
         """
 
         return self.repository.get_by_reference(
@@ -116,35 +129,35 @@ class StockTransferService(
     def post_transfer(
         self,
         transfer: StockTransfer,
+        *,
+        subject: Any,
     ) -> StockTransfer:
         """
         Post a stock transfer atomically.
 
-        The operation decreases the source balance,
-        increases the destination balance, creates the two
-        corresponding TRANSFER movements, and marks the
-        transfer as POSTED within one transaction.
-
-        Raises:
-            ValueError:
-                If the transfer is invalid, already posted,
-                has insufficient source stock, or would produce
-                an invalid inventory state.
+        Posting decreases the source stock balance, increases the
+        destination balance, creates paired TRANSFER movements,
+        and marks the transfer as POSTED.
         """
+
+        self._authorize(
+            subject,
+            "CATERING.STOCK_TRANSFER.POST",
+        )
 
         if transfer is None:
             raise ValueError(
-                "Transfer is required."
+                "Stock transfer is required."
             )
 
         if transfer.status == "POSTED":
             raise ValueError(
-                "Transfer is already posted."
+                "Stock transfer is already posted."
             )
 
         if transfer.status != "DRAFT":
             raise ValueError(
-                "Only DRAFT transfers can be posted."
+                "Only draft stock transfers can be posted."
             )
 
         if transfer.quantity is None:
@@ -177,7 +190,8 @@ class StockTransferService(
             == transfer.destination_location_id
         ):
             raise ValueError(
-                "Source and destination locations must differ."
+                "Source and destination locations "
+                "must be different."
             )
 
         with self.transaction_manager.transaction():
@@ -191,7 +205,7 @@ class StockTransferService(
 
             if source_balance is None:
                 raise ValueError(
-                    "Source balance does not exist."
+                    "Source stock balance does not exist."
                 )
 
             resulting_source_quantity = (
@@ -201,7 +215,7 @@ class StockTransferService(
 
             if resulting_source_quantity < 0:
                 raise ValueError(
-                    "Insufficient source stock."
+                    "Insufficient stock for transfer."
                 )
 
             destination_balance = (
@@ -215,7 +229,9 @@ class StockTransferService(
             if destination_balance is None:
                 destination_balance = StockBalance(
                     stock_item_id=transfer.stock_item_id,
-                    location_id=transfer.destination_location_id,
+                    location_id=(
+                        transfer.destination_location_id
+                    ),
                     quantity=0,
                 )
 
@@ -230,7 +246,8 @@ class StockTransferService(
 
             if resulting_destination_quantity < 0:
                 raise ValueError(
-                    "Destination balance cannot be negative."
+                    "Destination stock balance "
+                    "cannot become negative."
                 )
 
             source_balance.quantity = (
@@ -249,32 +266,40 @@ class StockTransferService(
                 destination_balance
             )
 
-            now = datetime.now(
+            posted_at = datetime.now(
                 timezone.utc
             )
 
             source_movement = StockMovement(
                 stock_item_id=transfer.stock_item_id,
-                location_id=transfer.source_location_id,
-                quantity=-transfer.quantity,
+                location_id=(
+                    transfer.source_location_id
+                ),
                 movement_type="TRANSFER",
+                quantity=-transfer.quantity,
                 status="POSTED",
                 occurred_at=transfer.occurred_at,
-                posted_at=now,
-                reference=f"{transfer.reference}-OUT",
+                posted_at=posted_at,
+                reference=(
+                    f"{transfer.reference}-OUT"
+                ),
                 reason=transfer.reason,
                 transfer_id=transfer.id,
             )
 
             destination_movement = StockMovement(
                 stock_item_id=transfer.stock_item_id,
-                location_id=transfer.destination_location_id,
-                quantity=transfer.quantity,
+                location_id=(
+                    transfer.destination_location_id
+                ),
                 movement_type="TRANSFER",
+                quantity=transfer.quantity,
                 status="POSTED",
                 occurred_at=transfer.occurred_at,
-                posted_at=now,
-                reference=f"{transfer.reference}-IN",
+                posted_at=posted_at,
+                reference=(
+                    f"{transfer.reference}-IN"
+                ),
                 reason=transfer.reason,
                 transfer_id=transfer.id,
             )
@@ -288,7 +313,7 @@ class StockTransferService(
             )
 
             transfer.status = "POSTED"
-            transfer.posted_at = now
+            transfer.posted_at = posted_at
 
             self.repository.update(
                 transfer
