@@ -690,7 +690,8 @@ Phase 2
         ├── Operational Workflows      🔄
         ├── OW-1.2 Operational Permissions  [COMPLETE]
         └── OW-1.3  Inventory Forms    🔄
-            └── OW-1.3.1 Stock Item Forms  [COMPLETE]
+            ├── OW-1.3.1 Stock Item Forms       [COMPLETE]
+            └── OW-1.3.2 Inventory Location Forms [COMPLETE]
 
 The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 
