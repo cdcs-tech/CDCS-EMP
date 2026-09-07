@@ -699,6 +699,12 @@ Phase 2
             ├── OW-1.4.2 Stock Balance Routes         [COMPLETE]
             ├── OW-1.4.3 Stock Movement Routes        [COMPLETE]
             └── OW-1.4.4 Stock Transfer Routes        [COMPLETE]
+            OW-1.5 Inventory Templates ✅
+            ├── OW-1.5.1 Stock Item Templates      [COMPLETE]
+            ├── OW-1.5.2 Inventory Location Templates [COMPLETE]
+            ├── OW-1.5.3 Stock Balance Templates   [COMPLETE]
+            ├── OW-1.5.4 Stock Movement Templates  [COMPLETE]
+            └── OW-1.5.5 Stock Transfer Templates  [COMPLETE]
 
 The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 

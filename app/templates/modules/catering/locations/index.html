@@ -1,0 +1,376 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Inventory Locations
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Inventory Locations",
+    subtitle="Manage Catering inventory storage locations."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <h2 class="h5 mb-0">
+                Inventory Locations
+            </h2>
+
+            <a
+                href="{{ url_for('catering.create_inventory_location') }}"
+                class="btn btn-primary btn-sm"
+            >
+                New Location
+            </a>
+
+        </div>
+
+        <div class="card-body">
+
+            <form
+                method="GET"
+                action="{{ url_for('catering.inventory_locations') }}"
+                class="row g-3 mb-4"
+            >
+
+                <div class="col-md-3">
+
+                    <label for="location-search" class="form-label">
+                        Search
+                    </label>
+
+                    <input
+                        type="search"
+                        id="location-search"
+                        name="search"
+                        value="{{ request.args.get('search', '') }}"
+                        class="form-control"
+                        placeholder="Search locations..."
+                    >
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="location-status" class="form-label">
+                        Status
+                    </label>
+
+                    {% set current_status = request.args.get('status', 'active') %}
+
+                    <select
+                        id="location-status"
+                        name="status"
+                        class="form-select"
+                    >
+
+                        <option value="active" {% if current_status == 'active' %}selected{% endif %}>
+                            Active
+                        </option>
+
+                        <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>
+                            Inactive
+                        </option>
+
+                        <option value="all" {% if current_status == 'all' %}selected{% endif %}>
+                            All
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="location-sort" class="form-label">
+                        Sort by
+                    </label>
+
+                    {% set current_sort = request.args.get('sort', 'code') %}
+
+                    <select
+                        id="location-sort"
+                        name="sort"
+                        class="form-select"
+                    >
+
+                        <option value="code" {% if current_sort == 'code' %}selected{% endif %}>
+                            Code
+                        </option>
+
+                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>
+                            Name
+                        </option>
+
+                        <option value="is_active" {% if current_sort == 'is_active' %}selected{% endif %}>
+                            Status
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="location-direction" class="form-label">
+                        Direction
+                    </label>
+
+                    {% set current_direction = request.args.get('direction', 'asc') %}
+
+                    <select
+                        id="location-direction"
+                        name="direction"
+                        class="form-select"
+                    >
+
+                        <option value="asc" {% if current_direction == 'asc' %}selected{% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if current_direction == 'desc' %}selected{% endif %}>
+                            Descending
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="location-page-size" class="form-label">
+                        Page size
+                    </label>
+
+                    {% set current_page_size = request.args.get('page_size', '25') %}
+
+                    <select
+                        id="location-page-size"
+                        name="page_size"
+                        class="form-select"
+                    >
+
+                        <option value="10" {% if current_page_size == '10' %}selected{% endif %}>
+                            10
+                        </option>
+
+                        <option value="25" {% if current_page_size == '25' %}selected{% endif %}>
+                            25
+                        </option>
+
+                        <option value="50" {% if current_page_size == '50' %}selected{% endif %}>
+                            50
+                        </option>
+
+                        <option value="100" {% if current_page_size == '100' %}selected{% endif %}>
+                            100
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('catering.inventory_locations') }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Clear
+                    </a>
+
+                </div>
+
+            </form>
+
+            {% if locations %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for location in locations %}
+
+                        <tr>
+
+                            <td>
+                                {{ location.code }}
+                            </td>
+
+                            <td>
+                                {{ location.name }}
+                            </td>
+
+                            <td>
+                                {{ location.description if location.description else "-" }}
+                            </td>
+
+                            <td>
+
+                                {% if location.is_active %}
+
+                                <span class="badge text-bg-success">
+                                    Active
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    Inactive
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if pagination.total_pages > 1 %}
+
+            <nav aria-label="Inventory location pagination">
+
+                <ul class="pagination justify-content-end mb-0">
+
+                    <li class="page-item {% if not pagination.has_previous %}disabled{% endif %}">
+
+                        {% if pagination.has_previous %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.inventory_locations',
+                                page=pagination.page - 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'code'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            Previous
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Previous
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    {% for page_number in range(1, pagination.total_pages + 1) %}
+
+                    <li class="page-item {% if page_number == pagination.page %}active{% endif %}">
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.inventory_locations',
+                                page=page_number,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'code'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            {{ page_number }}
+                        </a>
+
+                    </li>
+
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+
+                        {% if pagination.has_next %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.inventory_locations',
+                                page=pagination.page + 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'code'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            Next
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Next
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+            {% endif %}
+
+            {% else %}
+
+            {% if request.args.get('search')
+                or request.args.get('status') in ['inactive', 'all'] %}
+
+            <p class="text-muted mb-0">
+                No inventory locations match the current query.
+            </p>
+
+            {% else %}
+
+            <p class="text-muted mb-0">
+                No inventory locations have been created yet.
+            </p>
+
+            {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

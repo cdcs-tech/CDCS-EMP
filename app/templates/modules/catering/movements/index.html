@@ -1,0 +1,424 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Stock Movements
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Stock Movements",
+    subtitle="Manage Catering inventory stock movements and posting."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <h2 class="h5 mb-0">
+                Stock Movements
+            </h2>
+
+            <a
+                href="{{ url_for('catering.create_stock_movement') }}"
+                class="btn btn-primary btn-sm"
+            >
+                New Movement
+            </a>
+
+        </div>
+
+        <div class="card-body">
+
+            <form
+                method="GET"
+                action="{{ url_for('catering.stock_movements') }}"
+                class="row g-3 mb-4"
+            >
+
+                <div class="col-md-3">
+
+                    <label for="movement-search" class="form-label">
+                        Search
+                    </label>
+
+                    <input
+                        type="search"
+                        id="movement-search"
+                        name="search"
+                        value="{{ request.args.get('search', '') }}"
+                        class="form-control"
+                        placeholder="Search movements..."
+                    >
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="movement-sort" class="form-label">
+                        Sort by
+                    </label>
+
+                    {% set current_sort = request.args.get('sort', 'occurred_at') %}
+
+                    <select
+                        id="movement-sort"
+                        name="sort"
+                        class="form-select"
+                    >
+
+                        <option value="stock_item_id" {% if current_sort == 'stock_item_id' %}selected{% endif %}>
+                            Stock Item
+                        </option>
+
+                        <option value="location_id" {% if current_sort == 'location_id' %}selected{% endif %}>
+                            Location
+                        </option>
+
+                        <option value="movement_type" {% if current_sort == 'movement_type' %}selected{% endif %}>
+                            Movement Type
+                        </option>
+
+                        <option value="quantity" {% if current_sort == 'quantity' %}selected{% endif %}>
+                            Quantity
+                        </option>
+
+                        <option value="status" {% if current_sort == 'status' %}selected{% endif %}>
+                            Status
+                        </option>
+
+                        <option value="occurred_at" {% if current_sort == 'occurred_at' %}selected{% endif %}>
+                            Occurred At
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="movement-direction" class="form-label">
+                        Direction
+                    </label>
+
+                    {% set current_direction = request.args.get('direction', 'desc') %}
+
+                    <select
+                        id="movement-direction"
+                        name="direction"
+                        class="form-select"
+                    >
+
+                        <option value="asc" {% if current_direction == 'asc' %}selected{% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if current_direction == 'desc' %}selected{% endif %}>
+                            Descending
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="movement-page-size" class="form-label">
+                        Page size
+                    </label>
+
+                    {% set current_page_size = request.args.get('page_size', '25') %}
+
+                    <select
+                        id="movement-page-size"
+                        name="page_size"
+                        class="form-select"
+                    >
+
+                        <option value="10" {% if current_page_size == '10' %}selected{% endif %}>
+                            10
+                        </option>
+
+                        <option value="25" {% if current_page_size == '25' %}selected{% endif %}>
+                            25
+                        </option>
+
+                        <option value="50" {% if current_page_size == '50' %}selected{% endif %}>
+                            50
+                        </option>
+
+                        <option value="100" {% if current_page_size == '100' %}selected{% endif %}>
+                            100
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('catering.stock_movements') }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Clear
+                    </a>
+
+                </div>
+
+            </form>
+
+            {% if movements %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Stock Item</th>
+                            <th>Location</th>
+                            <th>Movement Type</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Occurred At</th>
+                            <th>Reference</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for movement in movements %}
+
+                        <tr>
+
+                            <td>
+                                {% if movement.stock_item and movement.stock_item.product %}
+                                    {{ movement.stock_item.product.name }}
+                                {% elif movement.stock_item %}
+                                    Stock Item #{{ movement.stock_item.id }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if movement.location %}
+                                    {{ movement.location.name }}
+                                    {% if movement.location.code %}
+                                        <span class="text-muted">
+                                            ({{ movement.location.code }})
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ movement.movement_type }}
+                            </td>
+
+                            <td>
+                                {{ movement.quantity }}
+                            </td>
+
+                            <td>
+
+                                {% if movement.status == "POSTED" %}
+
+                                <span class="badge text-bg-success">
+                                    Posted
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    {{ movement.status }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                {{ movement.occurred_at }}
+                            </td>
+
+                            <td>
+                                {{ movement.reference if movement.reference else "-" }}
+                            </td>
+
+                            <td>
+
+                                {% if movement.status != "POSTED" %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'catering.post_stock_movement',
+                                        movement_id=movement.id
+                                    ) }}"
+                                    class="d-inline"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-success btn-sm"
+                                    >
+                                        Post
+                                    </button>
+
+                                </form>
+
+                                {% else %}
+
+                                <span class="text-muted">
+                                    —
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if pagination.total_pages > 1 %}
+
+            <nav aria-label="Stock movement pagination">
+
+                <ul class="pagination justify-content-end mb-0">
+
+                    <li class="page-item {% if not pagination.has_previous %}disabled{% endif %}">
+
+                        {% if pagination.has_previous %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.stock_movements',
+                                page=pagination.page - 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                sort=request.args.get('sort', 'occurred_at'),
+                                direction=request.args.get('direction', 'desc')
+                            ) }}"
+                        >
+                            Previous
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Previous
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    {% for page_number in range(1, pagination.total_pages + 1) %}
+
+                    <li class="page-item {% if page_number == pagination.page %}active{% endif %}">
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.stock_movements',
+                                page=page_number,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                sort=request.args.get('sort', 'occurred_at'),
+                                direction=request.args.get('direction', 'desc')
+                            ) }}"
+                        >
+                            {{ page_number }}
+                        </a>
+
+                    </li>
+
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+
+                        {% if pagination.has_next %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.stock_movements',
+                                page=pagination.page + 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                sort=request.args.get('sort', 'occurred_at'),
+                                direction=request.args.get('direction', 'desc')
+                            ) }}"
+                        >
+                            Next
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Next
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+            {% endif %}
+
+            {% else %}
+
+            {% if request.args.get('search') %}
+
+            <p class="text-muted mb-0">
+                No stock movements match the current query.
+            </p>
+
+            {% else %}
+
+            <p class="text-muted mb-0">
+                No stock movements have been recorded yet.
+            </p>
+
+            {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

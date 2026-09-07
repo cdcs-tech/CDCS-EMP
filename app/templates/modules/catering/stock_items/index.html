@@ -1,0 +1,402 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Stock Items
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Stock Items",
+    subtitle="Manage Catering inventory stock items."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <h2 class="h5 mb-0">
+                Stock Items
+            </h2>
+
+            <a
+                href="{{ url_for('catering.create_stock_item') }}"
+                class="btn btn-primary btn-sm"
+            >
+                New Stock Item
+            </a>
+
+        </div>
+
+        <div class="card-body">
+
+            <form
+                method="GET"
+                action="{{ url_for('catering.stock_items') }}"
+                class="row g-3 mb-4"
+            >
+
+                <div class="col-md-3">
+
+                    <label for="stock-item-search" class="form-label">
+                        Search
+                    </label>
+
+                    <input
+                        type="search"
+                        id="stock-item-search"
+                        name="search"
+                        value="{{ request.args.get('search', '') }}"
+                        class="form-control"
+                        placeholder="Search stock items..."
+                    >
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="stock-item-status" class="form-label">
+                        Status
+                    </label>
+
+                    {% set current_status = request.args.get('status', 'active') %}
+
+                    <select
+                        id="stock-item-status"
+                        name="status"
+                        class="form-select"
+                    >
+
+                        <option value="active" {% if current_status == 'active' %}selected{% endif %}>
+                            Active
+                        </option>
+
+                        <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>
+                            Inactive
+                        </option>
+
+                        <option value="all" {% if current_status == 'all' %}selected{% endif %}>
+                            All
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="stock-item-sort" class="form-label">
+                        Sort by
+                    </label>
+
+                    {% set current_sort = request.args.get('sort', 'product_id') %}
+
+                    <select
+                        id="stock-item-sort"
+                        name="sort"
+                        class="form-select"
+                    >
+
+                        <option value="product_id" {% if current_sort == 'product_id' %}selected{% endif %}>
+                            Product
+                        </option>
+
+                        <option value="minimum_level" {% if current_sort == 'minimum_level' %}selected{% endif %}>
+                            Minimum Level
+                        </option>
+
+                        <option value="reorder_level" {% if current_sort == 'reorder_level' %}selected{% endif %}>
+                            Reorder Level
+                        </option>
+
+                        <option value="is_active" {% if current_sort == 'is_active' %}selected{% endif %}>
+                            Status
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="stock-item-direction" class="form-label">
+                        Direction
+                    </label>
+
+                    {% set current_direction = request.args.get('direction', 'asc') %}
+
+                    <select
+                        id="stock-item-direction"
+                        name="direction"
+                        class="form-select"
+                    >
+
+                        <option value="asc" {% if current_direction == 'asc' %}selected{% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if current_direction == 'desc' %}selected{% endif %}>
+                            Descending
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="stock-item-page-size" class="form-label">
+                        Page size
+                    </label>
+
+                    {% set current_page_size = request.args.get('page_size', '25') %}
+
+                    <select
+                        id="stock-item-page-size"
+                        name="page_size"
+                        class="form-select"
+                    >
+
+                        <option value="10" {% if current_page_size == '10' %}selected{% endif %}>
+                            10
+                        </option>
+
+                        <option value="25" {% if current_page_size == '25' %}selected{% endif %}>
+                            25
+                        </option>
+
+                        <option value="50" {% if current_page_size == '50' %}selected{% endif %}>
+                            50
+                        </option>
+
+                        <option value="100" {% if current_page_size == '100' %}selected{% endif %}>
+                            100
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('catering.stock_items') }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Clear
+                    </a>
+
+                </div>
+
+            </form>
+
+            {% if stock_items %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Code</th>
+                            <th>Unit</th>
+                            <th>Minimum Level</th>
+                            <th>Reorder Level</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for stock_item in stock_items %}
+
+                        <tr>
+
+                            <td>
+                                {% if stock_item.product %}
+                                    {{ stock_item.product.name }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if stock_item.product %}
+                                    {{ stock_item.product.code }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if stock_item.product %}
+                                    {{ stock_item.product.unit }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ stock_item.minimum_level if stock_item.minimum_level is not none else "-" }}
+                            </td>
+
+                            <td>
+                                {{ stock_item.reorder_level if stock_item.reorder_level is not none else "-" }}
+                            </td>
+
+                            <td>
+
+                                {% if stock_item.is_active %}
+
+                                <span class="badge text-bg-success">
+                                    Active
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    Inactive
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if pagination.total_pages > 1 %}
+
+            <nav aria-label="Stock item pagination">
+
+                <ul class="pagination justify-content-end mb-0">
+
+                    <li class="page-item {% if not pagination.has_previous %}disabled{% endif %}">
+
+                        {% if pagination.has_previous %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.stock_items',
+                                page=pagination.page - 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'product_id'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            Previous
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Previous
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    {% for page_number in range(1, pagination.total_pages + 1) %}
+
+                    <li class="page-item {% if page_number == pagination.page %}active{% endif %}">
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.stock_items',
+                                page=page_number,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'product_id'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            {{ page_number }}
+                        </a>
+
+                    </li>
+
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+
+                        {% if pagination.has_next %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.stock_items',
+                                page=pagination.page + 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', 'active'),
+                                sort=request.args.get('sort', 'product_id'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}"
+                        >
+                            Next
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Next
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+            {% endif %}
+
+            {% else %}
+
+            {% if request.args.get('search')
+                or request.args.get('status') in ['inactive', 'all'] %}
+
+            <p class="text-muted mb-0">
+                No stock items match the current query.
+            </p>
+
+            {% else %}
+
+            <p class="text-muted mb-0">
+                No stock items have been created yet.
+            </p>
+
+            {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+New Stock Movement
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="New Stock Movement",
+    subtitle="Create a Catering inventory movement for later posting."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <form method="POST">
+
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+
+                    {{ form.stock_item_id.label(class="form-label") }}
+
+                    {{ form.stock_item_id(class="form-select") }}
+
+                    {% for error in form.stock_item_id.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <div class="mb-3">
+
+                    {{ form.location_id.label(class="form-label") }}
+
+                    {{ form.location_id(class="form-select") }}
+
+                    {% for error in form.location_id.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <div class="mb-3">
+
+                    {{ form.movement_type.label(class="form-label") }}
+
+                    {{ form.movement_type(class="form-select") }}
+
+                    {% for error in form.movement_type.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <div class="mb-3">
+
+                    {{ form.quantity.label(class="form-label") }}
+
+                    {{ form.quantity(
+                        class="form-control",
+                        placeholder="Enter signed quantity"
+                    ) }}
+
+                    <div class="form-text">
+                        Enter a signed quantity. Positive values increase stock; negative values reduce stock.
+                    </div>
+
+                    {% for error in form.quantity.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <div class="mb-3">
+
+                    {{ form.reference.label(class="form-label") }}
+
+                    {{ form.reference(
+                        class="form-control",
+                        placeholder="Optional reference"
+                    ) }}
+
+                    {% for error in form.reference.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <div class="mb-3">
+
+                    {{ form.reason.label(class="form-label") }}
+
+                    {{ form.reason(
+                        class="form-control",
+                        rows="4",
+                        placeholder="Optional reason"
+                    ) }}
+
+                    {% for error in form.reason.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <div class="mb-3">
+
+                    {{ form.occurred_at.label(class="form-label") }}
+
+                    {{ form.occurred_at(class="form-control") }}
+
+                    {% for error in form.occurred_at.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <div class="d-flex gap-2">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Create Movement
+                    </button>
+
+                    <a
+                        href="{{ url_for('catering.stock_movements') }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Cancel
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

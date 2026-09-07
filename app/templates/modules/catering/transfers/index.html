@@ -1,0 +1,436 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Stock Transfers
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Stock Transfers",
+    subtitle="Manage Catering inventory transfers between storage locations."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <h2 class="h5 mb-0">
+                Stock Transfers
+            </h2>
+
+            <a
+                href="{{ url_for('catering.create_transfer') }}"
+                class="btn btn-primary btn-sm"
+            >
+                New Transfer
+            </a>
+
+        </div>
+
+        <div class="card-body">
+
+            <form
+                method="GET"
+                action="{{ url_for('catering.transfers') }}"
+                class="row g-3 mb-4"
+            >
+
+                <div class="col-md-3">
+
+                    <label for="transfer-search" class="form-label">
+                        Search
+                    </label>
+
+                    <input
+                        type="search"
+                        id="transfer-search"
+                        name="search"
+                        value="{{ request.args.get('search', '') }}"
+                        class="form-control"
+                        placeholder="Search transfers..."
+                    >
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="transfer-sort" class="form-label">
+                        Sort by
+                    </label>
+
+                    {% set current_sort = request.args.get('sort', 'occurred_at') %}
+
+                    <select
+                        id="transfer-sort"
+                        name="sort"
+                        class="form-select"
+                    >
+
+                        <option value="stock_item_id" {% if current_sort == 'stock_item_id' %}selected{% endif %}>
+                            Stock Item
+                        </option>
+
+                        <option value="source_location_id" {% if current_sort == 'source_location_id' %}selected{% endif %}>
+                            Source Location
+                        </option>
+
+                        <option value="destination_location_id" {% if current_sort == 'destination_location_id' %}selected{% endif %}>
+                            Destination Location
+                        </option>
+
+                        <option value="quantity" {% if current_sort == 'quantity' %}selected{% endif %}>
+                            Quantity
+                        </option>
+
+                        <option value="reference" {% if current_sort == 'reference' %}selected{% endif %}>
+                            Reference
+                        </option>
+
+                        <option value="status" {% if current_sort == 'status' %}selected{% endif %}>
+                            Status
+                        </option>
+
+                        <option value="occurred_at" {% if current_sort == 'occurred_at' %}selected{% endif %}>
+                            Occurred At
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="transfer-direction" class="form-label">
+                        Direction
+                    </label>
+
+                    {% set current_direction = request.args.get('direction', 'desc') %}
+
+                    <select
+                        id="transfer-direction"
+                        name="direction"
+                        class="form-select"
+                    >
+
+                        <option value="asc" {% if current_direction == 'asc' %}selected{% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if current_direction == 'desc' %}selected{% endif %}>
+                            Descending
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="transfer-page-size" class="form-label">
+                        Page size
+                    </label>
+
+                    {% set current_page_size = request.args.get('page_size', '25') %}
+
+                    <select
+                        id="transfer-page-size"
+                        name="page_size"
+                        class="form-select"
+                    >
+
+                        <option value="10" {% if current_page_size == '10' %}selected{% endif %}>
+                            10
+                        </option>
+
+                        <option value="25" {% if current_page_size == '25' %}selected{% endif %}>
+                            25
+                        </option>
+
+                        <option value="50" {% if current_page_size == '50' %}selected{% endif %}>
+                            50
+                        </option>
+
+                        <option value="100" {% if current_page_size == '100' %}selected{% endif %}>
+                            100
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('catering.transfers') }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Clear
+                    </a>
+
+                </div>
+
+            </form>
+
+            {% if transfers %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Stock Item</th>
+                            <th>Source Location</th>
+                            <th>Destination Location</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Occurred At</th>
+                            <th>Reference</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for transfer in transfers %}
+
+                        <tr>
+
+                            <td>
+                                {% if transfer.stock_item and transfer.stock_item.product %}
+                                    {{ transfer.stock_item.product.name }}
+                                {% elif transfer.stock_item %}
+                                    Stock Item #{{ transfer.stock_item.id }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if transfer.source_location %}
+                                    {{ transfer.source_location.name }}
+                                    {% if transfer.source_location.code %}
+                                        <span class="text-muted">
+                                            ({{ transfer.source_location.code }})
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if transfer.destination_location %}
+                                    {{ transfer.destination_location.name }}
+                                    {% if transfer.destination_location.code %}
+                                        <span class="text-muted">
+                                            ({{ transfer.destination_location.code }})
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ transfer.quantity }}
+                            </td>
+
+                            <td>
+
+                                {% if transfer.status == "POSTED" %}
+
+                                <span class="badge text-bg-success">
+                                    Posted
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    {{ transfer.status }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                {{ transfer.occurred_at }}
+                            </td>
+
+                            <td>
+                                {{ transfer.reference if transfer.reference else "-" }}
+                            </td>
+
+                            <td>
+
+                                {% if transfer.status != "POSTED" %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'catering.post_transfer',
+                                        transfer_id=transfer.id
+                                    ) }}"
+                                    class="d-inline"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-success btn-sm"
+                                    >
+                                        Post
+                                    </button>
+
+                                </form>
+
+                                {% else %}
+
+                                <span class="text-muted">
+                                    —
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if pagination.total_pages > 1 %}
+
+            <nav aria-label="Stock transfer pagination">
+
+                <ul class="pagination justify-content-end mb-0">
+
+                    <li class="page-item {% if not pagination.has_previous %}disabled{% endif %}">
+
+                        {% if pagination.has_previous %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.transfers',
+                                page=pagination.page - 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                sort=request.args.get('sort', 'occurred_at'),
+                                direction=request.args.get('direction', 'desc')
+                            ) }}"
+                        >
+                            Previous
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Previous
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    {% for page_number in range(1, pagination.total_pages + 1) %}
+
+                    <li class="page-item {% if page_number == pagination.page %}active{% endif %}">
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.transfers',
+                                page=page_number,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                sort=request.args.get('sort', 'occurred_at'),
+                                direction=request.args.get('direction', 'desc')
+                            ) }}"
+                        >
+                            {{ page_number }}
+                        </a>
+
+                    </li>
+
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+
+                        {% if pagination.has_next %}
+
+                        <a
+                            class="page-link"
+                            href="{{ url_for(
+                                'catering.transfers',
+                                page=pagination.page + 1,
+                                page_size=pagination.page_size,
+                                search=request.args.get('search', ''),
+                                sort=request.args.get('sort', 'occurred_at'),
+                                direction=request.args.get('direction', 'desc')
+                            ) }}"
+                        >
+                            Next
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Next
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+            {% endif %}
+
+            {% else %}
+
+            {% if request.args.get('search') %}
+
+            <p class="text-muted mb-0">
+                No stock transfers match the current query.
+            </p>
+
+            {% else %}
+
+            <p class="text-muted mb-0">
+                No stock transfers have been recorded yet.
+            </p>
+
+            {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
