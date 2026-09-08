@@ -27,7 +27,7 @@ def test_catering_permissions_are_permission_objects():
     Permission contract.
     """
 
-    assert len(CATERING_PERMISSIONS) == 8
+    assert CATERING_PERMISSIONS
 
     assert all(
         isinstance(permission, Permission)

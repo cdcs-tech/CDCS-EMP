@@ -25,6 +25,11 @@ from app.modules.catering.security import (
     CATERING_PRODUCT_CREATE,
     CATERING_PRODUCT_READ,
     CATERING_PRODUCT_UPDATE,
+    CATERING_STOCK_BALANCE_READ,
+    CATERING_STOCK_ITEM_READ,
+    CATERING_STOCK_MOVEMENT_READ,
+    CATERING_STOCK_TRANSFER_READ,
+    CATERING_INVENTORY_LOCATION_READ,
 )
 
 from tests.factories.permission_factory import (
@@ -40,6 +45,7 @@ from tests.utils.assertions import (
     assert_redirect,
     assert_success,
 )
+
 
 def _login_catering_read_user(
     client,
@@ -146,7 +152,6 @@ def test_authenticated_navigation_contains_catering(
     assert b'href="/catering/"' in response.data
 
 
-
 def test_catering_route_is_registered(app):
     """
     The Catering blueprint must expose the module landing route
@@ -211,10 +216,12 @@ def test_catering_route_allows_user_with_read_permission(
     permission must be allowed to access the Catering landing page.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="catering_user",
         email="catering@test.local",
@@ -222,6 +229,8 @@ def test_catering_route_allows_user_with_read_permission(
         last_name="User",
         password="Catering@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -260,7 +269,7 @@ def test_catering_route_allows_user_with_read_permission(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Catering@123",
         },
         follow_redirects=True,
@@ -271,6 +280,7 @@ def test_catering_route_allows_user_with_read_permission(
     assert_success(response)
     assert b"Catering" in response.data
 
+
 def test_catering_landing_page_displays_management_navigation(
     client,
     session,
@@ -280,10 +290,12 @@ def test_catering_landing_page_displays_management_navigation(
     must see navigation to both management surfaces.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="catering_manager",
         email="catering-manager@test.local",
@@ -291,6 +303,8 @@ def test_catering_landing_page_displays_management_navigation(
         last_name="Manager",
         password="Catering@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -316,6 +330,46 @@ def test_catering_landing_page_displays_management_navigation(
         commit=False,
     )
 
+    stock_item_permission = PermissionFactory.create(
+        session=session,
+        name=CATERING_STOCK_ITEM_READ.name,
+        module="CATERING",
+        description="View Catering stock items.",
+        commit=False,
+    )
+
+    location_permission = PermissionFactory.create(
+        session=session,
+        name=CATERING_INVENTORY_LOCATION_READ.name,
+        module="CATERING",
+        description="View Catering inventory locations.",
+        commit=False,
+    )
+
+    balance_permission = PermissionFactory.create(
+        session=session,
+        name=CATERING_STOCK_BALANCE_READ.name,
+        module="CATERING",
+        description="View Catering stock balances.",
+        commit=False,
+    )
+
+    movement_permission = PermissionFactory.create(
+        session=session,
+        name=CATERING_STOCK_MOVEMENT_READ.name,
+        module="CATERING",
+        description="View Catering stock movements.",
+        commit=False,
+    )
+
+    transfer_permission = PermissionFactory.create(
+        session=session,
+        name=CATERING_STOCK_TRANSFER_READ.name,
+        module="CATERING",
+        description="View Catering stock transfers.",
+        commit=False,
+    )
+
     session.add_all(
         [
             RolePermission(
@@ -325,6 +379,26 @@ def test_catering_landing_page_displays_management_navigation(
             RolePermission(
                 role=role,
                 permission=product_permission,
+            ),
+            RolePermission(
+                role=role,
+                permission=stock_item_permission,
+            ),
+            RolePermission(
+                role=role,
+                permission=location_permission,
+            ),
+            RolePermission(
+                role=role,
+                permission=balance_permission,
+            ),
+            RolePermission(
+                role=role,
+                permission=movement_permission,
+            ),
+            RolePermission(
+                role=role,
+                permission=transfer_permission,
             ),
             UserRole(
                 user=user,
@@ -338,7 +412,7 @@ def test_catering_landing_page_displays_management_navigation(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Catering@123",
         },
         follow_redirects=True,
@@ -357,6 +431,18 @@ def test_catering_landing_page_displays_management_navigation(
         b"Catering operations management is being prepared."
         not in response.data
     )
+    assert b"Inventory" in response.data
+    assert b"Stock Items" in response.data
+    assert b"Inventory Locations" in response.data
+    assert b"Stock Balances" in response.data
+    assert b"Stock Movements" in response.data
+    assert b"Stock Transfers" in response.data
+
+    assert b'href="/catering/stock-items/"' in response.data
+    assert b'href="/catering/locations/"' in response.data
+    assert b'href="/catering/balances/"' in response.data
+    assert b'href="/catering/movements/"' in response.data
+    assert b'href="/catering/transfers/"' in response.data
 
 
 def test_catering_landing_page_hides_products_without_product_read_permission(
@@ -368,10 +454,12 @@ def test_catering_landing_page_hides_products_without_product_read_permission(
     READ permission when displaying Product navigation.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="catering_viewer",
         email="catering-viewer@test.local",
@@ -379,6 +467,8 @@ def test_catering_landing_page_hides_products_without_product_read_permission(
         last_name="Viewer",
         password="Catering@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -415,7 +505,7 @@ def test_catering_landing_page_hides_products_without_product_read_permission(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Catering@123",
         },
         follow_redirects=True,
@@ -429,6 +519,83 @@ def test_catering_landing_page_hides_products_without_product_read_permission(
     assert b'href="/catering/categories/"' in response.data
     assert b"Products" not in response.data
     assert b'href="/catering/products/"' not in response.data
+
+
+def test_catering_landing_page_hides_inventory_without_inventory_read_permissions(
+    client,
+    session,
+):
+    """
+    The Catering landing page must hide Inventory navigation when the
+    authenticated user has no Inventory READ permissions.
+    """
+    UserFactory = __import__(
+        "tests.factories.user_factory",
+        fromlist=["UserFactory"],
+    ).UserFactory
+
+    user = UserFactory.create(
+        session=session,
+        username="catering_inventory_viewer",
+        email="catering-inventory-viewer@test.local",
+        first_name="Catering",
+        last_name="Inventory Viewer",
+        password="Catering@123",
+    )
+
+    username = user.username
+
+    role = RoleFactory.create(
+        session=session,
+        name="Catering Landing User",
+        description="Catering landing-page access without Inventory access",
+        is_system=False,
+        commit=False,
+    )
+
+    category_permission = PermissionFactory.create(
+        session=session,
+        name=CATERING_PRODUCT_CATEGORY_READ.name,
+        module="CATERING",
+        description="View Catering product categories.",
+        commit=False,
+    )
+
+    session.add_all(
+        [
+            RolePermission(
+                role=role,
+                permission=category_permission,
+            ),
+            UserRole(
+                user=user,
+                role=role,
+            ),
+        ]
+    )
+
+    session.commit()
+
+    client.post(
+        "/auth/login",
+        data={
+            "username": username,
+            "password": "Catering@123",
+        },
+        follow_redirects=True,
+    )
+
+    response = client.get("/catering/")
+
+    assert_success(response)
+
+    assert b"Product Categories" in response.data
+
+    assert b'href="/catering/stock-items/"' not in response.data
+    assert b'href="/catering/locations/"' not in response.data
+    assert b'href="/catering/balances/"' not in response.data
+    assert b'href="/catering/movements/"' not in response.data
+    assert b'href="/catering/transfers/"' not in response.data
 
 def test_catering_module_remains_initialized(
     app,
@@ -451,6 +618,7 @@ def test_catering_module_remains_initialized(
         module,
         CateringModule,
     )
+
 
 def test_product_category_list_requires_authentication(
     client,
@@ -503,10 +671,12 @@ def test_product_category_list_allows_user_with_read_permission(
     the Product Category list.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="category_viewer",
         email="category.viewer@test.local",
@@ -514,6 +684,8 @@ def test_product_category_list_allows_user_with_read_permission(
         last_name="Viewer",
         password="Category@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -550,7 +722,7 @@ def test_product_category_list_allows_user_with_read_permission(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Category@123",
         },
         follow_redirects=True,
@@ -561,6 +733,7 @@ def test_product_category_list_allows_user_with_read_permission(
     )
 
     assert_success(response)
+
 
 def test_product_category_list_defaults_to_active_records(
     client,
@@ -818,6 +991,7 @@ def test_product_category_list_supports_pagination(
     assert b"Category 01" not in response.data
     assert b"Category 02" not in response.data
 
+
 def test_product_category_list_renders_query_controls(
     client,
     session,
@@ -1005,6 +1179,7 @@ def test_product_category_list_renders_filtered_empty_state(
         not in response.data
     )
 
+
 def test_product_category_create_requires_create_permission(
     client,
     regular_user,
@@ -1039,10 +1214,12 @@ def test_product_category_create_allows_user_with_create_permission(
     the Product Category creation form.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="category_creator",
         email="category.creator@test.local",
@@ -1050,6 +1227,8 @@ def test_product_category_create_allows_user_with_create_permission(
         last_name="Creator",
         password="Category@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -1086,7 +1265,7 @@ def test_product_category_create_allows_user_with_create_permission(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Category@123",
         },
         follow_redirects=True,
@@ -1098,6 +1277,7 @@ def test_product_category_create_allows_user_with_create_permission(
 
     assert_success(response)
 
+
 def test_product_category_create_persists_and_redirects(
     client,
     session,
@@ -1107,10 +1287,12 @@ def test_product_category_create_persists_and_redirects(
     can create a Product Category and see it in the list.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="category_manager",
         email="category.manager@test.local",
@@ -1118,6 +1300,8 @@ def test_product_category_create_persists_and_redirects(
         last_name="Manager",
         password="Category@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -1169,7 +1353,7 @@ def test_product_category_create_persists_and_redirects(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Category@123",
         },
         follow_redirects=True,
@@ -1192,16 +1376,14 @@ def test_product_category_create_persists_and_redirects(
     assert b"Beverages and drinking water." in response.data
     assert b"Product category created successfully." in response.data
 
+    ProductCategory = __import__(
+        "app.modules.catering.models",
+        fromlist=["ProductCategory"],
+    ).ProductCategory
+
     category = (
-        session.query(
-            __import__(
-                "app.modules.catering.models",
-                fromlist=["ProductCategory"],
-            ).ProductCategory
-        )
-        .filter_by(
-            code="BEV"
-        )
+        session.query(ProductCategory)
+        .filter_by(code="BEV")
         .first()
     )
 
@@ -1210,6 +1392,7 @@ def test_product_category_create_persists_and_redirects(
     assert category.description == (
         "Beverages and drinking water."
     )
+
 
 def test_product_list_requires_authentication(
     client,
@@ -1262,10 +1445,12 @@ def test_product_list_allows_user_with_read_permission(
     the Product list.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="product_viewer",
         email="product.viewer@test.local",
@@ -1273,6 +1458,8 @@ def test_product_list_allows_user_with_read_permission(
         last_name="Viewer",
         password="Product@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -1309,7 +1496,7 @@ def test_product_list_allows_user_with_read_permission(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Product@123",
         },
         follow_redirects=True,
@@ -1321,6 +1508,7 @@ def test_product_list_allows_user_with_read_permission(
 
     assert_success(response)
     assert b"Products" in response.data
+
 
 def test_product_list_search_filters_records(
     client,
@@ -1347,19 +1535,21 @@ def test_product_list_search_filters_records(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     session.add_all(
         [
             Product(
-                category_id=category.id,
+                category_id=category_id,
                 name="Bottled Water",
                 code="WATER-500",
                 description="Drinking water.",
                 unit="Bottle",
             ),
             Product(
-                category_id=category.id,
+                category_id=category_id,
                 name="Rice",
                 code="RICE-25",
                 description="White rice.",
@@ -1424,18 +1614,23 @@ def test_product_list_category_filter(
             food,
         ]
     )
+    session.flush()
+
+    beverages_id = beverages.id
+    food_id = food.id
+
     session.commit()
 
     session.add_all(
         [
             Product(
-                category_id=beverages.id,
+                category_id=beverages_id,
                 name="Bottled Water",
                 code="WATER",
                 unit="Bottle",
             ),
             Product(
-                category_id=food.id,
+                category_id=food_id,
                 name="Rice",
                 code="RICE",
                 unit="Bag",
@@ -1454,7 +1649,7 @@ def test_product_list_category_filter(
     )
 
     response = client.get(
-        f"/catering/products/?category_id={beverages.id}"
+        f"/catering/products/?category_id={beverages_id}"
     )
 
     assert_success(response)
@@ -1489,19 +1684,21 @@ def test_product_list_status_all_includes_inactive_records(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     session.add_all(
         [
             Product(
-                category_id=category.id,
+                category_id=category_id,
                 name="Active Water",
                 code="ACTIVE-WATER",
                 unit="Bottle",
                 is_active=True,
             ),
             Product(
-                category_id=category.id,
+                category_id=category_id,
                 name="Archived Juice",
                 code="ARCH-JUICE",
                 unit="Bottle",
@@ -1554,18 +1751,20 @@ def test_product_list_supports_sorting(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     session.add_all(
         [
             Product(
-                category_id=category.id,
+                category_id=category_id,
                 name="Alpha Product",
                 code="ALPHA",
                 unit="Bottle",
             ),
             Product(
-                category_id=category.id,
+                category_id=category_id,
                 name="Zulu Product",
                 code="ZULU",
                 unit="Bottle",
@@ -1624,11 +1823,13 @@ def test_product_list_supports_pagination(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     products = [
         Product(
-            category_id=category.id,
+            category_id=category_id,
             name=f"Product {index:02d}",
             code=f"PROD-{index:02d}",
             unit="Bottle",
@@ -1658,6 +1859,7 @@ def test_product_list_supports_pagination(
 
     assert b"Product 01" not in response.data
     assert b"Product 02" not in response.data
+
 
 def test_product_list_renders_query_controls(
     client,
@@ -1755,6 +1957,8 @@ def test_product_list_preserves_query_control_state(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     _login_catering_read_user(
@@ -1768,8 +1972,8 @@ def test_product_list_preserves_query_control_state(
 
     response = client.get(
         "/catering/products/"
-        f"?search=water"
-        f"&category_id={category.id}"
+        "?search=water"
+        f"&category_id={category_id}"
         "&status=all"
         "&sort=code"
         "&direction=desc"
@@ -1785,7 +1989,7 @@ def test_product_list_preserves_query_control_state(
     assert b'value="water"' in html
 
     category_option_start = (
-        f'<option value="{category.id}"'.encode()
+        f'<option value="{category_id}"'.encode()
     )
 
     category_option_index = html.find(
@@ -1837,11 +2041,13 @@ def test_product_list_pagination_preserves_query_parameters(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     products = [
         Product(
-            category_id=category.id,
+            category_id=category_id,
             name=f"Product {index:02d}",
             code=f"PROD-{index:02d}",
             unit="Bottle",
@@ -1863,10 +2069,10 @@ def test_product_list_pagination_preserves_query_parameters(
 
     response = client.get(
         "/catering/products/"
-        f"?page=1"
-        f"&page_size=10"
-        f"&search=Product"
-        f"&category_id={category.id}"
+        "?page=1"
+        "&page_size=10"
+        "&search=Product"
+        f"&category_id={category_id}"
         "&status=all"
         "&sort=code"
         "&direction=desc"
@@ -1879,7 +2085,7 @@ def test_product_list_pagination_preserves_query_parameters(
     assert b"page_size=10" in response.data
     assert b"search=Product" in response.data
     assert (
-        f"category_id={category.id}".encode()
+        f"category_id={category_id}".encode()
         in response.data
     )
     assert b"status=all" in response.data
@@ -1921,6 +2127,7 @@ def test_product_list_renders_filtered_empty_state(
         not in response.data
     )
 
+
 def test_product_create_requires_create_permission(
     client,
     regular_user,
@@ -1955,10 +2162,12 @@ def test_product_create_allows_user_with_create_permission(
     the Product creation form.
     """
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="product_creator",
         email="product.creator@test.local",
@@ -1966,6 +2175,8 @@ def test_product_create_allows_user_with_create_permission(
         last_name="Creator",
         password="Product@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -2002,7 +2213,7 @@ def test_product_create_allows_user_with_create_permission(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Product@123",
         },
         follow_redirects=True,
@@ -2042,12 +2253,16 @@ def test_product_create_persists_and_redirects(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="product_manager",
         email="product.manager@test.local",
@@ -2055,6 +2270,8 @@ def test_product_create_persists_and_redirects(
         last_name="Manager",
         password="Product@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -2106,7 +2323,7 @@ def test_product_create_persists_and_redirects(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Product@123",
         },
         follow_redirects=True,
@@ -2115,7 +2332,7 @@ def test_product_create_persists_and_redirects(
     response = client.post(
         "/catering/products/create",
         data={
-            "category_id": str(category.id),
+            "category_id": str(category_id),
             "name": "Bottled Water",
             "code": "WATER-500",
             "description": "500ml bottled drinking water.",
@@ -2147,11 +2364,12 @@ def test_product_create_persists_and_redirects(
 
     assert product is not None
     assert product.name == "Bottled Water"
-    assert product.category_id == category.id
+    assert product.category_id == category_id
     assert product.description == (
         "500ml bottled drinking water."
     )
     assert product.unit == "Bottle"
+
 
 def test_product_category_deactivate_changes_active_state(
     client,
@@ -2175,12 +2393,16 @@ def test_product_category_deactivate_changes_active_state(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="category_lifecycle_manager",
         email="category.lifecycle@test.local",
@@ -2188,6 +2410,8 @@ def test_product_category_deactivate_changes_active_state(
         last_name="Lifecycle",
         password="Category@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -2224,20 +2448,20 @@ def test_product_category_deactivate_changes_active_state(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Category@123",
         },
         follow_redirects=True,
     )
 
     response = client.post(
-        f"/catering/categories/{category.id}/deactivate",
+        f"/catering/categories/{category_id}/deactivate",
     )
 
     assert_redirect(
         response,
         "/catering/categories/",
-        )
+    )
 
     session.refresh(category)
 
@@ -2266,12 +2490,16 @@ def test_product_category_activate_changes_active_state(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="category_activation_manager",
         email="category.activation@test.local",
@@ -2279,6 +2507,8 @@ def test_product_category_activate_changes_active_state(
         last_name="Activation",
         password="Category@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -2315,14 +2545,14 @@ def test_product_category_activate_changes_active_state(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Category@123",
         },
         follow_redirects=True,
     )
 
     response = client.post(
-        f"/catering/categories/{category.id}/activate",
+        f"/catering/categories/{category_id}/activate",
     )
 
     assert_redirect(
@@ -2361,10 +2591,12 @@ def test_product_deactivate_changes_active_state(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     product = Product(
-        category_id=category.id,
+        category_id=category_id,
         name="Bottled Water",
         code="WATER-500",
         description="500ml bottled drinking water.",
@@ -2373,12 +2605,16 @@ def test_product_deactivate_changes_active_state(
     )
 
     session.add(product)
+    session.flush()
+    product_id = product.id
     session.commit()
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="product_lifecycle_manager",
         email="product.lifecycle@test.local",
@@ -2386,6 +2622,8 @@ def test_product_deactivate_changes_active_state(
         last_name="Lifecycle",
         password="Product@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -2422,14 +2660,14 @@ def test_product_deactivate_changes_active_state(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Product@123",
         },
         follow_redirects=True,
     )
 
     response = client.post(
-        f"/catering/products/{product.id}/deactivate",
+        f"/catering/products/{product_id}/deactivate",
     )
 
     assert_redirect(
@@ -2468,10 +2706,12 @@ def test_product_activate_changes_active_state(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     product = Product(
-        category_id=category.id,
+        category_id=category_id,
         name="Bottled Water",
         code="WATER-500",
         description="500ml bottled drinking water.",
@@ -2480,12 +2720,16 @@ def test_product_activate_changes_active_state(
     )
 
     session.add(product)
+    session.flush()
+    product_id = product.id
     session.commit()
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="product_activation_manager",
         email="product.activation@test.local",
@@ -2493,6 +2737,8 @@ def test_product_activate_changes_active_state(
         last_name="Activation",
         password="Product@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -2529,14 +2775,14 @@ def test_product_activate_changes_active_state(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Product@123",
         },
         follow_redirects=True,
     )
 
     response = client.post(
-        f"/catering/products/{product.id}/activate",
+        f"/catering/products/{product_id}/activate",
     )
 
     assert_redirect(
@@ -2569,10 +2815,12 @@ def test_category_lifecycle_routes_require_authentication(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     response = client.post(
-        f"/catering/categories/{category.id}/deactivate",
+        f"/catering/categories/{category_id}/deactivate",
     )
 
     assert_redirect(
@@ -2597,6 +2845,9 @@ def test_product_lifecycle_routes_require_authentication(
     Product = __import__(
         "app.modules.catering.models",
         fromlist=["Product"],
+    ).ProductCategory if False else __import__(
+        "app.modules.catering.models",
+        fromlist=["Product"],
     ).Product
 
     category = ProductCategory(
@@ -2605,20 +2856,24 @@ def test_product_lifecycle_routes_require_authentication(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     product = Product(
-        category_id=category.id,
+        category_id=category_id,
         name="Bottled Water",
         code="WATER-500",
         unit="Bottle",
     )
 
     session.add(product)
+    session.flush()
+    product_id = product.id
     session.commit()
 
     response = client.post(
-        f"/catering/products/{product.id}/deactivate",
+        f"/catering/products/{product_id}/deactivate",
     )
 
     assert_redirect(
@@ -2648,6 +2903,8 @@ def test_category_lifecycle_requires_update_permission(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     client.post(
@@ -2660,7 +2917,7 @@ def test_category_lifecycle_requires_update_permission(
     )
 
     response = client.post(
-        f"/catering/categories/{category.id}/deactivate",
+        f"/catering/categories/{category_id}/deactivate",
     )
 
     assert_forbidden(response)
@@ -2696,16 +2953,20 @@ def test_product_lifecycle_requires_update_permission(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     product = Product(
-        category_id=category.id,
+        category_id=category_id,
         name="Bottled Water",
         code="WATER-500",
         unit="Bottle",
     )
 
     session.add(product)
+    session.flush()
+    product_id = product.id
     session.commit()
 
     client.post(
@@ -2718,7 +2979,7 @@ def test_product_lifecycle_requires_update_permission(
     )
 
     response = client.post(
-        f"/catering/products/{product.id}/deactivate",
+        f"/catering/products/{product_id}/deactivate",
     )
 
     assert_forbidden(response)
@@ -2748,10 +3009,12 @@ def test_category_lifecycle_routes_reject_get(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     response = authenticated_client.get(
-        f"/catering/categories/{category.id}/deactivate",
+        f"/catering/categories/{category_id}/deactivate",
     )
 
     assert response.status_code == 405
@@ -2786,20 +3049,24 @@ def test_product_lifecycle_routes_reject_get(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     product = Product(
-        category_id=category.id,
+        category_id=category_id,
         name="Bottled Water",
         code="WATER-500",
         unit="Bottle",
     )
 
     session.add(product)
+    session.flush()
+    product_id = product.id
     session.commit()
 
     response = authenticated_client.get(
-        f"/catering/products/{product.id}/deactivate",
+        f"/catering/products/{product_id}/deactivate",
     )
 
     assert response.status_code == 405
@@ -2841,12 +3108,19 @@ def test_category_list_exposes_lifecycle_controls(
             inactive_category,
         ]
     )
+    session.flush()
+
+    active_category_id = active_category.id
+    inactive_category_id = inactive_category.id
+
     session.commit()
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="category_lifecycle_viewer",
         email="category.lifecycle.viewer@test.local",
@@ -2854,6 +3128,8 @@ def test_category_list_exposes_lifecycle_controls(
         last_name="Lifecycle Viewer",
         password="Category@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -2890,7 +3166,7 @@ def test_category_list_exposes_lifecycle_controls(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Category@123",
         },
         follow_redirects=True,
@@ -2906,12 +3182,12 @@ def test_category_list_exposes_lifecycle_controls(
     assert b"Activate" in response.data
 
     assert (
-        f"/catering/categories/{active_category.id}/deactivate".encode()
+        f"/catering/categories/{active_category_id}/deactivate".encode()
         in response.data
     )
 
     assert (
-        f"/catering/categories/{inactive_category.id}/activate".encode()
+        f"/catering/categories/{inactive_category_id}/activate".encode()
         in response.data
     )
 
@@ -2941,10 +3217,12 @@ def test_product_list_exposes_lifecycle_controls(
     )
 
     session.add(category)
+    session.flush()
+    category_id = category.id
     session.commit()
 
     active_product = Product(
-        category_id=category.id,
+        category_id=category_id,
         name="Bottled Water",
         code="WATER-500",
         unit="Bottle",
@@ -2952,7 +3230,7 @@ def test_product_list_exposes_lifecycle_controls(
     )
 
     inactive_product = Product(
-        category_id=category.id,
+        category_id=category_id,
         name="Archived Juice",
         code="JUICE-OLD",
         unit="Bottle",
@@ -2965,12 +3243,19 @@ def test_product_list_exposes_lifecycle_controls(
             inactive_product,
         ]
     )
+    session.flush()
+
+    active_product_id = active_product.id
+    inactive_product_id = inactive_product.id
+
     session.commit()
 
-    user = __import__(
+    UserFactory = __import__(
         "tests.factories.user_factory",
         fromlist=["UserFactory"],
-    ).UserFactory.create(
+    ).UserFactory
+
+    user = UserFactory.create(
         session=session,
         username="product_lifecycle_viewer",
         email="product.lifecycle.viewer@test.local",
@@ -2978,6 +3263,8 @@ def test_product_list_exposes_lifecycle_controls(
         last_name="Lifecycle Viewer",
         password="Product@123",
     )
+
+    username = user.username
 
     role = RoleFactory.create(
         session=session,
@@ -3014,7 +3301,7 @@ def test_product_list_exposes_lifecycle_controls(
     client.post(
         "/auth/login",
         data={
-            "username": user.username,
+            "username": username,
             "password": "Product@123",
         },
         follow_redirects=True,
@@ -3030,11 +3317,11 @@ def test_product_list_exposes_lifecycle_controls(
     assert b"Activate" in response.data
 
     assert (
-        f"/catering/products/{active_product.id}/deactivate".encode()
+        f"/catering/products/{active_product_id}/deactivate".encode()
         in response.data
     )
 
     assert (
-        f"/catering/products/{inactive_product.id}/activate".encode()
+        f"/catering/products/{inactive_product_id}/activate".encode()
         in response.data
     )

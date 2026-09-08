@@ -206,7 +206,7 @@ Architectural decision:
 
 Inventory has been established as a distinct bounded capability within Catering.
 
-**Status: FOUNDATION COMPLETE — OPERATIONAL POSTING CONTINUES**
+**Status: FOUNDATION COMPLETE — OPERATIONAL SURFACE IN PROGRESS**
 
 Inventory owns:
 
@@ -704,7 +704,9 @@ Phase 2
             ├── OW-1.5.2 Inventory Location Templates [COMPLETE]
             ├── OW-1.5.3 Stock Balance Templates   [COMPLETE]
             ├── OW-1.5.4 Stock Movement Templates  [COMPLETE]
-            └── OW-1.5.5 Stock Transfer Templates  [COMPLETE]
+            ├── OW-1.5.5 Stock Transfer Templates  [COMPLETE]
+            ├── OW-1.6 Navigation/Application Integration [COMPLETE]
+            └── OW-1.7 Application-Surface Verification  🔄
 
 The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 

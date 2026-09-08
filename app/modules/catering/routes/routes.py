@@ -471,6 +471,21 @@ def index():
         can_read_products=current_user.has_permission(
             CATERING_PRODUCT_READ.name
         ),
+        can_read_stock_items=current_user.has_permission(
+            CATERING_STOCK_ITEM_READ.name
+        ),
+        can_read_inventory_locations=current_user.has_permission(
+            CATERING_INVENTORY_LOCATION_READ.name
+        ),
+        can_read_stock_balances=current_user.has_permission(
+            CATERING_STOCK_BALANCE_READ.name
+        ),
+        can_read_stock_movements=current_user.has_permission(
+            CATERING_STOCK_MOVEMENT_READ.name
+        ),
+        can_read_stock_transfers=current_user.has_permission(
+            CATERING_STOCK_TRANSFER_READ.name
+        ),
     )
 
 

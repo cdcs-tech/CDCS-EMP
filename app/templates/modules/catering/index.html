@@ -77,6 +77,116 @@ Catering
 
     </div>
 
+    {% if
+    can_read_stock_items
+    or can_read_inventory_locations
+    or can_read_stock_balances
+    or can_read_stock_movements
+    or can_read_stock_transfers
+    %}
+
+    <div class="row g-4 mt-1">
+
+        <div class="col-12">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <h2 class="h5">
+                        Inventory
+                    </h2>
+
+                    <p class="text-muted">
+                        Manage Catering stock, locations, balances,
+                        movements, and transfers.
+                    </p>
+
+                    <div class="list-group">
+
+                        {% if can_read_stock_items %}
+
+                        <a href="{{ url_for('catering.stock_items') }}" class="list-group-item list-group-item-action">
+                            <strong>
+                                Stock Items
+                            </strong>
+
+                            <span class="text-muted d-block small">
+                                Configure products for inventory management.
+                            </span>
+                        </a>
+
+                        {% endif %}
+
+                        {% if can_read_inventory_locations %}
+
+                        <a href="{{ url_for('catering.locations') }}" class="list-group-item list-group-item-action">
+                            <strong>
+                                Inventory Locations
+                            </strong>
+
+                            <span class="text-muted d-block small">
+                                Manage stores and stock locations.
+                            </span>
+                        </a>
+
+                        {% endif %}
+
+                        {% if can_read_stock_balances %}
+
+                        <a href="{{ url_for('catering.balances') }}" class="list-group-item list-group-item-action">
+                            <strong>
+                                Stock Balances
+                            </strong>
+
+                            <span class="text-muted d-block small">
+                                View current stock quantities by location.
+                            </span>
+                        </a>
+
+                        {% endif %}
+
+                        {% if can_read_stock_movements %}
+
+                        <a href="{{ url_for('catering.movements') }}" class="list-group-item list-group-item-action">
+                            <strong>
+                                Stock Movements
+                            </strong>
+
+                            <span class="text-muted d-block small">
+                                Manage receipts, issues, adjustments,
+                                and movement posting.
+                            </span>
+                        </a>
+
+                        {% endif %}
+
+                        {% if can_read_stock_transfers %}
+
+                        <a href="{{ url_for('catering.transfers') }}" class="list-group-item list-group-item-action">
+                            <strong>
+                                Stock Transfers
+                            </strong>
+
+                            <span class="text-muted d-block small">
+                                Manage stock transfers between locations.
+                            </span>
+                        </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
 </div>
 
 {% endblock %}

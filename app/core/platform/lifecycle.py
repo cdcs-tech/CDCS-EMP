@@ -20,6 +20,12 @@ from flask import (
     request,
 )
 
+from app.core.crud.transaction import (
+    SQLAlchemyTransactionManager,
+)
+
+from app.extensions import db
+
 from app.core.platform.context import (
     RequestContext,
 )
@@ -69,12 +75,20 @@ class ApplicationLifecycle:
     It also integrates the platform RequestContext with
     Flask's request lifecycle without making the
     RequestContext itself Flask-dependent.
+
+    Mutating HTTP requests use an application-level
+    transaction boundary unless the request delegates to
+    an operation that already owns an explicit transaction.
     """
 
     EXTENSION_KEY = "application_lifecycle"
 
     REQUEST_CONTEXT_G_KEY = (
         "cdcs_request_context"
+    )
+
+    REQUEST_TRANSACTION_G_KEY = (
+        "cdcs_request_transaction"
     )
 
     REQUEST_ID_HEADER = "X-Request-ID"
@@ -84,6 +98,13 @@ class ApplicationLifecycle:
     )
 
     TRACE_ID_HEADER = "X-Trace-ID"
+
+    EXPLICIT_TRANSACTION_ENDPOINTS = frozenset(
+        {
+            "catering.post_stock_movement",
+            "catering.post_transfer",
+        }
+    )
 
     def __init__(
         self,
@@ -261,9 +282,10 @@ class ApplicationLifecycle:
         ApplicationLifecycle instance.
 
         The lifecycle creates a RequestContext before
-        each request, exposes its identifiers on the
-        response, and cleans request-local state during
-        teardown.
+        each request, establishes an application transaction
+        for ordinary mutating requests, exposes request
+        identifiers on the response, and cleans request-local
+        state during teardown.
         """
 
         self._validate_application(
@@ -272,6 +294,31 @@ class ApplicationLifecycle:
 
         if self._request_lifecycle_registered:
             return
+
+        @app.before_request
+        def begin_request_transaction():
+            """
+            Begin the application transaction for an
+            ordinary mutating HTTP request.
+
+            Operations with an established service-owned
+            transaction boundary are excluded.
+            """
+
+            if not self._request_requires_application_transaction():
+                return
+
+            transaction_manager = (
+                SQLAlchemyTransactionManager()
+            )
+
+            transaction_manager.begin()
+
+            setattr(
+                g,
+                self.REQUEST_TRANSACTION_G_KEY,
+                transaction_manager,
+            )
 
         @app.before_request
         def create_request_context():
@@ -288,6 +335,42 @@ class ApplicationLifecycle:
                 self.REQUEST_CONTEXT_G_KEY,
                 context,
             )
+
+
+
+        @app.after_request
+        def finalize_request_transaction(
+            response,
+        ):
+            """
+            Commit a successful application transaction.
+
+            HTTP responses indicating an unsuccessful
+            request cause the transaction to roll back.
+            """
+
+            transaction_manager = getattr(
+                g,
+                self.REQUEST_TRANSACTION_G_KEY,
+                None,
+            )
+
+            if transaction_manager is None:
+                return response
+
+            try:
+                if response.status_code < 400:
+                    transaction_manager.commit()
+                else:
+                    transaction_manager.rollback()
+
+            except Exception:
+                if transaction_manager.active:
+                    transaction_manager.rollback()
+
+                raise
+
+            return response
 
         @app.after_request
         def finalize_request_context(
@@ -321,26 +404,94 @@ class ApplicationLifecycle:
             exception,
         ):
             """
-            Remove request-local platform context.
+            Clean up any transaction that remains active after
+            request processing and remove request-local transaction
+            state.
+
+            Explicit transaction owners remain responsible for
+            committing or rolling back their own transactions.
+            Teardown provides the final request-isolation safeguard
+            for transactions that remain active, including
+            SQLAlchemy transactions implicitly opened by queries.
 
             The original request exception is deliberately
             not modified or suppressed.
             """
 
-            try:
-                if hasattr(
-                    g,
-                    self.REQUEST_CONTEXT_G_KEY,
-                ):
+            transaction_manager = getattr(
+                g,
+                self.REQUEST_TRANSACTION_G_KEY,
+                None,
+            )
+
+            if transaction_manager is not None:
+                try:
+                    if transaction_manager.active:
+                        transaction_manager.rollback()
+
+                except Exception:
+                    pass
+
+                try:
                     delattr(
                         g,
-                        self.REQUEST_CONTEXT_G_KEY,
+                        self.REQUEST_TRANSACTION_G_KEY,
                     )
 
-            except RuntimeError:
+                except RuntimeError:
+                    pass
+
+            try:
+                session = db.session()
+
+                if session.in_transaction():
+                    session.rollback()
+
+            except Exception:
                 pass
 
         self._request_lifecycle_registered = True
+
+
+    def _request_requires_application_transaction(
+        self,
+    ) -> bool:
+        """
+        Determine whether the current request represents
+        a Catering mutating application operation that
+        requires the application transaction boundary.
+
+        Authentication and other non-Catering HTTP operations
+        remain outside this boundary. Operations with their own
+        service-owned transaction are also excluded.
+        """
+
+        if request.blueprint != "catering":
+            return False
+
+        if request.method not in {
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+        }:
+            return False
+
+        return not self._request_uses_explicit_transaction()
+
+
+    def _request_uses_explicit_transaction(
+        self,
+    ) -> bool:
+        """
+        Determine whether the current request delegates
+        to an operation that already owns its transaction.
+        """
+
+        return (
+            request.endpoint
+            in self.EXPLICIT_TRANSACTION_ENDPOINTS
+        )
 
     def get_request_context(
         self,
