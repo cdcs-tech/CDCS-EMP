@@ -1,9 +1,17 @@
+"""
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Catering Inventory Services
+
+Stock movement service.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
 
-from app.core.crud.service import CRUDService
+from app.core.crud import CRUDService
 from app.core.crud.transaction import (
     SQLAlchemyTransactionManager,
     TransactionManager,
@@ -17,6 +25,7 @@ from app.modules.catering.repositories.movement import StockMovementRepository
 from app.modules.catering.security.authorization import (
     CateringAuthorizationAdapter,
 )
+from app.modules.catering.workflows import StockMovementWorkflow
 
 
 class StockMovementService(CRUDService[StockMovement]):
@@ -27,6 +36,11 @@ class StockMovementService(CRUDService[StockMovement]):
     updates the authoritative StockBalance and becomes immutable.
     Operational actions are protected through the Catering
     authorization adapter.
+
+    Workflow lifecycle validation is performed at the service
+    boundary. The workflow declares the allowed lifecycle
+    transition; the service remains responsible for the actual
+    business operation and transaction.
     """
 
     def __init__(
@@ -35,6 +49,7 @@ class StockMovementService(CRUDService[StockMovement]):
         transaction_manager: TransactionManager | None = None,
         balance_repository: StockBalanceRepository | None = None,
         authorization_adapter: CateringAuthorizationAdapter | None = None,
+        workflow: StockMovementWorkflow | None = None,
     ) -> None:
         super().__init__(
             repository
@@ -53,6 +68,10 @@ class StockMovementService(CRUDService[StockMovement]):
         )
 
         self.authorization_adapter = authorization_adapter
+        self.workflow = (
+            workflow
+            or StockMovementWorkflow()
+        )
 
     def _authorize(
         self,
@@ -75,6 +94,23 @@ class StockMovementService(CRUDService[StockMovement]):
         self.authorization_adapter.authorize(
             subject,
             permission_code,
+        )
+
+    def _validate_workflow_transition(
+        self,
+        movement: StockMovement,
+    ) -> None:
+        """
+        Validate the stock movement lifecycle transition.
+
+        The workflow validates only the lifecycle transition.
+        Business validation, authorization, transaction handling,
+        balance updates and persistence remain owned by this service.
+        """
+
+        self.workflow.transition(
+            movement.status,
+            StockMovementWorkflow.POSTED,
         )
 
     def create(
@@ -171,6 +207,10 @@ class StockMovementService(CRUDService[StockMovement]):
             raise ValueError(
                 "Inventory location is required."
             )
+
+        self._validate_workflow_transition(
+            movement
+        )
 
         with self.transaction_manager.transaction():
             balance = (

@@ -1,9 +1,17 @@
+"""
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Catering Inventory Services
+
+Stock transfer service.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
 
-from app.core.crud.service import CRUDService
+from app.core.crud import CRUDService
 from app.core.crud.transaction import (
     SQLAlchemyTransactionManager,
     TransactionManager,
@@ -19,6 +27,7 @@ from app.modules.catering.repositories.transfer import StockTransferRepository
 from app.modules.catering.security.authorization import (
     CateringAuthorizationAdapter,
 )
+from app.modules.catering.workflows import StockTransferWorkflow
 
 
 class StockTransferService(CRUDService[StockTransfer]):
@@ -29,6 +38,11 @@ class StockTransferService(CRUDService[StockTransfer]):
     decreases the source balance, increases the destination balance,
     creates the corresponding transfer movements, and becomes
     immutable.
+
+    Workflow lifecycle validation is performed at the service
+    boundary. The workflow declares the allowed lifecycle
+    transition; the service remains responsible for the actual
+    business operation and transaction.
     """
 
     def __init__(
@@ -38,6 +52,7 @@ class StockTransferService(CRUDService[StockTransfer]):
         balance_repository: StockBalanceRepository | None = None,
         movement_repository: StockMovementRepository | None = None,
         authorization_adapter: CateringAuthorizationAdapter | None = None,
+        workflow: StockTransferWorkflow | None = None,
     ) -> None:
         super().__init__(
             repository
@@ -61,6 +76,10 @@ class StockTransferService(CRUDService[StockTransfer]):
         )
 
         self.authorization_adapter = authorization_adapter
+        self.workflow = (
+            workflow
+            or StockTransferWorkflow()
+        )
 
     def _authorize(
         self,
@@ -83,6 +102,23 @@ class StockTransferService(CRUDService[StockTransfer]):
         self.authorization_adapter.authorize(
             subject,
             permission_code,
+        )
+
+    def _validate_workflow_transition(
+        self,
+        transfer: StockTransfer,
+    ) -> None:
+        """
+        Validate the stock transfer lifecycle transition.
+
+        The workflow validates only the lifecycle transition.
+        Business validation, authorization, transaction handling,
+        balance updates and persistence remain owned by this service.
+        """
+
+        self.workflow.transition(
+            transfer.status,
+            StockTransferWorkflow.POSTED,
         )
 
     def create(
@@ -193,6 +229,10 @@ class StockTransferService(CRUDService[StockTransfer]):
                 "Source and destination locations "
                 "must be different."
             )
+
+        self._validate_workflow_transition(
+            transfer
+        )
 
         with self.transaction_manager.transaction():
             source_balance = (

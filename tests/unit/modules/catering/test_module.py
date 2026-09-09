@@ -4,10 +4,16 @@ Catering module foundation tests.
 
 from app.core.discovery import ModuleManifest
 from app.core.modules import BaseModule, ModuleMetadata
+from app.core.workflow import workflow_registry
 
 from app.modules.catering import (
     CateringModule,
     MODULE_MANIFEST,
+)
+
+from app.modules.catering.workflows import (
+    StockMovementWorkflow,
+    StockTransferWorkflow,
 )
 
 
@@ -78,6 +84,7 @@ def test_catering_manifest_is_enabled():
 
     assert MODULE_MANIFEST.enabled is True
 
+
 def test_catering_module_register_models_loads_module_models():
     """
     Catering model registration must load the module-local
@@ -108,3 +115,89 @@ def test_catering_module_models_remain_outside_global_model_package():
 
     assert not hasattr(platform_models, "Product")
     assert not hasattr(platform_models, "ProductCategory")
+
+
+def test_catering_module_exposes_inventory_workflows():
+    """
+    Catering must expose the Inventory workflow definitions
+    through the existing enterprise module contract.
+    """
+
+    module = CateringModule()
+
+    assert module.has_workflows() is True
+    assert len(module.workflows) == 2
+
+    workflow_names = {
+        workflow.workflow_name
+        for workflow in module.workflows
+    }
+
+    assert workflow_names == {
+        "stock_movement",
+        "stock_transfer",
+    }
+
+
+def test_catering_module_registers_inventory_workflows():
+    """
+    Catering workflow definitions must register through the
+    existing BaseModule workflow-registration boundary.
+    """
+
+    workflow_registry.clear()
+
+    module = CateringModule()
+
+    module.register_workflows(None)
+
+    movement = workflow_registry.get(
+        "CATERING",
+        "stock_movement",
+    )
+
+    transfer = workflow_registry.get(
+        "CATERING",
+        "stock_transfer",
+    )
+
+    assert movement is not None
+    assert transfer is not None
+
+    assert isinstance(
+        movement.workflow,
+        StockMovementWorkflow,
+    )
+
+    assert isinstance(
+        transfer.workflow,
+        StockTransferWorkflow,
+    )
+
+    workflow_registry.clear()
+
+
+def test_catering_inventory_workflow_definitions_are_distinct():
+    """
+    Stock Movement and Stock Transfer must remain distinct
+    workflow definitions even though they currently share
+    the same lifecycle shape.
+    """
+
+    module = CateringModule()
+
+    movement = next(
+        workflow.workflow
+        for workflow in module.workflows
+        if workflow.workflow_name == "stock_movement"
+    )
+
+    transfer = next(
+        workflow.workflow
+        for workflow in module.workflows
+        if workflow.workflow_name == "stock_transfer"
+    )
+
+    assert movement is not transfer
+    assert type(movement) is StockMovementWorkflow
+    assert type(transfer) is StockTransferWorkflow

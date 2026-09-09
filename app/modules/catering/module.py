@@ -9,6 +9,10 @@ from app.core.modules import (
     ModuleMetadata,
 )
 
+from app.core.workflow import (
+    WorkflowDefinition,
+)
+
 from app.modules.catering.security import (
     CATERING_PERMISSIONS,
 )
@@ -90,6 +94,32 @@ class CateringModule(BaseModule):
         return list(
             CATERING_PERMISSIONS
         )
+
+    def get_workflows(self):
+        """
+        Return Catering enterprise workflow definitions.
+
+        Workflow registration is delegated to the
+        enterprise BaseModule lifecycle.
+        """
+
+        from app.modules.catering.workflows import (
+            StockMovementWorkflow,
+            StockTransferWorkflow,
+        )
+
+        return [
+            WorkflowDefinition(
+                module_name="CATERING",
+                workflow_name="stock_movement",
+                workflow=StockMovementWorkflow(),
+            ),
+            WorkflowDefinition(
+                module_name="CATERING",
+                workflow_name="stock_transfer",
+                workflow=StockTransferWorkflow(),
+            ),
+        ]
 
     def register_blueprints(self, app):
         """

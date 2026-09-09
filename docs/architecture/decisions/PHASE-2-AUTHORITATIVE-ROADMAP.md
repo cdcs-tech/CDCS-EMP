@@ -206,7 +206,7 @@ Architectural decision:
 
 Inventory has been established as a distinct bounded capability within Catering.
 
-**Status: FOUNDATION COMPLETE — OPERATIONAL SURFACE IN PROGRESS**
+**Status: FOUNDATION COMPLETE — OPERATIONAL SURFACE COMPLETE**
 
 Inventory owns:
 
@@ -295,7 +295,7 @@ Zero is valid.
 
 ## 8.4 Stock Movement Ledger
 
-**Status: FOUNDATION COMPLETE — POSTING IMPLEMENTATION IN PROGRESS**
+**Status: COMPLETE**
 
 Stock movements form the auditable inventory ledger.
 
@@ -321,11 +321,13 @@ Posted movements are immutable.
 
 Corrections shall use compensating movements rather than destructive modification.
 
+Stock movement lifecycle is governed by the Catering Stock Movement workflow. The workflow defines the DRAFT → POSTED transition, while the Stock Movement Service remains responsible for authorization, business validation, transaction coordination, balance updates, movement persistence, and posting.
+
 ---
 
 ## 8.5 Stock Transfer
 
-**Status: MODEL FOUNDATION COMPLETE — POSTING OPERATION PENDING**
+**Status: COMPLETE**
 
 StockTransfer represents movement of stock between two distinct locations.
 
@@ -342,6 +344,8 @@ A transfer contains:
 * posting timestamp.
 
 Posting shall create the corresponding source and destination inventory effects atomically.
+
+Stock transfer lifecycle is governed by the Catering Stock Transfer workflow. The workflow defines the DRAFT → POSTED transition, while the Stock Transfer Service remains responsible for authorization, business validation, transaction coordination, balance updates, movement creation, persistence, and posting.
 
 ---
 
@@ -403,7 +407,7 @@ Already implemented.
 
 ## 11.2 Inventory / Food Stock Management
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 
 Foundation and service-level posting operations implemented.
 
@@ -415,12 +419,23 @@ Completed:
 * inventory repositories and services;
 * transaction boundary integration.
 
-Remaining operational work includes, as justified:
+The inventory operational surface is complete for the current Phase 2 scope.
 
-* operational inventory workflows;
-* application surface for inventory operations;
-* reporting integration;
-* appropriate integration boundaries.
+Completed operational capabilities include:
+
+* operational inventory permissions;
+* inventory authorization;
+* inventory forms;
+* inventory routes;
+* inventory templates;
+* navigation and application integration;
+* stock movement posting;
+* stock transfer posting;
+* inventory operational workflows;
+* workflow lifecycle enforcement; and
+* focused workflow and service verification.
+
+Future work includes reporting integration and appropriate cross-module integration boundaries as the corresponding business capabilities are implemented.
 
 ---
 
@@ -559,12 +574,18 @@ The roadmap now records as completed:
 * inventory operational permissions;
 * inventory authorization adapter;
 * inventory movement and transfer service authorization.
+* inventory operational workflows;
+* stock movement workflow definition and lifecycle enforcement;
+* stock transfer workflow definition and lifecycle enforcement;
+* Catering workflow registry integration;
+* inventory workflow and service verification; and
+* inventory application-surface verification.
 
 ### 13.2 Inventory Architecture Refined
 
 The original roadmap described stock movement concepts differently from the architecture subsequently implemented.
 
-The current authoritative Inventory architecture is governed by the forthcoming Inventory ADRs, particularly the:
+The current authoritative Inventory architecture is governed by the approved Inventory ADRs, particularly the:
 
 * Inventory Domain Boundary;
 * Stock Movement Ledger;
@@ -687,7 +708,7 @@ Phase 2
         ├── Transaction Foundation     ✅
         ├── Movement Posting           ✅
         ├── Transfer Posting           ✅
-        ├── Operational Workflows      🔄
+        ├── Operational Workflows      ✅
         ├── OW-1.2 Operational Permissions  [COMPLETE]
         ├── OW-1.3  Inventory Forms    ✅
         │   ├── OW-1.3.1 Stock Item Forms       [COMPLETE]
@@ -706,7 +727,7 @@ Phase 2
             ├── OW-1.5.4 Stock Movement Templates  [COMPLETE]
             ├── OW-1.5.5 Stock Transfer Templates  [COMPLETE]
             ├── OW-1.6 Navigation/Application Integration [COMPLETE]
-            └── OW-1.7 Application-Surface Verification  🔄
+            └── OW-1.7 Application-Surface Verification  [COMPLETE]
 
 The planned Phase 2 architectural documentation sequence through ADR-015 is complete.
 
