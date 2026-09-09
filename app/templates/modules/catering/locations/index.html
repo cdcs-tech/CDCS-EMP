@@ -1,10 +1,11 @@
-{% extends "base/dashboard_base.html" %}
+﻿{% extends "base/dashboard_base.html" %}
 
 {% block title %}
 Inventory Locations
 {% endblock %}
 
 {% block page_content %}
+    {% include "modules/catering/_inventory_navigation.html" %}
 
 <div class="container-fluid">
 
@@ -24,7 +25,7 @@ Inventory Locations
             </h2>
 
             <a
-                href="{{ url_for('catering.create_inventory_location') }}"
+                href="{{ url_for('catering.create_location') }}"
                 class="btn btn-primary btn-sm"
             >
                 New Location
@@ -36,7 +37,7 @@ Inventory Locations
 
             <form
                 method="GET"
-                action="{{ url_for('catering.inventory_locations') }}"
+                action="{{ url_for('catering.locations') }}"
                 class="row g-3 mb-4"
             >
 
@@ -184,7 +185,7 @@ Inventory Locations
                     </button>
 
                     <a
-                        href="{{ url_for('catering.inventory_locations') }}"
+                        href="{{ url_for('catering.locations') }}"
                         class="btn btn-outline-secondary"
                     >
                         Clear
@@ -268,7 +269,7 @@ Inventory Locations
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.inventory_locations',
+                                'catering.locations',
                                 page=pagination.page - 1,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -297,7 +298,7 @@ Inventory Locations
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.inventory_locations',
+                                'catering.locations',
                                 page=page_number,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -320,7 +321,7 @@ Inventory Locations
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.inventory_locations',
+                                'catering.locations',
                                 page=pagination.page + 1,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -374,3 +375,5 @@ Inventory Locations
 </div>
 
 {% endblock %}
+
+

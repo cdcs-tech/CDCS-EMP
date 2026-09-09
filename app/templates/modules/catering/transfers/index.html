@@ -1,10 +1,11 @@
-{% extends "base/dashboard_base.html" %}
+ï»¿{% extends "base/dashboard_base.html" %}
 
 {% block title %}
 Stock Transfers
 {% endblock %}
 
 {% block page_content %}
+    {% include "modules/catering/_inventory_navigation.html" %}
 
 <div class="container-fluid">
 
@@ -219,9 +220,7 @@ Stock Transfers
                                 {% if transfer.source_location %}
                                     {{ transfer.source_location.name }}
                                     {% if transfer.source_location.code %}
-                                        <span class="text-muted">
-                                            ({{ transfer.source_location.code }})
-                                        </span>
+                                        <span class="text-muted">-</span>
                                     {% endif %}
                                 {% else %}
                                     -
@@ -232,9 +231,7 @@ Stock Transfers
                                 {% if transfer.destination_location %}
                                     {{ transfer.destination_location.name }}
                                     {% if transfer.destination_location.code %}
-                                        <span class="text-muted">
-                                            ({{ transfer.destination_location.code }})
-                                        </span>
+                                        <span class="text-muted">-</span>
                                     {% endif %}
                                 {% else %}
                                     -
@@ -301,9 +298,7 @@ Stock Transfers
 
                                 {% else %}
 
-                                <span class="text-muted">
-                                    —
-                                </span>
+                                <span class="text-muted">-</span>
 
                                 {% endif %}
 
@@ -434,3 +429,6 @@ Stock Transfers
 </div>
 
 {% endblock %}
+
+
+

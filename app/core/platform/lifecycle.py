@@ -101,7 +101,7 @@ class ApplicationLifecycle:
 
     EXPLICIT_TRANSACTION_ENDPOINTS = frozenset(
         {
-            "catering.post_stock_movement",
+            "catering.post_movement",
             "catering.post_transfer",
         }
     )
@@ -715,3 +715,4 @@ __all__ = [
     "ApplicationLifecycle",
     "application_lifecycle",
 ]
+

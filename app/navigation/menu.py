@@ -1,4 +1,4 @@
-"""
+﻿"""
 Enterprise Navigation Configuration
 """
 
@@ -8,6 +8,12 @@ MENU_ITEMS = [
         "title": "Dashboard",
         "endpoint": "dashboard.index",
         "icon": "bi-speedometer2",
+    },
+
+    {
+        "title": "Catering",
+        "endpoint": "catering.index",
+        "icon": "bi-cup-hot",
     },
 
     {
@@ -38,12 +44,6 @@ MENU_ITEMS = [
         "title": "Membership",
         "endpoint": None,
         "icon": "bi-person-badge",
-    },
-
-    {
-        "title": "Catering",
-        "endpoint": "catering.index",
-        "icon": "bi-cup-hot",
     },
 
 ]

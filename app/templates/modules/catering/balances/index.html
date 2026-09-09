@@ -1,10 +1,11 @@
-{% extends "base/dashboard_base.html" %}
+﻿{% extends "base/dashboard_base.html" %}
 
 {% block title %}
 Stock Balances
 {% endblock %}
 
 {% block page_content %}
+    {% include "modules/catering/_inventory_navigation.html" %}
 
 <div class="container-fluid">
 
@@ -29,7 +30,7 @@ Stock Balances
 
             <form
                 method="GET"
-                action="{{ url_for('catering.stock_balances') }}"
+                action="{{ url_for('catering.balances') }}"
                 class="row g-3 mb-4"
             >
 
@@ -147,7 +148,7 @@ Stock Balances
                     </button>
 
                     <a
-                        href="{{ url_for('catering.stock_balances') }}"
+                        href="{{ url_for('catering.balances') }}"
                         class="btn btn-outline-secondary"
                     >
                         Clear
@@ -236,7 +237,7 @@ Stock Balances
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.stock_balances',
+                                'catering.balances',
                                 page=pagination.page - 1,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -264,7 +265,7 @@ Stock Balances
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.stock_balances',
+                                'catering.balances',
                                 page=page_number,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -286,7 +287,7 @@ Stock Balances
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.stock_balances',
+                                'catering.balances',
                                 page=pagination.page + 1,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -338,3 +339,5 @@ Stock Balances
 </div>
 
 {% endblock %}
+
+

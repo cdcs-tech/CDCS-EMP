@@ -1,0 +1,45 @@
+﻿<div class="mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <a
+            href="{{ url_for('catering.stock_items') }}"
+            class="btn btn-sm {% if request.endpoint == 'catering.stock_items' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        >
+            Stock Items
+        </a>
+
+        <a
+            href="{{ url_for('catering.locations') }}"
+            class="btn btn-sm {% if request.endpoint == 'catering.locations' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        >
+            Inventory Locations
+        </a>
+
+        <a
+            href="{{ url_for('catering.balances') }}"
+            class="btn btn-sm {% if request.endpoint == 'catering.balances' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        >
+            Stock Balances
+        </a>
+
+        <a
+            href="{{ url_for('catering.movements') }}"
+            class="btn btn-sm {% if request.endpoint == 'catering.movements' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        >
+            Stock Movements
+        </a>
+
+        <a
+            href="{{ url_for('catering.transfers') }}"
+            class="btn btn-sm {% if request.endpoint == 'catering.transfers' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        >
+            Stock Transfers
+        </a>
+
+        <a
+            href="{{ url_for('catering.index') }}"
+            class="btn btn-sm btn-outline-secondary"
+        >
+            ← Catering
+        </a>
+    </div>
+</div>

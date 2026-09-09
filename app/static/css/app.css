@@ -1,4 +1,4 @@
-/*
+﻿/*
 ====================================================
 Application Styles
 ====================================================
@@ -24,9 +24,9 @@ body {
 
 .btn-primary {
 
-    background: blue !important;
+    background: var(--cdcs-primary) !important;
 
-    border-color: rgb(0, 123, 255) !important;
+    border-color: var(--cdcs-primary) !important;
 
     color: white !important;
 
@@ -39,3 +39,4 @@ body {
     border-color: var(--cdcs-primary-dark);
 
 }
+

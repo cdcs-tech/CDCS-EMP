@@ -1,10 +1,11 @@
-{% extends "base/dashboard_base.html" %}
+ï»¿{% extends "base/dashboard_base.html" %}
 
 {% block title %}
 Stock Movements
 {% endblock %}
 
 {% block page_content %}
+    {% include "modules/catering/_inventory_navigation.html" %}
 
 <div class="container-fluid">
 
@@ -24,7 +25,7 @@ Stock Movements
             </h2>
 
             <a
-                href="{{ url_for('catering.create_stock_movement') }}"
+                href="{{ url_for('catering.create_movement') }}"
                 class="btn btn-primary btn-sm"
             >
                 New Movement
@@ -36,7 +37,7 @@ Stock Movements
 
             <form
                 method="GET"
-                action="{{ url_for('catering.stock_movements') }}"
+                action="{{ url_for('catering.movements') }}"
                 class="row g-3 mb-4"
             >
 
@@ -166,7 +167,7 @@ Stock Movements
                     </button>
 
                     <a
-                        href="{{ url_for('catering.stock_movements') }}"
+                        href="{{ url_for('catering.movements') }}"
                         class="btn btn-outline-secondary"
                     >
                         Clear
@@ -215,9 +216,7 @@ Stock Movements
                                 {% if movement.location %}
                                     {{ movement.location.name }}
                                     {% if movement.location.code %}
-                                        <span class="text-muted">
-                                            ({{ movement.location.code }})
-                                        </span>
+                                        <span class="text-muted">-</span>
                                     {% endif %}
                                 {% else %}
                                     -
@@ -265,7 +264,7 @@ Stock Movements
                                 <form
                                     method="POST"
                                     action="{{ url_for(
-                                        'catering.post_stock_movement',
+                                        'catering.post_movement',
                                         movement_id=movement.id
                                     ) }}"
                                     class="d-inline"
@@ -288,9 +287,7 @@ Stock Movements
 
                                 {% else %}
 
-                                <span class="text-muted">
-                                    —
-                                </span>
+                                <span class="text-muted">-</span>
 
                                 {% endif %}
 
@@ -319,7 +316,7 @@ Stock Movements
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.stock_movements',
+                                'catering.movements',
                                 page=pagination.page - 1,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -347,7 +344,7 @@ Stock Movements
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.stock_movements',
+                                'catering.movements',
                                 page=page_number,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -369,7 +366,7 @@ Stock Movements
                         <a
                             class="page-link"
                             href="{{ url_for(
-                                'catering.stock_movements',
+                                'catering.movements',
                                 page=pagination.page + 1,
                                 page_size=pagination.page_size,
                                 search=request.args.get('search', ''),
@@ -421,4 +418,8 @@ Stock Movements
 </div>
 
 {% endblock %}
+
+
+
+
 

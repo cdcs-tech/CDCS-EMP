@@ -139,6 +139,37 @@ def test_sqlalchemy_transaction_manager_rejects_existing_transaction(
         db.session.rollback()
 
 
+def test_sqlalchemy_transaction_manager_adopts_autobegin_transaction(
+    app,
+):
+    """
+    The manager adopts an incidental SQLAlchemy AUTOBEGIN
+    transaction created by a preceding ORM operation.
+    """
+
+    with app.app_context():
+
+        session = db.session()
+
+        session.execute(
+            db.text("SELECT 1")
+        )
+
+        assert session.in_transaction() is True
+
+        manager = SQLAlchemyTransactionManager()
+
+        manager.begin()
+
+        assert manager.active is True
+        assert session.in_transaction() is True
+
+        manager.rollback()
+
+        assert manager.active is False
+        assert session.in_transaction() is False
+
+
 def test_sqlalchemy_transaction_manager_rejects_commit_without_transaction(
     app,
 ):

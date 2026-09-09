@@ -143,7 +143,23 @@ class User(
     def has_permission(self, permission_name):
         """
         Check whether user has permission.
+
+        The application persistence layer stores permission names,
+        while enterprise authorization requests use canonical
+        permission codes. The persistence boundary accepts either
+        representation.
         """
+
+        if not isinstance(permission_name, str):
+            return False
+
+        normalized_name = permission_name.strip()
+
+        if not normalized_name:
+            return False
+
+        if normalized_name.isupper():
+            normalized_name = normalized_name.lower()
 
         for user_role in self.user_roles:
 
@@ -155,7 +171,7 @@ class User(
                     role_permission
                     .permission
                     .name
-                    == permission_name
+                    == normalized_name
                 ):
                     return True
 

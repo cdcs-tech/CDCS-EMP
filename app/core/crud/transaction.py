@@ -140,19 +140,34 @@ class SQLAlchemyTransactionManager(
 
     def begin(self) -> None:
         """
-        Begin a SQLAlchemy transaction.
+        Begin or adopt a SQLAlchemy transaction.
 
-        A transaction already active on the session
-        is rejected because this manager must retain
-        clear ownership of the transaction lifecycle.
+        A transaction explicitly started by another owner is
+        rejected. An incidental SQLAlchemy AUTOBEGIN transaction
+        may be adopted so the enterprise transaction manager can
+        take ownership of the current unit of work.
         """
 
-        if db.session().in_transaction():
-            raise RuntimeError(
-                "A SQLAlchemy transaction is already active."
-            )
+        session = db.session()
 
-        db.session.begin()
+        if session.in_transaction():
+
+            transaction = session.get_transaction()
+
+            if transaction is None:
+                raise RuntimeError(
+                    "A SQLAlchemy transaction is already active."
+                )
+
+            if transaction.origin.name != "AUTOBEGIN":
+                raise RuntimeError(
+                    "A SQLAlchemy transaction is already active."
+                )
+
+            self.active = True
+            return
+
+        session.begin()
 
         self.active = True
 
