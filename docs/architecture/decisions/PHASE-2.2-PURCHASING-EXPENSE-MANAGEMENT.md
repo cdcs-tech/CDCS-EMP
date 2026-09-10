@@ -8,7 +8,7 @@
 **Decision Type:** Phase Architecture Decision
 **Phase:** Phase 2 — Business Modules
 **Capability:** Purchasing & Expense Management
-**Scope:** Capability ownership, bounded-domain boundaries, and integration principles
+**Scope:** Capability ownership, bounded-domain boundaries, integration principles, and Procurement/Purchasing domain model
 **Related ADRs:** ADR-001, ADR-008, ADR-015
 **Authoritative Roadmap:** `PHASE-2-AUTHORITATIVE-ROADMAP.md`
 
@@ -30,6 +30,10 @@ Phase 2.2 shall establish clear ownership for:
 No Phase 2.2 capability shall introduce a parallel application, persistence, security, workflow, transaction, audit, reporting, or other enterprise infrastructure where an existing CDCS-EMP platform capability already provides the required contract.
 
 This document is the authoritative architecture record for Phase 2.2. It is established at Phase 2.2.1 and shall be maintained as subsequent Phase 2.2 architectural decisions are approved.
+
+Phase 2.2.2.1 — Procurement/Purchasing Domain Entities & Relationships is approved and locked as the first detailed Procurement/Purchasing domain model.
+
+The approved domain model establishes the initial Procurement/Purchasing entity boundary, internal relationships, cross-module reference strategy, persistence approach, and intentionally deferred concepts.
 
 ---
 
@@ -180,7 +184,252 @@ Inventory owns the resulting physical stock effect.
 
 The integration contract shall explicitly cross that boundary.
 
----
+### 5.5 Procurement/Purchasing Domain Entities & Relationships
+
+Phase 2.2.2.1 establishes the following six entities as the authoritative initial Procurement/Purchasing domain model:
+
+1. Supplier
+2. PurchaseRequirement
+3. PurchaseRequest
+4. PurchaseRequestLine
+5. PurchaseOrder
+6. PurchaseOrderLine
+
+These entities form the initial Procurement/Purchasing foundation and shall remain within the Procurement/Purchasing bounded capability.
+
+The approved conceptual relationships are:
+
+```text
+Supplier
+   │
+   └────────────── 1 → many
+                         PurchaseOrder
+                              │
+                              └────────────── 1 → many
+                                                    PurchaseOrderLine
+
+
+PurchaseRequirement
+   │
+   └────────────── 1 → many
+                         PurchaseRequest
+                              │
+                              ├────────────── 1 → many
+                              │                    PurchaseRequestLine
+                              │
+                              └────────────── 1 → many
+                                                   PurchaseOrder
+```
+
+The relationships above establish the following cardinalities:
+
+| Relationship | Cardinality |
+|---|---|
+| Supplier → PurchaseOrder | 1 → many |
+| PurchaseRequirement → PurchaseRequest | 1 → many |
+| PurchaseRequest → PurchaseRequestLine | 1 → many |
+| PurchaseRequest → PurchaseOrder | 1 → many |
+| PurchaseOrder → PurchaseOrderLine | 1 → many |
+
+#### 5.5.1 Supplier
+
+Supplier is a Procurement/Purchasing-owned master entity representing an external or internal supplier used within the procurement lifecycle.
+
+The initial Procurement foundation may represent supplier identity and operational contact information, including concepts such as:
+
+* supplier name;
+* supplier code/reference;
+* supplier type;
+* contact information;
+* address information; and
+* operational status.
+
+Supplier settlement, banking, tax settlement, and other financial-treatment information are intentionally outside this initial Procurement foundation and remain subject to the future Finance boundary.
+
+#### 5.5.2 PurchaseRequirement
+
+PurchaseRequirement represents a Procurement-side record of a business need requiring procurement action.
+
+The originating business capability remains authoritative for the underlying business context.
+
+For example, Catering may originate a requirement for goods or services for a particular event. Procurement records that requirement using an explicit source reference.
+
+The initial conceptual attributes include:
+
+* reference;
+* description;
+* source_module;
+* source_type;
+* source_reference;
+* required_by_date;
+* status; and
+* creation/ownership metadata.
+
+PurchaseRequirement shall not contain a direct foreign key to a Catering Event or other external business-module entity.
+
+#### 5.5.3 PurchaseRequest
+
+PurchaseRequest is the central Procurement/Purchasing operational request representing the procurement action to satisfy one or more purchase requirements.
+
+The initial conceptual attributes include:
+
+* reference;
+* purchase_requirement_id;
+* request_date;
+* required_by_date;
+* status;
+* justification; and
+* notes.
+
+The exact lifecycle status values are intentionally deferred to the Procurement workflow design stage.
+
+#### 5.5.4 PurchaseRequestLine
+
+PurchaseRequestLine represents an individual good, service, asset, or other procurement requirement within a PurchaseRequest.
+
+The initial conceptual attributes include:
+
+* purchase_request_id;
+* description;
+* item_reference;
+* quantity;
+* unit;
+* estimated_unit_cost;
+* estimated_total;
+* required_by_date; and
+* notes.
+
+item_reference shall remain a Procurement-side reference unless a later approved integration explicitly establishes another relationship.
+
+It shall not automatically become a direct foreign key to an Inventory product or stock entity.
+
+#### 5.5.5 PurchaseOrder
+
+PurchaseOrder represents the formal Procurement/Purchasing commitment issued to a Supplier.
+
+PurchaseOrder is preferred over a generic Purchase entity because it clearly represents the formal supplier-facing procurement commitment.
+
+The initial conceptual attributes include:
+
+* supplier_id;
+* reference;
+* order_date;
+* expected_delivery_date;
+* status;
+* purchase_request_id; and
+* other procurement-specific operational metadata established during implementation.
+
+A PurchaseRequest may result in multiple PurchaseOrders where sourcing or procurement circumstances require separate supplier commitments.
+
+#### 5.5.6 PurchaseOrderLine
+
+PurchaseOrderLine represents an individual good, service, asset, or other procurement item included in a PurchaseOrder.
+
+The initial conceptual attributes include:
+
+* purchase_order_id;
+* description;
+* item_reference;
+* quantity;
+* unit;
+* unit_price;
+* total_amount; and
+* notes.
+
+As with PurchaseRequestLine, item_reference shall not automatically establish ownership or direct foreign-key coupling to Inventory or another external business module.
+
+#### 5.5.7 Internal Persistence Relationships
+
+The six Procurement/Purchasing entities may use standard relational foreign keys and SQLAlchemy relationships for relationships internal to the Procurement/Purchasing bounded capability.
+
+The initial internal persistence relationships are:
+
+* PurchaseOrder.supplier_id → Supplier;
+* PurchaseRequest.purchase_requirement_id → PurchaseRequirement;
+* PurchaseRequestLine.purchase_request_id → PurchaseRequest;
+* PurchaseOrder.purchase_request_id → PurchaseRequest; and
+* PurchaseOrderLine.purchase_order_id → PurchaseOrder.
+
+These relationships do not transfer ownership of any external business capability.
+
+#### 5.5.8 Cross-Module Reference Strategy
+
+Procurement/Purchasing shall not establish direct foreign-key dependencies on Catering, Inventory, Finance, or Expense Management domain entities as part of this initial domain model.
+
+Cross-module business context shall use explicit references or integration contracts, such as:
+
+* source_module;
+* source_type; and
+* source_reference.
+
+This preserves bounded-domain ownership and prevents hidden persistence coupling between business modules.
+
+#### 5.5.9 Approved Conceptual Flow
+
+The approved initial Procurement/Purchasing flow is:
+
+Business Need
+      │
+      ▼
+PurchaseRequirement
+      │
+      ▼
+PurchaseRequest
+      │
+      ▼
+Approval / Sourcing
+      │
+      ▼
+PurchaseOrder
+      │
+      ▼
+Supplier Fulfillment
+      │
+      ▼
+Receiving / Handover
+      │
+      ▼
+Inventory Physical Stock Effect
+
+The flow describes business responsibility and does not imply that all later stages belong to the Procurement/Purchasing persistence model.
+
+#### 5.5.10 Deferred Procurement Concepts
+
+The following concepts are intentionally deferred from Phase 2.2.2.1 unless subsequent requirements and architectural review establish a need for them:
+
+* Sourcing;
+* Supplier Quotation;
+* Supplier Evaluation;
+* Procurement Receipt;
+* Inventory Receipt;
+* Expense;
+* Supplier Invoice;
+* Payment;
+* Financial Transaction;
+* General Ledger;
+* Catering Event;
+* Catering Customer;
+* Inventory Product;
+* Chart of Accounts;
+* Budget; and
+* Tax Ledger.
+
+Generic Sourcing or ProcurementReceipt entities shall not be introduced prematurely without a corresponding approved domain requirement and architectural decision.
+
+#### 5.5.11 Domain Boundary Invariants
+
+The following invariants are locked:
+
+* PurchaseRequirement is distinct from PurchaseRequest.
+* PurchaseRequest is distinct from PurchaseOrder.
+* PurchaseRequestLine and PurchaseOrderLine remain line-level Procurement/Purchasing entities.
+* Purchase is not synonymous with Expense.
+* Procurement receiving is not synonymous with Inventory ownership.
+* Physical stock effects remain owned by Inventory.
+* Financial treatment remains owned by Finance.
+* Expense Management remains distinct from Procurement/Purchasing.
+* Supplier financial settlement details remain outside the initial Procurement foundation.
+* Cross-module references shall not introduce hidden direct foreign-key coupling.
 
 ## 6. Approved Integration Boundaries
 
@@ -403,6 +652,8 @@ Each subsequent Phase 2.2 stage shall:
 5. verify the affected implementation and regression surface; and
 6. create a Git checkpoint after completion.
 
+Phase 2.2.2.1 is the approved detailed Procurement/Purchasing domain-model decision recorded within this architecture document. Subsequent Procurement/Purchasing implementation stages shall refine implementation contracts and lifecycle behavior without silently changing the locked entity ownership or cross-module boundary established here.
+
 No ADR-016 is created by this document.
 
 A new ADR shall be considered only if a genuinely new enterprise architectural decision arises that cannot reasonably be treated as an elaboration of the approved Phase 2.2 architecture.
@@ -435,7 +686,13 @@ The exact verification scope shall be refined as the implementation stages are c
 
 The capability ownership matrix and Phase 2.2.1 boundaries recorded in this document are locked as the baseline for subsequent Phase 2.2 design.
 
-Subsequent design work shall refine these boundaries without silently transferring ownership between Catering, Procurement / Purchasing, Inventory, Expense Management, Finance, or Reporting.
+**Phase 2.2.2.1 — Procurement/Purchasing Domain Entities & Relationships is approved and locked.**
+
+The six-entity Procurement/Purchasing domain model consisting of Supplier, PurchaseRequirement, PurchaseRequest, PurchaseRequestLine, PurchaseOrder, and PurchaseOrderLine is the authoritative initial domain model for Procurement/Purchasing.
+
+The approved internal relationships, cardinalities, cross-module reference strategy, persistence boundary, and deferred concepts recorded in Section 5.5 are locked for subsequent Procurement/Purchasing implementation.
+
+Subsequent design and implementation work shall refine contracts, lifecycle behavior, workflow, authorization, persistence details, and integration behavior without silently transferring ownership between Catering, Procurement / Purchasing, Inventory, Expense Management, Finance, or Reporting.
 
 ---
 
@@ -453,3 +710,5 @@ Subsequent design work shall refine these boundaries without silently transferri
 **Approved by:** Project Architecture Review
 **Approval Status:** Approved / Locked
 **Effective Phase:** Phase 2.2 — Purchasing & Expense Management
+
+**Locked Decisions:** Phase 2.2.1 Capability Ownership & Boundaries; Phase 2.2.2.1 Procurement/Purchasing Domain Entities & Relationships
