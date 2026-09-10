@@ -35,6 +35,241 @@ Phase 2.2.2.1 — Procurement/Purchasing Domain Entities & Relationships is appr
 
 The approved domain model establishes the initial Procurement/Purchasing entity boundary, internal relationships, cross-module reference strategy, persistence approach, and intentionally deferred concepts.
 
+## Phase 2.2.2.2 — Procurement Foundation Design
+
+**Status:** APPROVED / LOCKED
+
+### 1. Purpose
+
+This stage establishes the technical and architectural foundation of the Procurement/Purchasing business module using the domain model approved in Phase 2.2.2.1.
+
+The stage translates the approved Procurement/Purchasing domain boundary into the existing CDCS-EMP enterprise module architecture without prematurely implementing operational workflows, cross-module integrations, or future financial capabilities.
+
+This stage is the foundation for subsequent Procurement/Purchasing operational development.
+
+### 2. Scope
+
+The Procurement Foundation shall establish:
+
+* the Procurement/Purchasing business-module package and public module surface;
+* integration with the existing CDCS-EMP module discovery and registration framework;
+* the Procurement module manifest and module implementation;
+* module-local SQLAlchemy domain models for the six approved Procurement entities;
+* approved internal entity relationships and persistence mappings;
+* standard enterprise model base classes and mixins where applicable;
+* dedicated Alembic persistence migration(s);
+* database-level constraints required to protect approved domain invariants;
+* the minimum repository and service-layer foundation required to support the domain models;
+* integration with existing platform database, module lifecycle, discovery, security, governance, audit, and testing infrastructure where applicable;
+* module-level dependency declarations consistent with the approved Phase 2.2 ownership boundaries.
+
+### 3. Approved Procurement Domain Entities
+
+The foundation shall implement only the six entities approved and locked in Phase 2.2.2.1:
+
+1. `Supplier`
+2. `PurchaseRequirement`
+3. `PurchaseRequest`
+4. `PurchaseRequestLine`
+5. `PurchaseOrder`
+6. `PurchaseOrderLine`
+
+No additional Procurement/Purchasing domain entities shall be introduced during this stage unless a new design decision is explicitly approved through the applicable Phase 2.2 design process.
+
+### 4. Module Architecture
+
+The Procurement/Purchasing capability shall be implemented as a dedicated business module under:
+
+`app\modules\procurement`
+
+The module shall follow the existing CDCS-EMP enterprise module architecture and shall not introduce a parallel module registration or discovery mechanism.
+
+The module foundation shall use:
+
+* `ModuleManifest`
+* `BaseModule`
+* existing module discovery
+* existing module loader
+* existing `ModuleManager`
+* existing enterprise module lifecycle conventions
+
+The Procurement module shall expose a package-level public API consistent with the established business-module pattern.
+
+### 5. Module Discovery and Registration
+
+The Procurement module shall integrate with the existing `app.core.discovery` framework.
+
+The module shall provide:
+
+* `manifest.py` containing `MODULE_MANIFEST`;
+* a manifest referencing the Procurement `BaseModule` implementation;
+* a valid and unique module code;
+* appropriate module metadata;
+* dependency declarations consistent with the approved architecture;
+* enabled-state handling through the standard manifest mechanism.
+
+The module discovery mechanism shall remain centralized within the platform.
+
+Procurement shall not implement its own module discovery, registration registry, loader, or lifecycle mechanism.
+
+### 6. Model and Persistence Architecture
+
+Procurement domain models shall remain module-local under:
+
+`app\modules\procurement\models`
+
+They shall not be duplicated or promoted into `app.models` solely for convenience.
+
+The six approved entities shall use the existing enterprise persistence conventions, including applicable:
+
+* `BaseModel`
+* timestamp behavior
+* audit behavior
+* soft-delete behavior
+* GUID/reference conventions
+* SQLAlchemy relationship conventions
+
+Internal Procurement relationships approved in Phase 2.2.2.1 shall be represented using standard SQLAlchemy foreign keys and relationships.
+
+Cross-module business references shall remain explicit references and shall not introduce hidden foreign-key coupling to Catering, Inventory, Finance, or other future business modules.
+
+### 7. Persistence Migration
+
+Procurement persistence shall be introduced through a dedicated Alembic migration following the existing migration-chain conventions.
+
+The migration shall:
+
+* create only the approved Procurement tables;
+* establish approved internal foreign keys;
+* establish required uniqueness and integrity constraints;
+* use the established enterprise persistence-column conventions;
+* preserve the existing Alembic migration chain;
+* provide a clean downgrade path.
+
+The migration shall not create tables belonging to Inventory, Finance, Expense Management, Catering, or other business modules.
+
+### 8. Repository and Service Foundation
+
+The Procurement foundation may establish module-local repositories and services where required to provide a clean application-layer boundary around the approved domain models.
+
+Repository and service responsibilities shall remain limited to Procurement-owned data and business concerns established at this stage.
+
+They shall not implement:
+
+* approval workflow;
+* supplier sourcing;
+* quotation management;
+* supplier evaluation;
+* receiving;
+* inventory stock effects;
+* expense processing;
+* financial accounting;
+* payment processing;
+* cross-module integration contracts.
+
+Detailed operational behavior shall be established only during the corresponding later design stages.
+
+### 9. Security and Governance Boundary
+
+The Procurement module shall reuse the existing CDCS-EMP security and governance infrastructure.
+
+Foundation implementation shall not create a separate authorization architecture.
+
+Detailed Procurement permissions and workflow authorization shall be established as part of the appropriate operational/workflow design stages.
+
+Any foundation-level security declarations required for module registration or platform integration shall remain minimal and consistent with existing enterprise conventions.
+
+### 10. Explicitly Deferred
+
+The following capabilities remain outside Phase 2.2.2.2:
+
+* Procurement operational UI;
+* Procurement routes and forms;
+* Purchase Request CRUD surface;
+* Purchase Order CRUD surface;
+* approval workflows;
+* sourcing;
+* supplier quotations;
+* supplier evaluation;
+* procurement receiving;
+* Inventory integration;
+* physical stock effects;
+* Expense Management;
+* Finance integration;
+* supplier invoices;
+* supplier payments or settlement;
+* accounting and general ledger;
+* Catering integration;
+* Reporting integration;
+* budget management;
+* tax processing;
+* additional Procurement entities not approved in Phase 2.2.2.1.
+
+These capabilities shall be designed and implemented only at their appropriate subsequent stages.
+
+### 11. Architectural Invariants
+
+The following invariants remain locked for this foundation stage:
+
+1. Procurement/Purchasing owns the procurement lifecycle but does not own physical inventory balances or movements.
+2. Procurement/Purchasing owns suppliers and purchasing transactions but does not own financial accounting or supplier settlement.
+3. Purchase Requirement remains distinct from Purchase Request.
+4. Purchase Request remains distinct from Purchase Order.
+5. Purchase remains distinct from Expense.
+6. Physical receipt remains distinct from financial expense recognition.
+7. Cross-module references shall not create hidden database coupling.
+8. Inventory remains authoritative for physical stock effects.
+9. Finance remains authoritative for financial treatment and accounting.
+10. Future cross-module integrations shall use explicit, approved boundaries.
+11. The six approved Procurement entities shall not be expanded during this foundation stage without a new design decision.
+
+### 12. Testing and Verification
+
+The Procurement Foundation shall be verified using targeted tests covering at minimum:
+
+* module package/import integrity;
+* manifest validity;
+* module discovery;
+* module loading and registration;
+* model import/registration;
+* approved internal relationships;
+* persistence constraints;
+* migration behavior;
+* repository/service foundation behavior where implemented;
+* compatibility with the existing enterprise module architecture.
+
+Relevant Procurement tests shall pass before the stage is considered complete.
+
+The full test suite shall be executed at the stage boundary.
+
+The working tree shall be clean after the corresponding Git checkpoint.
+
+### 13. Stage Boundary
+
+Phase 2.2.2.2 establishes the **technical Procurement/Purchasing foundation only**.
+
+Completion of this stage does not imply that Procurement/Purchasing is operationally complete.
+
+The next Procurement/Purchasing implementation stage shall be determined through the approved Phase 2.2 design sequence and shall be separately inspected and approved before implementation begins.
+
+### 14. Approval Record
+
+**Stage:** Phase 2.2.2.2 — Procurement Foundation Design
+
+**Decision:** Approved and locked
+
+**Approved by:** Project Architecture Review
+
+**Approval Status:** Approved / Locked
+
+**Effective Phase:** Phase 2.2 — Purchasing & Expense Management
+
+**Date:** 11/09/2026
+
+**Related Decision:** Phase 2.2.2.1 — Procurement/Purchasing Domain Entities & Relationships
+
+**Authoritative Document:** `docs\architecture\decisions\PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
+
 ---
 
 ## 2. Context
