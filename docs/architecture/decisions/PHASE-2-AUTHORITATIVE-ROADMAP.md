@@ -443,14 +443,17 @@ Future work includes reporting integration and appropriate cross-module integrat
 
 **Status: PLANNED**
 
-Future capability.
+Future capability covering bounded Procurement/Purchasing and Expense Management responsibilities.
 
-Purchasing shall remain distinct from Inventory.
+Procurement/Purchasing shall remain distinct from Inventory and shall own supplier management, purchase requests, purchasing transactions, and the procurement lifecycle.
 
-Inventory may receive stock from purchasing through an explicit integration boundary.
+Catering shall consume Procurement/Purchasing through explicit purchase requirements rather than creating a private purchasing subsystem.
+
+Inventory shall remain responsible for physical stock effects and may receive stock from Procurement/Purchasing through an explicit receiving and stock-effect integration boundary.
+
+Financial expenses and related accounting treatment shall remain within the future Finance capability. Procurement/Purchasing shall integrate with Finance through explicit financial-effect boundaries and shall not own the financial ledger.
 
 ---
-
 ## 11.4 Catering Income Management
 
 **Status: PLANNED**
@@ -495,23 +498,24 @@ Cross-module integration shall be implemented through explicit interfaces and co
 
 Potential future relationships include:
 
-Purchasing
-     │
-     ▼
-Inventory
-     │
-     ▼
-Reporting
+Catering
+    │
+    │ purchase requirement
+    ▼
+Procurement / Purchasing
+    │
+    ├──────────────► Inventory
+    │                receiving / stock effect
+    │
+    └──────────────► Finance
+                     financial effect
 
-and:
-
-Catering Operations
+Expense Management
         │
         ▼
-     Income
-        │
-        ▼
-    Invoicing
+      Finance
+
+Cross-domain information may be consumed by Reporting through explicit reporting interfaces.
 
 Exact integration contracts shall be defined when the corresponding business capabilities are implemented.
 
