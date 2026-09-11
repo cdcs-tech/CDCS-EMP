@@ -30,7 +30,7 @@ MENU_ITEMS = [
 
     {
         "title": "Procurement",
-        "endpoint": None,
+        "endpoint": "procurement.suppliers",
         "icon": "bi-cart4",
     },
 

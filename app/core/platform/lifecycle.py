@@ -99,6 +99,13 @@ class ApplicationLifecycle:
 
     TRACE_ID_HEADER = "X-Trace-ID"
 
+    APPLICATION_TRANSACTION_BLUEPRINTS = frozenset(
+        {
+            "catering",
+            "procurement",
+        }
+    )
+
     EXPLICIT_TRANSACTION_ENDPOINTS = frozenset(
         {
             "catering.post_movement",
@@ -458,15 +465,19 @@ class ApplicationLifecycle:
     ) -> bool:
         """
         Determine whether the current request represents
-        a Catering mutating application operation that
-        requires the application transaction boundary.
+        an ordinary mutating operation belonging to a
+        business module that uses the application transaction
+        boundary.
 
-        Authentication and other non-Catering HTTP operations
+        Authentication and other non-business HTTP operations
         remain outside this boundary. Operations with their own
         service-owned transaction are also excluded.
         """
 
-        if request.blueprint != "catering":
+        if (
+            request.blueprint
+            not in self.APPLICATION_TRANSACTION_BLUEPRINTS
+        ):
             return False
 
         if request.method not in {
