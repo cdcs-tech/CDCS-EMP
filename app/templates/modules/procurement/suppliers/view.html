@@ -1,0 +1,58 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Supplier Details{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+    {% include "components/page_header.html" with context %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Supplier Details</h5>
+        </div>
+
+        <div class="card-body">
+            <dl class="row mb-0">
+
+                <dt class="col-sm-3">Code</dt>
+                <dd class="col-sm-9">{{ supplier.code }}</dd>
+
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">{{ supplier.name }}</dd>
+
+                <dt class="col-sm-3">Supplier Type</dt>
+                <dd class="col-sm-9">{{ supplier.supplier_type }}</dd>
+
+                <dt class="col-sm-3">Contact Information</dt>
+                <dd class="col-sm-9">
+                    {{ supplier.contact_information or "—" }}
+                </dd>
+
+                <dt class="col-sm-3">Address Information</dt>
+                <dd class="col-sm-9">
+                    {{ supplier.address_information or "—" }}
+                </dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">{{ supplier.status }}</dd>
+
+            </dl>
+        </div>
+
+        <div class="card-footer d-flex gap-2">
+            <a href="{{ url_for(
+                    'procurement.edit_supplier',
+                    supplier_id=supplier.id
+                ) }}" class="btn btn-primary">
+                Edit Supplier
+            </a>
+
+            <a href="{{ url_for('procurement.suppliers') }}" class="btn btn-secondary">
+                Back to Suppliers
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

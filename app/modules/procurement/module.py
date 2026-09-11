@@ -1,64 +1,49 @@
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
-Procurement Business Module
+Procurement Module
+
+Module definition and registration.
 """
 
-from app.core.modules import (
+from __future__ import annotations
+
+from app.core.modules.base import (
     BaseModule,
+)
+
+from app.core.modules.metadata import (
     ModuleMetadata,
 )
 
+from app.modules.procurement.security import (
+    PROCUREMENT_PERMISSIONS,
+)
 
-class ProcurementModule(BaseModule):
+
+class ProcurementModule(
+    BaseModule,
+):
     """
-    CDCS-EMP Procurement business module.
+    Procurement business module.
 
-    Provides the business-module boundary for procurement
-    and purchasing capabilities.
+    Provides the foundational Procurement domain model
+    registration, enterprise security permission registration,
+    and Procurement HTTP blueprint registration.
+
+    Operational workflows and cross-module integrations are
+    introduced only at their approved implementation stages.
     """
 
-    def register_models(self, app):
-        """
-        Register Procurement SQLAlchemy models.
-
-        Importing the module-local model package ensures
-        Procurement models are attached to the existing
-        SQLAlchemy metadata without exposing them through
-        app.models.
-        """
-
-        from app.modules.procurement.models import (
-            PurchaseOrder,
-            PurchaseOrderLine,
-            PurchaseRequest,
-            PurchaseRequestLine,
-            PurchaseRequirement,
-            Supplier,
-        )
-
-        # Keep explicit references so the imports are intentional
-        # and remain visible to static analysis.
-        _ = (
-            Supplier,
-            PurchaseRequirement,
-            PurchaseRequest,
-            PurchaseRequestLine,
-            PurchaseOrder,
-            PurchaseOrderLine,
-        )
+    def __init__(self) -> None:
+        super().__init__()
 
     def get_metadata(self) -> ModuleMetadata:
-        """
-        Return Procurement module metadata.
-        """
-
         return ModuleMetadata(
             code="PROCUREMENT",
             name="Procurement",
             description=(
-                "Procurement and purchasing management "
-                "module."
+                "Procurement and purchasing management module."
             ),
             version="1.0.0",
             author="CDCS",
@@ -70,6 +55,48 @@ class ProcurementModule(BaseModule):
             navigation_enabled=True,
             dashboard_enabled=False,
             active=True,
+        )
+
+    def register_models(self, app) -> None:
+        from app.modules.procurement.models import (
+            PurchaseOrder,
+            PurchaseOrderLine,
+            PurchaseRequest,
+            PurchaseRequestLine,
+            PurchaseRequirement,
+            Supplier,
+        )
+
+        _ = (
+            PurchaseOrder,
+            PurchaseOrderLine,
+            PurchaseRequest,
+            PurchaseRequestLine,
+            PurchaseRequirement,
+            Supplier,
+        )
+
+    def get_permissions(self):
+        return list(PROCUREMENT_PERMISSIONS)
+
+    def get_workflows(self):
+        return []
+
+    def register_blueprints(self, app):
+        """
+        Register the Procurement HTTP blueprint.
+
+        The blueprint is registered through the Enterprise
+        Module Framework lifecycle.
+        """
+
+        from app.modules.procurement.routes import (
+            procurement_bp,
+        )
+
+        app.register_blueprint(
+            procurement_bp,
+            url_prefix=self.metadata.url_prefix,
         )
 
 

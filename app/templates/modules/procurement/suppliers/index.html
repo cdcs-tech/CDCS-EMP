@@ -1,0 +1,367 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Suppliers
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Suppliers",
+    subtitle="Manage Procurement suppliers."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <h2 class="h5 mb-0">
+                Suppliers
+            </h2>
+
+            <a href="{{ url_for('procurement.create_supplier') }}" class="btn btn-primary btn-sm">
+                New Supplier
+            </a>
+
+        </div>
+
+        <div class="card-body">
+
+            <form method="GET" action="{{ url_for('procurement.suppliers') }}" class="row g-3 mb-4">
+
+                <div class="col-md-4">
+
+                    <label for="supplier-search" class="form-label">
+                        Search
+                    </label>
+
+                    <input type="search" id="supplier-search" name="search" value="{{ request.args.get('search', '') }}"
+                        class="form-control" placeholder="Search suppliers...">
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="supplier-status" class="form-label">
+                        Status
+                    </label>
+
+                    {% set current_status = request.args.get('status', '') %}
+
+                    <select id="supplier-status" name="status" class="form-select">
+
+                        <option value="" {% if current_status=='' %}selected{% endif %}>
+                            All Statuses
+                        </option>
+
+                        <option value="ACTIVE" {% if current_status=='ACTIVE' %}selected{% endif %}>
+                            Active
+                        </option>
+
+                        <option value="INACTIVE" {% if current_status=='INACTIVE' %}selected{% endif %}>
+                            Inactive
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="supplier-sort" class="form-label">
+                        Sort by
+                    </label>
+
+                    {% set current_sort = request.args.get('sort', 'name') %}
+
+                    <select id="supplier-sort" name="sort" class="form-select">
+
+                        <option value="name" {% if current_sort=='name' %}selected{% endif %}>
+                            Name
+                        </option>
+
+                        <option value="code" {% if current_sort=='code' %}selected{% endif %}>
+                            Code
+                        </option>
+
+                        <option value="supplier_type" {% if current_sort=='supplier_type' %}selected{% endif %}>
+                            Supplier Type
+                        </option>
+
+                        <option value="status" {% if current_sort=='status' %}selected{% endif %}>
+                            Status
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="supplier-direction" class="form-label">
+                        Direction
+                    </label>
+
+                    {% set current_direction = request.args.get('direction', 'asc') %}
+
+                    <select id="supplier-direction" name="direction" class="form-select">
+
+                        <option value="asc" {% if current_direction=='asc' %}selected{% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if current_direction=='desc' %}selected{% endif %}>
+                            Descending
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label for="supplier-page-size" class="form-label">
+                        Page size
+                    </label>
+
+                    {% set current_page_size = request.args.get('page_size', '20') %}
+
+                    <select id="supplier-page-size" name="page_size" class="form-select">
+
+                        <option value="10" {% if current_page_size=='10' %}selected{% endif %}>
+                            10
+                        </option>
+
+                        <option value="20" {% if current_page_size=='20' %}selected{% endif %}>
+                            20
+                        </option>
+
+                        <option value="50" {% if current_page_size=='50' %}selected{% endif %}>
+                            50
+                        </option>
+
+                        <option value="100" {% if current_page_size=='100' %}selected{% endif %}>
+                            100
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+
+                    <a href="{{ url_for('procurement.suppliers') }}" class="btn btn-outline-secondary">
+                        Clear
+                    </a>
+
+                </div>
+
+            </form>
+
+            {% if suppliers.items %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Supplier Type</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for supplier in suppliers.items %}
+
+                        <tr>
+
+                            <td>
+                                {{ supplier.code }}
+                            </td>
+
+                            <td>
+                                {{ supplier.name }}
+                            </td>
+
+                            <td>
+                                {{ supplier.supplier_type }}
+                            </td>
+
+                            <td>
+                                {{ supplier.contact_information or "-" }}
+                            </td>
+
+                            <td>
+
+                                {% if supplier.status == "ACTIVE" %}
+
+                                <span class="badge text-bg-success">
+                                    Active
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge text-bg-secondary">
+                                    {{ supplier.status }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                <a href="{{ url_for(
+                                        'procurement.view_supplier',
+                                        supplier_id=supplier.id
+                                    ) }}" class="btn btn-outline-primary btn-sm">
+                                    View
+                                </a>
+
+                                <a href="{{ url_for(
+                                        'procurement.edit_supplier',
+                                        supplier_id=supplier.id
+                                    ) }}" class="btn btn-outline-secondary btn-sm">
+                                    Edit
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if suppliers.total_pages > 1 %}
+
+            <nav aria-label="Supplier pagination">
+
+                <ul class="pagination justify-content-end mb-0">
+
+                    <li class="page-item
+                        {% if not suppliers.has_previous %}disabled{% endif %}">
+
+                        {% if suppliers.has_previous %}
+
+                        <a class="page-link" href="{{ url_for(
+                                'procurement.suppliers',
+                                page=suppliers.page - 1,
+                                page_size=suppliers.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', ''),
+                                sort=request.args.get('sort', 'name'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}">
+                            Previous
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Previous
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    {% for page_number in range(1, suppliers.total_pages + 1) %}
+
+                    <li class="page-item
+                        {% if page_number == suppliers.page %}active{% endif %}">
+
+                        <a class="page-link" href="{{ url_for(
+                                'procurement.suppliers',
+                                page=page_number,
+                                page_size=suppliers.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', ''),
+                                sort=request.args.get('sort', 'name'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}">
+                            {{ page_number }}
+                        </a>
+
+                    </li>
+
+                    {% endfor %}
+
+                    <li class="page-item
+                        {% if not suppliers.has_next %}disabled{% endif %}">
+
+                        {% if suppliers.has_next %}
+
+                        <a class="page-link" href="{{ url_for(
+                                'procurement.suppliers',
+                                page=suppliers.page + 1,
+                                page_size=suppliers.page_size,
+                                search=request.args.get('search', ''),
+                                status=request.args.get('status', ''),
+                                sort=request.args.get('sort', 'name'),
+                                direction=request.args.get('direction', 'asc')
+                            ) }}">
+                            Next
+                        </a>
+
+                        {% else %}
+
+                        <span class="page-link">
+                            Next
+                        </span>
+
+                        {% endif %}
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+            {% endif %}
+
+            {% else %}
+
+            {% if request.args.get('search') or request.args.get('status') %}
+
+            <p class="text-muted mb-0">
+                No suppliers match the current query.
+            </p>
+
+            {% else %}
+
+            <p class="text-muted mb-0">
+                No suppliers have been created yet.
+            </p>
+
+            {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Edit Supplier{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+    {% include "components/page_header.html" with context %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Edit Supplier</h5>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
+
+                    {% for error in form.name.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.code.label(class="form-label") }}
+                    {{ form.code(class="form-control") }}
+
+                    {% for error in form.code.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.supplier_type.label(class="form-label") }}
+                    {{ form.supplier_type(class="form-control") }}
+
+                    {% for error in form.supplier_type.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.contact_information.label(class="form-label") }}
+                    {{ form.contact_information(class="form-control", rows="3") }}
+
+                    {% for error in form.contact_information.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.address_information.label(class="form-label") }}
+                    {{ form.address_information(class="form-control", rows="3") }}
+
+                    {% for error in form.address_information.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.status.label(class="form-label") }}
+                    {{ form.status(class="form-control") }}
+
+                    {% for error in form.status.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        Update Supplier
+                    </button>
+
+                    <a href="{{ url_for(
+                            'procurement.view_supplier',
+                            supplier_id=supplier.id
+                        ) }}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

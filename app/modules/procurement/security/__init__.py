@@ -1,0 +1,24 @@
+"""
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Procurement Security
+
+Module-local security definitions.
+"""
+
+from .permissions import (
+    PROCUREMENT_PERMISSIONS,
+    PROCUREMENT_SUPPLIER_CREATE,
+    PROCUREMENT_SUPPLIER_DELETE,
+    PROCUREMENT_SUPPLIER_READ,
+    PROCUREMENT_SUPPLIER_UPDATE,
+)
+
+
+__all__ = [
+    "PROCUREMENT_SUPPLIER_CREATE",
+    "PROCUREMENT_SUPPLIER_READ",
+    "PROCUREMENT_SUPPLIER_UPDATE",
+    "PROCUREMENT_SUPPLIER_DELETE",
+    "PROCUREMENT_PERMISSIONS",
+]
