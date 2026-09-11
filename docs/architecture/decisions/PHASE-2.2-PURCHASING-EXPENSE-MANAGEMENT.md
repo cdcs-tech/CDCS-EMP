@@ -310,6 +310,398 @@ No production architecture or approved Procurement domain boundaries were change
 
 **Authoritative Document:** `docs\architecture\decisions\PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
 
+## Phase 2.2.3 — Procurement Operational Surface Design
+
+**Status: APPROVED / LOCKED**
+
+### 1. Purpose
+
+Phase 2.2.3 defines the operational user-facing surface for the Procurement/Purchasing module over the six domain entities already approved and implemented under Phase 2.2.2.1 and Phase 2.2.2.2.
+
+The stage establishes how users interact with Procurement records through the existing CDCS-EMP application architecture without introducing new Procurement entities, workflow logic, or cross-module integrations.
+
+### 2. Operational Surface Boundary
+
+The Procurement operational surface shall provide ordinary operational management of:
+
+1. Supplier;
+2. Purchase Requirement;
+3. Purchase Request;
+4. Purchase Request Line;
+5. Purchase Order;
+6. Purchase Order Line.
+
+The six entities remain the authoritative Procurement/Purchasing domain boundary established in Phase 2.2.2.1.
+
+No additional Procurement entities are introduced by this stage.
+
+### 3. Operational Navigation Model
+
+The recommended top-level Procurement navigation is:
+
+```text
+Procurement
+│
+├── Suppliers
+│
+├── Purchase Requirements
+│
+├── Purchase Requests
+│   └── Request Lines
+│
+└── Purchase Orders
+    └── Order Lines
+```
+
+Purchase Request Line and Purchase Order Line shall be treated as dependent document components rather than independent top-level navigation areas.
+
+This preserves the distinction between business-facing operational surfaces and implementation-level child entities.
+
+### 4. Supplier Operational Surface
+
+Supplier is Procurement-owned master data.
+
+The operational surface shall support:
+
+* supplier list;
+* supplier detail;
+* supplier creation;
+* supplier editing;
+* searching;
+* filtering;
+* pagination;
+* operational status visibility.
+
+The initial Supplier surface remains limited to the approved foundation fields:
+
+* name;
+* code;
+* supplier type;
+* contact information;
+* address information;
+* status.
+
+The surface shall not introduce banking details, supplier settlement information, tax settlement information, supplier invoices, or supplier payments.
+
+### 5. Purchase Requirement Operational Surface
+
+Purchase Requirement represents the Procurement-side record of a business need.
+
+The operational surface shall support:
+
+* requirement list;
+* requirement detail;
+* creation;
+* editing;
+* searching;
+* filtering;
+* pagination;
+* visibility of source/reference information.
+
+The existing explicit cross-module reference model shall remain unchanged:
+
+```text
+source_module
+source_type
+source_reference
+```
+
+No direct Catering foreign key or other external business-module foreign key shall be introduced.
+
+The originating business module remains authoritative for the originating business context.
+
+### 6. Purchase Request Operational Surface
+
+Purchase Request is the central Procurement operational document.
+
+The surface shall support:
+
+* request list;
+* request detail;
+* creation;
+* editing;
+* searching;
+* filtering;
+* pagination;
+* viewing the associated Purchase Requirement;
+* managing associated Purchase Request Lines.
+
+The Purchase Request surface shall make its relationship to the parent Purchase Requirement visible.
+
+A Purchase Request may contain multiple Purchase Request Lines.
+
+### 7. Purchase Request Lines
+
+Purchase Request Lines shall be managed within the Purchase Request surface.
+
+The operational surface shall support:
+
+* adding a line;
+* editing a line;
+* removing a line where ordinary CRUD permits;
+* displaying quantity and unit;
+* displaying estimated cost information;
+* displaying required-by information;
+* displaying item reference and notes.
+
+`item_reference` remains an operational reference only and shall not automatically become an Inventory foreign key.
+
+### 8. Purchase Order Operational Surface
+
+Purchase Order represents the formal Procurement commitment to a Supplier.
+
+The surface shall support:
+
+* order list;
+* order detail;
+* creation;
+* editing;
+* searching;
+* filtering;
+* pagination;
+* viewing Supplier;
+* viewing the originating Purchase Request;
+* managing associated Purchase Order Lines.
+
+The surface shall clearly expose the relationship:
+
+```text
+Purchase Request
+       │
+       ▼
+Purchase Order
+       │
+       ▼
+Purchase Order Lines
+```
+
+A Purchase Request may result in multiple Purchase Orders, consistent with the approved domain model.
+
+### 9. Purchase Order Lines
+
+Purchase Order Lines shall be managed within the Purchase Order surface.
+
+The operational surface shall support:
+
+* adding a line;
+* editing a line;
+* removing a line where ordinary CRUD permits;
+* displaying quantity and unit;
+* displaying unit price;
+* displaying total amount;
+* displaying item reference and notes.
+
+No receiving or Inventory stock effect shall be performed from the Purchase Order Line surface.
+
+### 10. CRUD Boundary
+
+Phase 2.2.3 establishes the ordinary operational CRUD boundary:
+
+```text
+Create
+View
+List
+Search
+Filter
+Edit
+```
+
+Deletion/soft-deletion behavior shall follow the existing enterprise persistence and CRUD conventions rather than creating Procurement-specific deletion architecture.
+
+No specialized lifecycle operation shall be introduced merely because an entity contains a `status` field.
+
+### 11. Workflow Boundary
+
+Phase 2.2.3 shall not implement Procurement Workflow.
+
+The operational surface shall not introduce:
+
+* Submit;
+* Approve;
+* Reject;
+* authorize;
+* return for correction;
+* workflow-driven status transitions;
+* approval routing;
+* workflow permissions.
+
+These capabilities belong to the subsequent Procurement Workflow stage.
+
+The CRUD surface may display existing status values, but shall not define a workflow state machine.
+
+### 12. Search, Filtering and Pagination
+
+Procurement operational lists shall reuse the existing enterprise query and pagination framework, including:
+
+* `QueryOptions`;
+* repository query mechanisms;
+* `PaginatedResult`;
+* standard `CRUDService` boundaries.
+
+Supported operational capabilities should include, where meaningful:
+
+* pagination;
+* sorting;
+* text search;
+* field filtering;
+* status filtering;
+* inactive-record handling where applicable.
+
+Model-specific field resolution remains the responsibility of Procurement repositories.
+
+The global `QueryOptions` framework shall not be modified for Procurement-specific requirements.
+
+### 13. Forms and Validation
+
+Procurement forms shall follow the existing CDCS-EMP Flask-WTF pattern.
+
+Forms shall:
+
+* represent operational input;
+* perform basic field validation;
+* enforce appropriate required, length, type, and related input constraints;
+* remain thin;
+* delegate business operations to services.
+
+Business rules shall not be embedded into route functions or form definitions when they belong in the service or domain boundary.
+
+### 14. Repository and Service Boundary
+
+Where operational CRUD requires repositories and services, Procurement shall reuse the existing enterprise architecture:
+
+```text
+Route
+  │
+  ▼
+Form / Input Validation
+  │
+  ▼
+Procurement Service
+  │
+  ▼
+Procurement Repository
+  │
+  ▼
+SQLAlchemy Model
+```
+
+Services shall extend the existing `CRUDService` pattern where appropriate.
+
+Repositories shall reuse the existing repository/data framework.
+
+Procurement-specific behavior shall only be added where there is a demonstrated domain requirement.
+
+### 15. Security and Governance
+
+The Procurement operational surface shall reuse the existing CDCS-EMP security and governance architecture.
+
+This stage shall not create:
+
+* a parallel authorization framework;
+* module-specific authentication;
+* independent governance infrastructure;
+* unrelated permission architecture.
+
+Access-control requirements for Procurement operational actions shall be identified and implemented consistently with the existing platform security model.
+
+Detailed workflow-specific authorization remains deferred to the Procurement Workflow stage.
+
+### 16. Cross-Module Boundary
+
+Phase 2.2.3 shall not implement cross-module operational integration.
+
+**Catering**
+
+No Catering routes, services, foreign keys, or integration contracts.
+
+**Inventory**
+
+No receiving, stock movement, stock balance, or physical stock effects.
+
+**Finance**
+
+No expenses, invoices, payments, settlement, or accounting treatment.
+
+**Reporting**
+
+No Reporting integration.
+
+The Procurement operational surface shall operate against Procurement-owned data only.
+
+### 17. UI/UX Boundary
+
+The operational surface shall reuse the established CDCS-EMP UI foundation and conventions.
+
+The design shall provide:
+
+* consistent module navigation;
+* list/detail presentation;
+* standard forms;
+* clear parent/child document presentation;
+* consistent validation feedback;
+* consistent pagination, search, and filtering behavior;
+* consistent authorization feedback.
+
+No separate Procurement-specific frontend architecture shall be introduced.
+
+### 18. Explicitly Deferred
+
+The following remain outside Phase 2.2.3:
+
+* Procurement Workflow;
+* approvals;
+* sourcing;
+* supplier quotations;
+* supplier evaluation;
+* procurement receiving;
+* Inventory integration;
+* physical stock effects;
+* Expense Management;
+* Finance integration;
+* supplier invoices;
+* supplier payments or settlement;
+* accounting and general ledger;
+* Catering integration;
+* Reporting integration;
+* budget management;
+* tax processing;
+* additional Procurement entities.
+
+### 19. Stage Completion Criteria
+
+Phase 2.2.3 shall be considered complete when:
+
+1. The Procurement operational surface design is approved and locked;
+2. the six approved entities have clearly defined operational responsibilities;
+3. parent/child surface relationships are defined;
+4. CRUD boundaries are explicitly defined;
+5. search, filtering, and pagination behavior is defined using existing framework contracts;
+6. form and validation boundaries are defined;
+7. repository and service boundaries are defined;
+8. security and governance reuse is defined;
+9. workflow boundaries are explicitly preserved;
+10. cross-module integrations remain deferred;
+11. no new Procurement entities or hidden dependencies are introduced.
+
+### 20. Architectural Decision
+
+Phase 2.2.3 shall establish a Procurement operational surface over the existing six approved Procurement entities, organized around Supplier, Purchase Requirement, Purchase Request, and Purchase Order as the primary operational surfaces, with Purchase Request Line and Purchase Order Line managed as child document components.
+
+The surface shall reuse existing CDCS-EMP CRUD, query, repository, service, form, UI, security, and governance infrastructure.
+
+Workflow and all cross-module integrations remain explicitly outside this stage.
+
+### 21. Approval Record
+
+**Stage:** Phase 2.2.3 — Procurement Operational Surface Design
+**Decision:** Approved and locked
+**Approved by:** Project Architecture Review
+**Approval Status:** Approved / Locked
+**Effective Phase:** Phase 2.2 — Purchasing & Expense Management
+**Date:** 11/09/2026
+**Related Decision:** Phase 2.2.2.2 — Procurement Foundation Design
+**Authoritative Document:** `docs\architecture\decisions\PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
+
 ---
 
 ## 2. Context
