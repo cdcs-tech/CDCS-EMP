@@ -1199,6 +1199,271 @@ No other Purchase Request workflow transitions are approved at this stage.
 
 The next design stage shall address the Purchase Order workflow separately.
 
+## Phase 2.2.4.3 — Purchase Order Workflow Lifecycle & Transition Design
+
+**Status:** APPROVED / LOCKED
+**Approved By:** Project Architecture Review
+**Approval Status:** Approved / Locked
+**Effective Phase:** Phase 2.2
+**Decision Date:** 11 September 2026
+**Related Decision:** Phase 2.2.4.2 — Purchase Request Workflow Lifecycle & Transition Design
+
+### Decision
+
+The Purchase Order shall have a dedicated enterprise workflow separate from the Purchase Request workflow.
+
+The Purchase Request workflow authorizes the procurement need. The Purchase Order workflow governs the resulting supplier-facing procurement commitment.
+
+The Purchase Order workflow shall use the existing enterprise workflow framework and shall not introduce a parallel workflow engine, authorization architecture, transaction mechanism, persistence mechanism, or cross-module integration mechanism.
+
+### 1. Purchase Order Lifecycle States
+
+The approved Purchase Order workflow states are:
+
+1. `DRAFT`
+2. `SUBMITTED`
+3. `APPROVED`
+4. `REJECTED`
+5. `CANCELLED`
+
+#### DRAFT
+
+The Purchase Order is being prepared and has not yet entered procurement authorization.
+
+Purchase Order Lines may be maintained while the Purchase Order remains in `DRAFT`.
+
+#### SUBMITTED
+
+The Purchase Order has been submitted for procurement authorization and is awaiting an authorization decision.
+
+Ordinary Purchase Order and Purchase Order Line modification is not permitted while the Purchase Order is in `SUBMITTED`.
+
+#### APPROVED
+
+The Purchase Order has been authorized as a supplier-facing procurement commitment.
+
+`APPROVED` does not mean that goods have been received, inventory has been updated, an expense has been recognized, an invoice has been received, or payment has been made.
+
+#### REJECTED
+
+The Purchase Order was not authorized.
+
+`REJECTED` is a terminal state. No workflow transition shall leave `REJECTED`.
+
+A materially different procurement requirement shall result in a new Purchase Order rather than modification of the rejected decision history.
+
+#### CANCELLED
+
+An already approved Purchase Order has been formally cancelled before completion of the procurement commitment.
+
+`CANCELLED` is a terminal state.
+
+Cancellation does not itself create inventory, expense, financial, invoice, payment, or supplier-settlement effects.
+
+### 2. Approved Transition Matrix
+
+| Source State | Action    | Target State | Terminal |
+| ------------ | --------- | ------------ | -------- |
+| `DRAFT`      | `SUBMIT`  | `SUBMITTED`  | No       |
+| `SUBMITTED`  | `APPROVE` | `APPROVED`   | No       |
+| `SUBMITTED`  | `REJECT`  | `REJECTED`   | Yes      |
+| `SUBMITTED`  | `RETURN`  | `DRAFT`      | No       |
+| `APPROVED`   | `CANCEL`  | `CANCELLED`  | Yes      |
+
+No other Purchase Order workflow transitions are permitted.
+
+### 3. Return Semantics
+
+`RETURN` is used when a submitted Purchase Order requires correction before an authorization decision is finalized.
+
+The transition is:
+
+`SUBMITTED → DRAFT`
+
+No persistent `RETURNED` state shall be introduced.
+
+Returning a Purchase Order to `DRAFT` permits the required corrections to be made before it is submitted again.
+
+### 4. Rejection Semantics
+
+`REJECT` represents a final decision not to authorize the submitted Purchase Order.
+
+The transition is:
+
+`SUBMITTED → REJECTED`
+
+`REJECTED` is terminal.
+
+A rejected Purchase Order shall not be reopened or returned to `DRAFT`.
+
+A new Purchase Order may be created when a materially new or revised procurement commitment is required.
+
+### 5. Cancellation Semantics
+
+`CANCEL` represents the formal termination of an already approved Purchase Order before completion of the procurement commitment.
+
+The transition is:
+
+`APPROVED → CANCELLED`
+
+`CANCELLED` is terminal.
+
+Cancellation shall not be interpreted as:
+
+* inventory reversal;
+* receipt reversal;
+* expense reversal;
+* invoice cancellation;
+* payment reversal;
+* supplier settlement reversal; or
+* financial transaction reversal.
+
+Any such effects shall be governed by the appropriate future business capability and integration boundary.
+
+### 6. Purchase Order Line Lifecycle
+
+Purchase Order Lines do not have an independent workflow.
+
+They remain governed by the lifecycle of their parent Purchase Order.
+
+Ordinary line modification is permitted only while the Purchase Order is in `DRAFT`.
+
+| Purchase Order State | Ordinary Line Modification |
+| -------------------- | -------------------------- |
+| `DRAFT`              | Allowed                    |
+| `SUBMITTED`          | Not allowed                |
+| `APPROVED`           | Not allowed                |
+| `REJECTED`           | Not allowed                |
+| `CANCELLED`          | Not allowed                |
+
+Enforcement shall occur through the appropriate Procurement service/execution boundary and enterprise authorization/governance mechanisms rather than through the workflow definition itself.
+
+### 7. Purchase Request Boundary
+
+Approval of a Purchase Request does not automatically create a Purchase Order.
+
+One approved Purchase Request may result in multiple Purchase Orders.
+
+The Purchase Order therefore has an independent workflow and authorization lifecycle.
+
+The relationship remains:
+
+`Purchase Request → Purchase Order`
+
+without automatic workflow transition or automatic Purchase Order creation as a consequence of Purchase Request approval.
+
+### 8. Supplier-Facing Commitment Boundary
+
+`APPROVED` represents authorization of the Purchase Order as a supplier-facing procurement commitment.
+
+A separate `ISSUED` workflow state is not introduced at this stage.
+
+Formal supplier dispatch, acknowledgement, or supplier communication lifecycle requirements may be considered through a future architectural decision if required.
+
+### 9. Receiving and Inventory Boundary
+
+The Purchase Order workflow shall not contain:
+
+* `RECEIVED`;
+* `PARTIALLY_RECEIVED`;
+* `FULFILLED`; or
+* equivalent physical stock lifecycle states.
+
+Receiving and physical stock effects remain outside the Purchase Order workflow and shall be addressed through the later Procurement ↔ Inventory integration stage.
+
+Inventory remains authoritative for physical stock effects, balances, movements, and inventory state.
+
+### 10. Finance and Expense Boundary
+
+The Purchase Order workflow shall not create or directly control:
+
+* Expense records;
+* supplier invoices;
+* payments;
+* supplier settlement;
+* financial transactions;
+* accounting entries;
+* general ledger effects; or
+* other financial treatment.
+
+These remain outside the Procurement workflow and shall be addressed through the approved Finance and Expense Management boundaries.
+
+### 11. Workflow Operation Identities
+
+The approved operation identities are:
+
+* `purchase_order.submit`
+* `purchase_order.approve`
+* `purchase_order.reject`
+* `purchase_order.return`
+* `purchase_order.cancel`
+
+These identities shall be used consistently when the workflow is implemented.
+
+### 12. Authorization, Execution, Transaction and Audit Boundary
+
+The Purchase Order workflow definition shall remain responsible only for defining valid lifecycle states and transitions.
+
+It shall not itself own:
+
+* authorization;
+* permission evaluation;
+* execution handlers;
+* database persistence;
+* transaction commit or rollback;
+* audit recording;
+* event publication;
+* Inventory integration;
+* Expense integration;
+* Finance integration; or
+* supplier settlement.
+
+Workflow execution shall use the established enterprise authorization, execution/governance, transaction, audit, and event architecture.
+
+All five approved lifecycle transitions shall ultimately be auditable:
+
+* Purchase Order submitted;
+* Purchase Order approved;
+* Purchase Order rejected;
+* Purchase Order returned;
+* Purchase Order cancelled.
+
+The audit history shall preserve the distinction between rejection before procurement commitment and cancellation after approval.
+
+### 13. Explicitly Deferred
+
+The following remain outside Phase 2.2.4.3:
+
+* Procurement Receiving;
+* Inventory integration and physical stock effects;
+* Expense Management integration;
+* Finance integration;
+* supplier invoicing;
+* supplier payment and settlement;
+* formal supplier acknowledgement workflow;
+* formal supplier dispatch/communication lifecycle;
+* accounting/general ledger;
+* additional Purchase Order lifecycle states;
+* new Procurement entities.
+
+### Completion Decision
+
+Phase 2.2.4.3 establishes and locks the Purchase Order lifecycle and transition model for the Procurement capability.
+
+The approved workflow is:
+
+`DRAFT → SUBMITTED → APPROVED`
+
+with:
+
+* `SUBMITTED → DRAFT` through `RETURN`;
+* `SUBMITTED → REJECTED` as a terminal rejection; and
+* `APPROVED → CANCELLED` as a terminal cancellation.
+
+The Purchase Order workflow remains separate from the Purchase Request workflow and does not transfer ownership of receiving, inventory, expense, finance, invoice, payment, or supplier settlement responsibilities.
+
+**Decision: APPROVED / LOCKED.**
+
 ---
 
 ## 2. Context
