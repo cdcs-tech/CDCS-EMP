@@ -997,6 +997,208 @@ Supplier and Purchase Requirement remain CRUD/status-oriented within this stage,
 
 The next design stage shall define the detailed lifecycle and transition model for the Purchase Request workflow without introducing implementation changes before that design is approved.
 
+## Phase 2.2.4.2 — Purchase Request Workflow Lifecycle & Transition Design
+
+**Decision Status:** APPROVED / LOCKED
+**Approved By:** Project Architecture Review
+**Approval Status:** Approved / Locked
+**Effective Phase:** Phase 2.2
+**Decision Date:** 11 September 2026
+**Related Decision:** Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership
+
+### Decision
+
+The Purchase Request shall have a dedicated Procurement workflow governing its controlled procurement-request lifecycle.
+
+The workflow shall remain deliberately separate from the Purchase Order lifecycle and shall not introduce downstream Inventory, Expense Management, Finance, receiving, invoicing, payment, or supplier-settlement effects.
+
+### Approved Workflow States
+
+The Purchase Request workflow shall contain exactly the following states:
+
+1. `DRAFT`
+2. `SUBMITTED`
+3. `APPROVED`
+4. `REJECTED`
+
+#### DRAFT
+
+The Purchase Request is being prepared and has not entered the controlled procurement review process.
+
+The request and its child lines may be ordinarily maintained while the request remains in DRAFT.
+
+#### SUBMITTED
+
+The Purchase Request has been submitted for controlled procurement review.
+
+Ordinary unrestricted editing of the request and its child lines shall cease while the request is under review.
+
+The request may be approved, rejected, or returned for correction.
+
+#### APPROVED
+
+The Purchase Request has passed the required procurement authorization and is approved to proceed.
+
+Approval does not create or authorize a Purchase Order automatically.
+
+An approved Purchase Request may subsequently result in one or more Purchase Orders in accordance with the approved Procurement domain model.
+
+#### REJECTED
+
+The Purchase Request has been rejected through the controlled procurement decision process.
+
+`REJECTED` is a terminal state.
+
+A rejected Purchase Request shall not be returned to the approval lifecycle.
+
+Where a materially new or changed procurement need arises after rejection, a new Purchase Request shall be created so that the new procurement decision has its own auditable lifecycle.
+
+### Approved Transition Matrix
+
+| Source State | Action    | Target State | Terminal |
+| ------------ | --------- | ------------ | -------- |
+| `DRAFT`      | `SUBMIT`  | `SUBMITTED`  | No       |
+| `SUBMITTED`  | `APPROVE` | `APPROVED`   | No       |
+| `SUBMITTED`  | `REJECT`  | `REJECTED`   | Yes      |
+| `SUBMITTED`  | `RETURN`  | `DRAFT`      | No       |
+
+No other Purchase Request workflow transitions are approved.
+
+### Return Semantics
+
+`RETURN` shall not create a persistent `RETURNED` workflow state.
+
+Instead:
+
+`SUBMITTED → DRAFT`
+
+The RETURN action means that the reviewer has returned the Purchase Request to the requester for correction or completion before a final approval decision.
+
+This distinction preserves a simple lifecycle while allowing controlled correction during review.
+
+### Terminal-State Semantics
+
+`REJECTED` is terminal.
+
+No transition shall be defined from `REJECTED` back to `DRAFT`, `SUBMITTED`, or `APPROVED`.
+
+The terminal rejection preserves the original procurement decision history and prevents modification of a rejected request into a different decision path.
+
+### Purchase Request Line Lifecycle
+
+Purchase Request Line shall not have an independent workflow.
+
+Its lifecycle remains governed by the parent Purchase Request.
+
+The intended business editability boundary is:
+
+| Purchase Request State | Ordinary Line Modification |
+| ---------------------- | -------------------------- |
+| `DRAFT`                | Allowed                    |
+| `SUBMITTED`            | Not allowed                |
+| `APPROVED`             | Not allowed                |
+| `REJECTED`             | Not allowed                |
+
+Enforcement shall be implemented through the appropriate Procurement business-service/execution boundary and shall not be embedded in the workflow definition itself.
+
+### Purchase Order Boundary
+
+Approval of a Purchase Request means only that the procurement request has been authorized to proceed.
+
+It does not mean:
+
+* a Purchase Order has been created;
+* a supplier commitment has been made;
+* goods have been received;
+* inventory has been updated;
+* an expense has been recorded;
+* an invoice has been created;
+* payment has been made;
+* supplier settlement has occurred.
+
+The Purchase Order remains a separate Procurement entity with its own workflow.
+
+The approved domain relationship allowing one Purchase Request to result in multiple Purchase Orders remains unchanged.
+
+### Workflow Operation Identity
+
+The approved transition operations shall conceptually use the following enterprise operation identities:
+
+* `purchase_request.submit`
+* `purchase_request.approve`
+* `purchase_request.reject`
+* `purchase_request.return`
+
+These operation identities shall be represented through the existing enterprise workflow transition metadata pattern during implementation.
+
+### Authorization, Execution, Transaction and Audit Boundary
+
+The Purchase Request workflow definition shall describe states and permitted transitions only.
+
+It shall not become the owner of:
+
+* authorization;
+* permission evaluation;
+* execution governance;
+* database persistence;
+* transaction management;
+* audit handling;
+* event publication;
+* cross-module integration.
+
+Workflow transition execution shall use the established enterprise authorization, execution/governance, transaction, audit, and event architecture.
+
+The four approved lifecycle transitions shall eventually have auditable business events:
+
+* Purchase Request submitted;
+* Purchase Request approved;
+* Purchase Request rejected;
+* Purchase Request returned.
+
+Detailed permission identifiers, execution handlers, event contracts, and route/action exposure shall be defined during the subsequent implementation stages.
+
+### Explicitly Deferred
+
+The following remain outside this decision:
+
+* Purchase Order workflow lifecycle;
+* workflow-specific permission identifiers;
+* approval-routing configuration;
+* execution-handler implementation;
+* workflow action routes;
+* audit/event implementation;
+* Procurement ↔ Inventory receiving;
+* physical stock effects;
+* Expense Management integration;
+* Finance integration;
+* supplier invoices;
+* supplier payments;
+* supplier settlement;
+* accounting/general ledger processing;
+* Catering integration;
+* Reporting integration;
+* additional Purchase Request states such as `CANCELLED`, `FULFILLED`, `ORDERED`, or persistent `RETURNED`.
+
+### Completion Decision
+
+Phase 2.2.4.2 — Purchase Request Workflow Lifecycle & Transition Design is **APPROVED / LOCKED**.
+
+The approved lifecycle is:
+
+`DRAFT → SUBMITTED → APPROVED`
+
+with controlled correction through:
+
+`SUBMITTED → DRAFT`
+
+and terminal rejection through:
+
+`SUBMITTED → REJECTED`.
+
+No other Purchase Request workflow transitions are approved at this stage.
+
+The next design stage shall address the Purchase Order workflow separately.
+
 ---
 
 ## 2. Context
