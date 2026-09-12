@@ -857,6 +857,146 @@ This completion establishes the approved Procurement operational CRUD pattern wh
 **Related Decision:** Phase 2.2.3 — Procurement Operational Surface Design
 **Authoritative Document:** `PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
 
+## Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership
+
+**Decision Status:** APPROVED / LOCKED
+**Approved By:** Project Architecture Review
+**Approval Status:** Approved / Locked
+**Effective Phase:** Phase 2.2
+**Decision Date:** 11 September 2026
+**Related Decision:** Phase 2.2.3 — Procurement Operational Surface Design
+
+### Decision
+
+Phase 2.2.4 establishes the workflow boundary for the approved Procurement domain entities. Workflow responsibility shall be assigned only to Procurement entities that represent meaningful business lifecycles requiring governed state transitions.
+
+### Workflow-Enabled Entities
+
+#### Purchase Request
+
+Purchase Request shall have a dedicated Procurement workflow.
+
+The Purchase Request workflow owns the controlled procurement-request lifecycle, including its future submission, authorization, rejection, return, and other approved lifecycle transitions.
+
+The exact states, transition matrix, authorization requirements, execution operations, and auditable events shall be defined in the subsequent Purchase Request workflow design stage.
+
+#### Purchase Order
+
+Purchase Order shall have a separate dedicated Procurement workflow.
+
+The Purchase Order workflow owns the supplier-facing procurement commitment lifecycle.
+
+The Purchase Order workflow remains distinct from the Purchase Request workflow because one Purchase Request may result in multiple Purchase Orders and the two records represent different business responsibilities.
+
+The exact states, transition matrix, authorization requirements, execution operations, and auditable events shall be defined in the subsequent Purchase Order workflow design stage.
+
+### Non-Workflow Entities
+
+#### Supplier
+
+Supplier shall remain an ordinary Procurement master-data entity governed by the established CRUD and security architecture.
+
+Supplier shall not receive a dedicated workflow in the current Phase 2.2 Procurement workflow scope.
+
+Supplier status remains subject to ordinary enterprise data-management conventions unless a future approved architecture decision introduces a specialized lifecycle.
+
+#### Purchase Requirement
+
+Purchase Requirement shall remain a CRUD/status record and shall not receive a formal Procurement workflow in Phase 2.2.4.
+
+Its current `DRAFT` status shall not be interpreted as establishing a formal workflow lifecycle.
+
+The Purchase Requirement represents the recorded procurement/business need, while the Purchase Request represents the controlled procurement lifecycle.
+
+This preserves the established distinction:
+
+**Purchase Requirement ≠ Purchase Request**
+
+Any future requirement for a governed Purchase Requirement approval lifecycle shall require a separate architectural decision.
+
+#### Purchase Request Line
+
+Purchase Request Line shall not have an independent workflow.
+
+Its lifecycle is governed by its parent Purchase Request and the established child-record CRUD conventions.
+
+#### Purchase Order Line
+
+Purchase Order Line shall not have an independent workflow.
+
+Its lifecycle is governed by its parent Purchase Order and the established child-record CRUD conventions.
+
+### Lifecycle Ownership Model
+
+The Procurement lifecycle boundary is therefore:
+
+```text
+Purchase Requirement
+    CRUD / status-only
+          │
+          │ procurement need
+          ▼
+Purchase Request
+    Dedicated Workflow
+          │
+          │ supplier-facing commitment
+          ▼
+Purchase Order
+    Dedicated Workflow
+          │
+          ▼
+Supplier
+    Master Data / CRUD
+```
+
+Purchase Request Lines remain governed by Purchase Request.
+
+Purchase Order Lines remain governed by Purchase Order.
+
+### Architectural Principles
+
+1. Workflow definitions shall reuse the enterprise workflow framework and registry.
+2. Procurement shall not introduce a parallel workflow engine.
+3. Workflow definitions shall describe states and permitted transitions but shall not become owners of authorization, transaction management, database persistence, or cross-module integration.
+4. Workflow execution shall remain subject to the established enterprise authorization, execution, governance, transaction, audit, and event architecture.
+5. Workflow boundaries shall not transfer ownership of Procurement, Inventory, Finance, Expense Management, or Catering responsibilities.
+6. No cross-module foreign keys shall be introduced as a consequence of this workflow decision.
+7. Purchase Request and Purchase Order shall remain separate workflows because they represent distinct procurement lifecycle responsibilities.
+8. Child lines shall not become independent workflow entities.
+9. Exact lifecycle states and transition matrices are deferred to the detailed workflow design stages.
+
+### Explicitly Deferred
+
+The following remain outside this decision:
+
+* exact Purchase Request workflow states;
+* Purchase Request transition matrix;
+* exact Purchase Order workflow states;
+* Purchase Order transition matrix;
+* workflow-specific permissions;
+* approval routing;
+* execution handlers;
+* workflow routes/actions;
+* audit/event definitions;
+* Procurement ↔ Inventory receiving and physical stock effects;
+* Procurement ↔ Finance integration;
+* Expense Management workflow;
+* supplier invoices;
+* supplier payments and settlement;
+* accounting/general ledger processing;
+* Catering integration;
+* Reporting integration.
+
+### Completion Decision
+
+Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership is **APPROVED / LOCKED**.
+
+The approved Procurement workflow scope consists of dedicated workflows for **Purchase Request** and **Purchase Order** only.
+
+Supplier and Purchase Requirement remain CRUD/status-oriented within this stage, while Purchase Request Line and Purchase Order Line remain governed by their respective parent lifecycles.
+
+The next design stage shall define the detailed lifecycle and transition model for the Purchase Request workflow without introducing implementation changes before that design is approved.
+
 ---
 
 ## 2. Context
