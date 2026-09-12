@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Type
 
 from app.core.execution.commands.base import BaseCommand
+from app.core.execution.commands.validation import validate_command
 from app.core.execution.handlers.base import BaseCommandHandler
 
 
@@ -55,16 +56,22 @@ def validate_execution_definition(
             "Execution definition handler command_type must match the command."
         )
 
-    if not isinstance(
-        command.command_name,
-        str,
-    ) or not command.command_name:
-        raise TypeError(
-            "Execution definition command must define a command_name."
+    try:
+        command_instance = command.__new__(
+            command
         )
 
+        validate_command(
+            command_instance
+        )
+
+    except Exception as exc:
+        raise TypeError(
+            "Execution definition command is invalid."
+        ) from exc
+
     execute_name = getattr(
-        command,
+        command_instance,
         "execute_name",
         None,
     )
