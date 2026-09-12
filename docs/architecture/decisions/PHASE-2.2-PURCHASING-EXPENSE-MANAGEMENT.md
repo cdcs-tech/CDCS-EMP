@@ -1464,6 +1464,374 @@ The Purchase Order workflow remains separate from the Purchase Request workflow 
 
 **Decision: APPROVED / LOCKED.**
 
+## Phase 2.2.4.4 — Procurement Workflow Authorization & Execution Design
+
+**Status:** APPROVED / LOCKED
+**Approved By:** Project Architecture Review
+**Approval Status:** Approved / Locked
+**Effective Phase:** Phase 2.2
+**Decision Date:** 11 September 2026
+**Related Decisions:**
+
+* Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership
+* Phase 2.2.4.2 — Purchase Request Workflow Lifecycle & Transition Design
+* Phase 2.2.4.3 — Purchase Order Workflow Lifecycle & Transition Design
+
+### Decision
+
+Procurement workflow transitions shall be executed through the existing enterprise execution framework.
+
+Each approved Procurement workflow operation shall be represented as an enterprise command with a dedicated command handler.
+
+The Procurement workflow definition shall remain responsible only for defining valid lifecycle states and transitions. Authorization, permission evaluation, execution governance, transaction management, persistence, audit, and event handling shall remain responsibilities of the established enterprise architecture.
+
+No parallel Procurement-specific authorization, command-dispatch, transaction, governance, or workflow-execution architecture shall be introduced.
+
+### 1. Enterprise Command Model
+
+Each approved Procurement workflow transition shall be represented by an enterprise command derived from the existing `BaseCommand` contract.
+
+A Procurement workflow command shall define:
+
+* the canonical `command_name`;
+* the required `permission_code`;
+* the operation represented by the command;
+* the command payload required to identify and execute the target business operation.
+
+The canonical command name shall use the approved workflow operation identity.
+
+For example:
+
+`purchase_request.approve`
+
+and:
+
+`purchase_order.cancel`
+
+The existing enterprise command contract shall not be modified solely to support Procurement workflow execution.
+
+The existing dynamic permission declaration supported by the execution authorization architecture shall be used.
+
+### 2. Purchase Request Command Matrix
+
+The approved Purchase Request workflow operations shall map to enterprise commands as follows:
+
+| Workflow Operation | Command Name               | Permission Code                        |
+| ------------------ | -------------------------- | -------------------------------------- |
+| `SUBMIT`           | `purchase_request.submit`  | `PROCUREMENT.PURCHASE_REQUEST.SUBMIT`  |
+| `APPROVE`          | `purchase_request.approve` | `PROCUREMENT.PURCHASE_REQUEST.APPROVE` |
+| `REJECT`           | `purchase_request.reject`  | `PROCUREMENT.PURCHASE_REQUEST.REJECT`  |
+| `RETURN`           | `purchase_request.return`  | `PROCUREMENT.PURCHASE_REQUEST.RETURN`  |
+
+These commands shall operate only on the Purchase Request workflow established in Phase 2.2.4.2.
+
+They shall not create Purchase Orders automatically.
+
+### 3. Purchase Order Command Matrix
+
+The approved Purchase Order workflow operations shall map to enterprise commands as follows:
+
+| Workflow Operation | Command Name             | Permission Code                      |
+| ------------------ | ------------------------ | ------------------------------------ |
+| `SUBMIT`           | `purchase_order.submit`  | `PROCUREMENT.PURCHASE_ORDER.SUBMIT`  |
+| `APPROVE`          | `purchase_order.approve` | `PROCUREMENT.PURCHASE_ORDER.APPROVE` |
+| `REJECT`           | `purchase_order.reject`  | `PROCUREMENT.PURCHASE_ORDER.REJECT`  |
+| `RETURN`           | `purchase_order.return`  | `PROCUREMENT.PURCHASE_ORDER.RETURN`  |
+| `CANCEL`           | `purchase_order.cancel`  | `PROCUREMENT.PURCHASE_ORDER.CANCEL`  |
+
+These commands shall operate only on the Purchase Order workflow established in Phase 2.2.4.3.
+
+### 4. Permission Model
+
+Procurement workflow permissions shall use the existing enterprise permission architecture.
+
+The following permissions shall be introduced when workflow implementation begins:
+
+#### Purchase Request
+
+* `PROCUREMENT.PURCHASE_REQUEST.SUBMIT`
+* `PROCUREMENT.PURCHASE_REQUEST.APPROVE`
+* `PROCUREMENT.PURCHASE_REQUEST.REJECT`
+* `PROCUREMENT.PURCHASE_REQUEST.RETURN`
+
+#### Purchase Order
+
+* `PROCUREMENT.PURCHASE_ORDER.SUBMIT`
+* `PROCUREMENT.PURCHASE_ORDER.APPROVE`
+* `PROCUREMENT.PURCHASE_ORDER.REJECT`
+* `PROCUREMENT.PURCHASE_ORDER.RETURN`
+* `PROCUREMENT.PURCHASE_ORDER.CANCEL`
+
+These permissions represent authorization to execute the corresponding business operations.
+
+They shall not be interpreted as workflow states.
+
+Permission evaluation shall remain the responsibility of the existing enterprise authorization architecture and shall not be embedded inside workflow definitions.
+
+### 5. Command and Handler Responsibility
+
+Each workflow operation shall use a dedicated command/handler pair.
+
+The command shall represent the requested enterprise operation.
+
+The handler shall contain the execution logic required to apply the operation to the target Procurement entity.
+
+The handler shall:
+
+1. identify and load the target Purchase Request or Purchase Order;
+2. verify that the target entity exists;
+3. determine the entity's current persisted workflow state;
+4. invoke the corresponding workflow transition;
+5. apply the resulting state to the entity;
+6. return the established `ExecutionResult` contract.
+
+Handlers shall not implement a second workflow state machine.
+
+The existing workflow definition shall remain the authoritative source for determining whether a requested state transition is structurally valid.
+
+### 6. Workflow Responsibility Boundary
+
+The Procurement workflow definitions shall remain responsible only for:
+
+* defining lifecycle states;
+* defining valid transitions;
+* defining transition actions;
+* providing transition metadata where required.
+
+Workflow definitions shall not perform:
+
+* authorization;
+* permission evaluation;
+* user or role inspection;
+* database queries;
+* database persistence;
+* transaction commit or rollback;
+* HTTP request handling;
+* route dispatch;
+* audit recording;
+* event publication;
+* Inventory integration;
+* Expense integration;
+* Finance integration; or
+* supplier settlement.
+
+This preserves the enterprise separation between workflow definition and workflow execution.
+
+### 7. Authorization and Execution Sequence
+
+Procurement workflow commands shall use the existing enterprise `CommandDispatcher`.
+
+The execution sequence shall be:
+
+`Command → Dispatcher → Authorization → Transaction → Handler → Result`
+
+More specifically:
+
+1. The command is validated against the enterprise command contract.
+2. The command is verified as registered.
+3. The corresponding handler is resolved.
+4. Execution lifecycle is established as `STARTED`.
+5. Authorization is evaluated.
+6. If authorization is denied, execution terminates with `DENIED`.
+7. No transaction shall begin following authorization denial.
+8. If authorization succeeds, the configured transaction boundary begins.
+9. The command handler executes.
+10. Successful execution commits the transaction.
+11. Failed execution rolls back the transaction.
+12. The dispatcher emits the corresponding execution lifecycle result.
+
+The established enterprise execution framework shall remain authoritative for this sequence.
+
+### 8. Authorization Boundary
+
+Authorization shall be evaluated through the established enterprise authorization mechanism.
+
+Where governance-aware authorization is configured, the existing `GovernanceAwareAuthorizationEnforcement` and `ExecutionAuthorizationService` shall remain responsible for coordinating authorization and execution governance.
+
+Role and permission evaluation shall continue through the existing `AuthorizationEngine`.
+
+Procurement workflow handlers shall not call `current_user.has_permission()`, `AuthorizationEngine`, or equivalent authorization mechanisms directly.
+
+Authorization shall therefore remain outside the workflow and business handler logic.
+
+### 9. Invalid Workflow Transition Handling
+
+Authorization and workflow validity shall remain separate concerns.
+
+An authorized user may still request an operation that is invalid for the entity's current workflow state.
+
+For example:
+
+`APPROVED Purchase Order + APPROVE`
+
+is not an authorization failure if the user has the `PROCUREMENT.PURCHASE_ORDER.APPROVE` permission.
+
+It is a workflow/business-state failure because `APPROVED → APPROVED` is not an approved transition.
+
+Similarly:
+
+* `REJECTED → DRAFT` is invalid;
+* `CANCELLED → DRAFT` is invalid;
+* `APPROVED → SUBMITTED` is invalid;
+* `SUBMITTED → CANCELLED` is invalid.
+
+Such failures shall be reported through the established execution result/error handling architecture and shall not be represented as authorization denials.
+
+### 10. Transaction Boundary
+
+Procurement workflow command execution shall use the established enterprise transaction infrastructure.
+
+The command handler shall not create an independent transaction mechanism.
+
+The transaction sequence shall remain:
+
+`Authorization → Begin Transaction → Handler → Commit/Rollback`
+
+The existing application transaction boundary shall remain responsible for integrating Procurement mutation requests with the application's request lifecycle where required.
+
+The handler shall not call independent `commit()` or `rollback()` operations outside the established transaction architecture.
+
+### 11. Audit and Event Handling
+
+Procurement workflow execution shall use the existing enterprise audit and event architecture.
+
+The dispatcher shall continue to provide execution lifecycle events including:
+
+* `STARTED`;
+* `DENIED`;
+* `COMPLETED`;
+* `FAILED`.
+
+Business-level Procurement transition events shall be introduced through the established event architecture when workflow implementation begins.
+
+The eventual transition audit history shall distinguish at minimum:
+
+#### Purchase Request
+
+* submitted;
+* approved;
+* rejected;
+* returned.
+
+#### Purchase Order
+
+* submitted;
+* approved;
+* rejected;
+* returned;
+* cancelled.
+
+The audit history shall preserve the distinction between:
+
+* rejection before procurement commitment; and
+* cancellation after Purchase Order approval.
+
+Event publication shall not create a parallel Procurement event system.
+
+### 12. Command and Handler Registration
+
+Procurement workflow commands shall use the existing `CommandRegistry`.
+
+Each command shall be registered with the enterprise command registry.
+
+Each corresponding handler shall be registered with the enterprise `CommandDispatcher`.
+
+The Procurement module shall not introduce a separate command registry.
+
+The implementation shall follow the established enterprise command and handler contracts demonstrated by the execution framework tests.
+
+Command registration shall remain separate from workflow definition registration.
+
+The existing workflow registry/module workflow registration mechanism shall continue to register workflow definitions, while the command registry shall register executable workflow operations.
+
+### 13. Route and UI Boundary
+
+Procurement routes and UI surfaces shall not implement workflow transitions directly through independent state mutation.
+
+Workflow actions such as:
+
+* Submit;
+* Approve;
+* Reject;
+* Return; and
+* Cancel
+
+shall eventually invoke the corresponding enterprise command rather than directly changing the entity's status field.
+
+The Procurement operational UI shall therefore remain separated into:
+
+`CRUD Surface → Workflow Command Execution`
+
+Ordinary CRUD operations shall remain subject to the lifecycle rules established in Phase 2.2.3 and the workflow restrictions established in Phase 2.2.4.
+
+Purchase Request and Purchase Order line modification shall remain governed by the lifecycle of their parent entity.
+
+### 14. Cross-Module Execution Boundary
+
+Procurement workflow commands shall not directly perform:
+
+* Inventory stock movements;
+* Inventory balance changes;
+* physical receiving;
+* Expense creation;
+* supplier invoicing;
+* payments;
+* supplier settlement;
+* accounting entries;
+* general ledger operations;
+* Catering workflow transitions.
+
+Those effects remain owned by the appropriate future business capability and integration stage.
+
+Approval of a Purchase Order shall therefore authorize the Procurement commitment but shall not itself represent physical receipt, inventory update, expense recognition, invoice processing, payment, or financial settlement.
+
+### 15. Explicitly Deferred
+
+The following remain outside Phase 2.2.4.4:
+
+* implementation of Procurement workflow commands;
+* implementation of Procurement workflow handlers;
+* workflow-specific permission records;
+* command registration;
+* handler registration;
+* Procurement workflow routes;
+* workflow UI actions;
+* Procurement workflow audit/event implementation;
+* Procurement ↔ Inventory integration;
+* Expense Management integration;
+* Finance integration;
+* supplier invoicing;
+* supplier payment and settlement;
+* Procurement Receiving;
+* supplier acknowledgement/dispatch lifecycle;
+* accounting/general ledger;
+* additional workflow states;
+* new Procurement entities.
+
+Phase 2.2.4.4 establishes the authorization and execution architecture only. Implementation shall occur through subsequent controlled implementation work after this design is approved and locked.
+
+### Completion Decision
+
+Phase 2.2.4.4 establishes and locks the authorization and execution architecture for Procurement workflow operations.
+
+The approved architecture is:
+
+`Workflow Operation → Enterprise Command → Command Dispatcher → Authorization → Transaction → Command Handler → Workflow Transition → Execution Result`
+
+The workflow definition remains lifecycle-only.
+
+Authorization remains enterprise-controlled.
+
+Transaction management remains enterprise-controlled.
+
+Business mutation remains handler-controlled.
+
+Audit and event handling remain enterprise-controlled.
+
+No parallel Procurement authorization, workflow execution, transaction, governance, command registry, or event architecture shall be introduced.
+
+**Decision: APPROVED / LOCKED.**
+
 ---
 
 ## 2. Context
