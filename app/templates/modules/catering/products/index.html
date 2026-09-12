@@ -15,6 +15,12 @@ Products
     {% include "components/page_header.html" %}
     {% endwith %}
 
+    <div class="mb-3">
+        <a href="{{ url_for('catering.index') }}" class="btn btn-outline-secondary">
+            Back to Catering
+        </a>
+    </div>
+
     <div class="card shadow-sm">
 
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -268,7 +274,7 @@ Products
                                     ) }}"
                                     class="d-inline"
                                 >
-                                    {{ csrf_token() }}
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                                     <button
                                         type="submit"
@@ -289,7 +295,7 @@ Products
                                     ) }}"
                                     class="d-inline"
                                 >
-                                    {{ csrf_token() }}
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                                     <button
                                         type="submit"
