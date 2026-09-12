@@ -8,7 +8,39 @@
 
             <li class="nav-item">
 
-                {% if item.endpoint %}
+                {% if item.children %}
+
+                <details {% if request.endpoint in item.children | map(attribute="endpoint" ) | list %} open {% endif
+                    %}>
+
+                    <summary class="nav-link">
+
+                        <i class="bi {{ item.icon }}"></i>
+
+                        {{ item.title }}
+
+                    </summary>
+
+                    <ul class="nav flex-column ms-3">
+
+                        {% for child in item.children %}
+
+                        <li class="nav-item">
+
+                            <a class="nav-link {% if request.endpoint == child.endpoint %}active{% endif %}"
+                                href="{{ url_for(child.endpoint) }}">
+                                {{ child.title }}
+                            </a>
+
+                        </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                </details>
+
+                {% elif item.endpoint %}
 
                 <a class="nav-link {% if request.endpoint == item.endpoint %}active{% endif %}"
                     href="{{ url_for(item.endpoint) }}">
@@ -28,9 +60,7 @@
                     {{ item.title }}
 
                     <span class="badge bg-secondary ms-1">
-
                         Soon
-
                     </span>
 
                 </a>

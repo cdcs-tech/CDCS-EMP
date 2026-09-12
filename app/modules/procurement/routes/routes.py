@@ -19,15 +19,28 @@ from flask import (
 from flask_login import login_required
 
 from app.core.data import QueryOptions
-from app.modules.procurement.forms import SupplierForm
-from app.modules.procurement.models import Supplier
+from app.modules.procurement.forms import (
+    PurchaseRequirementForm,
+    SupplierForm,
+)
+from app.modules.procurement.models import (
+    PurchaseRequirement,
+    Supplier,
+)
 from app.modules.procurement.security import (
+    PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_READ,
+    PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
     PROCUREMENT_SUPPLIER_CREATE,
     PROCUREMENT_SUPPLIER_DELETE,
     PROCUREMENT_SUPPLIER_READ,
     PROCUREMENT_SUPPLIER_UPDATE,
 )
-from app.modules.procurement.services import SupplierService
+from app.modules.procurement.services import (
+    PurchaseRequirementService,
+    SupplierService,
+)
 from app.security.decorators import require_permission
 
 
@@ -41,6 +54,15 @@ _SUPPLIER_SORT_FIELDS = {
     "name",
     "code",
     "supplier_type",
+    "status",
+}
+
+
+_PURCHASE_REQUIREMENT_SORT_FIELDS = {
+    "reference",
+    "description",
+    "source_module",
+    "required_by_date",
     "status",
 }
 
@@ -68,7 +90,7 @@ def _parse_page_size(
     value,
 ) -> int:
     """
-    Parse the Supplier list page size.
+    Parse the list page size.
     """
 
     page_size = _parse_positive_int(
@@ -114,7 +136,7 @@ def _parse_status_filter(
     value,
 ) -> dict[str, str]:
     """
-    Build the controlled Supplier status filter.
+    Build a controlled status filter.
     """
 
     if not value:
@@ -142,6 +164,36 @@ def _build_supplier_query_options() -> QueryOptions:
             request.args.get("sort"),
             _SUPPLIER_SORT_FIELDS,
             "name",
+        ),
+        sort_direction=_parse_sort_direction(
+            request.args.get("direction"),
+        ),
+        search=request.args.get(
+            "search"
+        ),
+        filters=_parse_status_filter(
+            request.args.get("status")
+        ),
+    )
+
+
+def _build_purchase_requirement_query_options() -> QueryOptions:
+    """
+    Build controlled query options for Purchase Requirements.
+    """
+
+    return QueryOptions(
+        page=_parse_positive_int(
+            request.args.get("page"),
+            1,
+        ),
+        page_size=_parse_page_size(
+            request.args.get("page_size"),
+        ),
+        sort_by=_parse_sort(
+            request.args.get("sort"),
+            _PURCHASE_REQUIREMENT_SORT_FIELDS,
+            "reference",
         ),
         sort_direction=_parse_sort_direction(
             request.args.get("direction"),
@@ -334,6 +386,215 @@ def delete_supplier(
     return redirect(
         url_for(
             "procurement.suppliers"
+        )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requirements/",
+    methods=["GET"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUIREMENT_READ.name
+)
+def purchase_requirements():
+    """
+    Render the Procurement Purchase Requirement management list.
+    """
+
+    service = PurchaseRequirementService()
+    query_options = (
+        _build_purchase_requirement_query_options()
+    )
+
+    result = service.paginate(
+        query_options
+    )
+
+    return render_template(
+        "modules/procurement/purchase_requirements/index.html",
+        purchase_requirements=result,
+        query_options=query_options,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requirements/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUIREMENT_CREATE.name
+)
+def create_purchase_requirement():
+    """
+    Create a Procurement Purchase Requirement.
+    """
+
+    form = PurchaseRequirementForm()
+
+    if form.validate_on_submit():
+        service = PurchaseRequirementService()
+
+        purchase_requirement = service.create(
+            PurchaseRequirement(
+                reference=form.reference.data,
+                description=form.description.data,
+                source_module=form.source_module.data,
+                source_type=form.source_type.data,
+                source_reference=form.source_reference.data,
+                required_by_date=form.required_by_date.data,
+                status=form.status.data,
+            )
+        )
+
+        flash(
+            "Purchase requirement created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "procurement.purchase_requirements"
+            )
+        )
+
+    return render_template(
+        "modules/procurement/purchase_requirements/create.html",
+        form=form,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requirements/<int:purchase_requirement_id>",
+    methods=["GET"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUIREMENT_READ.name
+)
+def view_purchase_requirement(
+    purchase_requirement_id: int,
+):
+    """
+    View a Procurement Purchase Requirement.
+    """
+
+    service = PurchaseRequirementService()
+
+    purchase_requirement = service.get(
+        purchase_requirement_id
+    )
+
+    return render_template(
+        "modules/procurement/purchase_requirements/view.html",
+        purchase_requirement=purchase_requirement,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requirements/<int:purchase_requirement_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE.name
+)
+def edit_purchase_requirement(
+    purchase_requirement_id: int,
+):
+    """
+    Edit a Procurement Purchase Requirement.
+    """
+
+    service = PurchaseRequirementService()
+
+    purchase_requirement = service.get(
+        purchase_requirement_id
+    )
+
+    form = PurchaseRequirementForm(
+        obj=purchase_requirement
+    )
+
+    if form.validate_on_submit():
+        purchase_requirement.reference = (
+            form.reference.data
+        )
+        purchase_requirement.description = (
+            form.description.data
+        )
+        purchase_requirement.source_module = (
+            form.source_module.data
+        )
+        purchase_requirement.source_type = (
+            form.source_type.data
+        )
+        purchase_requirement.source_reference = (
+            form.source_reference.data
+        )
+        purchase_requirement.required_by_date = (
+            form.required_by_date.data
+        )
+        purchase_requirement.status = (
+            form.status.data
+        )
+
+        service.update(
+            purchase_requirement
+        )
+
+        flash(
+            "Purchase requirement updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "procurement.view_purchase_requirement",
+                purchase_requirement_id=(
+                    purchase_requirement.id
+                ),
+            )
+        )
+
+    return render_template(
+        "modules/procurement/purchase_requirements/edit.html",
+        form=form,
+        purchase_requirement=purchase_requirement,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requirements/<int:purchase_requirement_id>/delete",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUIREMENT_DELETE.name
+)
+def delete_purchase_requirement(
+    purchase_requirement_id: int,
+):
+    """
+    Delete a Procurement Purchase Requirement.
+    """
+
+    service = PurchaseRequirementService()
+
+    service.delete(
+        purchase_requirement_id
+    )
+
+    flash(
+        "Purchase requirement deleted successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.purchase_requirements"
         )
     )
 

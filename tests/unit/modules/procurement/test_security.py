@@ -13,6 +13,10 @@ from app.modules.procurement.security import (
     PROCUREMENT_SUPPLIER_DELETE,
     PROCUREMENT_SUPPLIER_READ,
     PROCUREMENT_SUPPLIER_UPDATE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_READ,
+    PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
 )
 
 
@@ -61,10 +65,10 @@ def test_supplier_permissions_have_expected_identity():
     assert PROCUREMENT_SUPPLIER_DELETE.action == "delete"
 
 
-def test_procurement_permissions_contains_only_currently_defined_permissions():
+def test_procurement_permissions_contains_currently_defined_permissions():
     """
-    Verify that the Procurement aggregate currently contains
-    only the approved Supplier permissions.
+    Verify that the Procurement aggregate contains all currently
+    approved Supplier and PurchaseRequirement permissions.
     """
 
     assert PROCUREMENT_PERMISSIONS == (
@@ -72,6 +76,10 @@ def test_procurement_permissions_contains_only_currently_defined_permissions():
         PROCUREMENT_SUPPLIER_READ,
         PROCUREMENT_SUPPLIER_UPDATE,
         PROCUREMENT_SUPPLIER_DELETE,
+        PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
+        PROCUREMENT_PURCHASE_REQUIREMENT_READ,
+        PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
+        PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
     )
 
 

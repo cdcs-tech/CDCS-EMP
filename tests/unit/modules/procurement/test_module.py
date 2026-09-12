@@ -55,16 +55,16 @@ def test_procurement_module_has_no_business_module_dependencies():
     assert module.metadata.dependencies == []
 
 
-def test_procurement_module_exposes_supplier_permissions():
+def test_procurement_module_exposes_procurement_permissions():
     """
     Verify that the Procurement module exposes the approved
-    Supplier operational permissions.
+    Supplier and PurchaseRequirement operational permissions.
     """
 
     module = ProcurementModule()
 
     assert module.has_permissions() is True
-    assert len(module.permissions) == 4
+    assert len(module.permissions) == 8
 
     permission_codes = {
         permission.code
@@ -76,6 +76,10 @@ def test_procurement_module_exposes_supplier_permissions():
         "PROCUREMENT.SUPPLIER.READ",
         "PROCUREMENT.SUPPLIER.UPDATE",
         "PROCUREMENT.SUPPLIER.DELETE",
+        "PROCUREMENT.PURCHASE_REQUIREMENT.CREATE",
+        "PROCUREMENT.PURCHASE_REQUIREMENT.READ",
+        "PROCUREMENT.PURCHASE_REQUIREMENT.UPDATE",
+        "PROCUREMENT.PURCHASE_REQUIREMENT.DELETE",
     }
 
 

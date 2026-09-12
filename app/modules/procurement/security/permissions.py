@@ -51,6 +51,47 @@ PROCUREMENT_SUPPLIER_DELETE = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Purchase Requirement Permissions
+# ---------------------------------------------------------------------------
+
+PROCUREMENT_PURCHASE_REQUIREMENT_CREATE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUIREMENT.CREATE",
+    name="procurement.purchase_requirement.create",
+    description="Create Procurement purchase requirements.",
+    module="PROCUREMENT",
+    resource="purchase_requirement",
+    action="create",
+)
+
+PROCUREMENT_PURCHASE_REQUIREMENT_READ = Permission(
+    code="PROCUREMENT.PURCHASE_REQUIREMENT.READ",
+    name="procurement.purchase_requirement.read",
+    description="Read Procurement purchase requirements.",
+    module="PROCUREMENT",
+    resource="purchase_requirement",
+    action="read",
+)
+
+PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUIREMENT.UPDATE",
+    name="procurement.purchase_requirement.update",
+    description="Update Procurement purchase requirements.",
+    module="PROCUREMENT",
+    resource="purchase_requirement",
+    action="update",
+)
+
+PROCUREMENT_PURCHASE_REQUIREMENT_DELETE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUIREMENT.DELETE",
+    name="procurement.purchase_requirement.delete",
+    description="Delete Procurement purchase requirements.",
+    module="PROCUREMENT",
+    resource="purchase_requirement",
+    action="delete",
+)
+
+
+# ---------------------------------------------------------------------------
 # Aggregate Procurement Permissions
 # ---------------------------------------------------------------------------
 
@@ -59,6 +100,10 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_SUPPLIER_READ,
     PROCUREMENT_SUPPLIER_UPDATE,
     PROCUREMENT_SUPPLIER_DELETE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_READ,
+    PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
 )
 
 
@@ -67,5 +112,9 @@ __all__ = [
     "PROCUREMENT_SUPPLIER_READ",
     "PROCUREMENT_SUPPLIER_UPDATE",
     "PROCUREMENT_SUPPLIER_DELETE",
+    "PROCUREMENT_PURCHASE_REQUIREMENT_CREATE",
+    "PROCUREMENT_PURCHASE_REQUIREMENT_READ",
+    "PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE",
+    "PROCUREMENT_PURCHASE_REQUIREMENT_DELETE",
     "PROCUREMENT_PERMISSIONS",
 ]

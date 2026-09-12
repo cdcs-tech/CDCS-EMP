@@ -30,8 +30,18 @@ MENU_ITEMS = [
 
     {
         "title": "Procurement",
-        "endpoint": "procurement.suppliers",
+        "endpoint": None,
         "icon": "bi-cart4",
+        "children": [
+            {
+                "title": "Suppliers",
+                "endpoint": "procurement.suppliers",
+            },
+            {
+                "title": "Purchase Requirements",
+                "endpoint": "procurement.purchase_requirements",
+            },
+        ],
     },
 
     {
