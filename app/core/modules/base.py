@@ -37,6 +37,12 @@ from app.core.events import (
     event_registry,
 )
 
+from app.core.execution import (
+    ExecutionDefinition,
+    command_registry,
+    validate_execution_definition,
+)
+
 
 class BaseModule(ABC):
     """
@@ -76,6 +82,10 @@ class BaseModule(ABC):
 
         self.event_handlers = (
             self.get_event_handlers()
+        )
+
+        self.execution_definitions = (
+            self.get_execution_definitions()
         )
 
         self.initialized = False
@@ -168,6 +178,25 @@ class BaseModule(ABC):
 
         return []
 
+    def get_execution_definitions(self):
+        """
+        Return module execution definitions.
+
+        Modules override this method to expose
+        command and handler registrations.
+
+        Expected format:
+
+            [
+                ExecutionDefinition(
+                    command=CommandClass,
+                    handler=HandlerInstance,
+                ),
+            ]
+        """
+
+        return []
+
     def register_models(self, app):
         """
         Register module models.
@@ -205,6 +234,8 @@ class BaseModule(ABC):
         self.register_events(app)
 
         self.register_event_handlers(app)
+
+        self.register_execution(app)
 
         self.initialized = True
 
@@ -398,6 +429,42 @@ class BaseModule(ABC):
 
         return None
 
+    def register_execution(self, app):
+        """
+        Register module commands and handlers
+        with the application execution infrastructure.
+        """
+
+        if not self.execution_definitions:
+            return None
+
+        dispatcher = app.extensions.get(
+            "command_dispatcher"
+        )
+
+        if dispatcher is None:
+            raise RuntimeError(
+                "Application command dispatcher is not initialized."
+            )
+
+        for execution_definition in (
+            self.execution_definitions
+        ):
+
+            validate_execution_definition(
+                execution_definition
+            )
+
+            command_registry.register(
+                execution_definition.command
+            )
+
+            dispatcher.register_handler(
+                execution_definition.handler
+            )
+
+        return None
+
     def get_navigation(self):
         """
         Return module navigation definition.
@@ -479,6 +546,15 @@ class BaseModule(ABC):
             self.event_handlers
         )
 
+    def has_execution_definitions(self):
+        """
+        Check whether module exposes execution definitions.
+        """
+
+        return bool(
+            self.execution_definitions
+        )
+
     def is_active(self):
         """
         Check whether module is enabled.
@@ -496,4 +572,3 @@ class BaseModule(ABC):
             f"{self.metadata.identifier} "
             f"v{self.metadata.version}>"
         )
-

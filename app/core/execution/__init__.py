@@ -112,6 +112,11 @@ from app.core.execution.governance_contract import (
     ExecutionGovernanceContract,
 )
 
+from app.core.execution.registration import (
+    ExecutionDefinition,
+    validate_execution_definition,
+)
+
 
 __all__ = [
     "ExecutionContext",
@@ -171,5 +176,8 @@ __all__ = [
     "ObservabilityExecutionEventEmitter",
     "ExecutionLifecycleState",
     "ExecutionLifecycle",
+
+    "ExecutionDefinition",
+    "validate_execution_definition",
 
 ]

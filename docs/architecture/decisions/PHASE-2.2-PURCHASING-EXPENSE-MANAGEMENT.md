@@ -1832,6 +1832,77 @@ No parallel Procurement authorization, workflow execution, transaction, governan
 
 **Decision: APPROVED / LOCKED.**
 
+### Phase 2.2.5.1 — Procurement Workflow Command & Handler Registration Foundation Implementation Completion
+
+**Component:** Procurement Workflow Command & Handler Registration Foundation
+**Status:** IMPLEMENTED / VERIFIED
+**Implementation Status:** Complete
+**Verification Status:** Passed
+**Verification Date:** 12/09/2026
+
+#### Implementation Scope
+
+Phase 2.2.5.1 has established the integration foundation required for Procurement workflow commands and handlers to participate in the existing CDCS-EMP enterprise execution architecture.
+
+The implementation provides:
+
+* an `ExecutionDefinition` abstraction associating an enterprise command class with its corresponding command handler;
+* validation of execution definitions against the existing `BaseCommand` and `BaseCommandHandler` contracts;
+* module-level execution-definition support through `BaseModule.get_execution_definitions()`;
+* module-level execution registration through `BaseModule.register_execution()`;
+* registration of Procurement/module commands through the existing `CommandRegistry`;
+* registration of module command handlers through the application-owned `CommandDispatcher`;
+* application startup initialization of the shared `CommandDispatcher`;
+* exposure of the application dispatcher through `app.extensions["command_dispatcher"]`; and
+* focused tests covering module execution-definition registration and validation behavior.
+
+#### Architecture Conformance
+
+The implementation conforms to the approved Phase 2.2.4 Procurement authorization and execution architecture:
+
+`Workflow Operation → Enterprise Command → Command Dispatcher → Authorization → Transaction → Command Handler → Workflow Transition → Execution Result`
+
+The implementation deliberately establishes only the registration and composition foundation.
+
+It does not introduce:
+
+* Procurement workflow state transitions;
+* Purchase Request workflow behavior;
+* Purchase Order workflow behavior;
+* workflow-specific permissions;
+* authorization logic outside the existing enterprise authorization architecture;
+* transaction logic outside the existing transaction infrastructure;
+* Inventory integration;
+* Finance integration;
+* Catering integration;
+* workflow UI or routes; or
+* new Procurement domain entities.
+
+The existing `CommandDispatcher`, `CommandRegistry`, `BaseCommand`, `BaseCommandHandler`, authorization infrastructure, transaction infrastructure, and workflow definitions remain authoritative.
+
+No parallel execution, authorization, transaction, or workflow architecture has been introduced.
+
+#### Verification Results
+
+* Phase 2.2.5.1 focused execution-registration tests: **passed**.
+* Procurement module tests: **passed**.
+* Full CDCS-EMP regression suite: **2,115 passed**.
+* `git diff --check`: **clean**.
+* Execution infrastructure import verification: **passed**.
+* Application startup verification confirmed `CommandDispatcher` is available through `app.extensions["command_dispatcher"]`.
+
+#### Completion Decision
+
+Phase 2.2.5.1 — Procurement Workflow Command & Handler Registration Foundation is hereby recorded as **IMPLEMENTED / VERIFIED**.
+
+The stage establishes the enterprise execution-registration foundation required for subsequent Procurement workflow command and handler implementation.
+
+Actual Purchase Request and Purchase Order workflow commands, handlers, lifecycle transitions, authorization requirements, transaction behavior, and workflow-specific business rules remain subject to their approved implementation stages and shall not be considered implemented by this completion record.
+
+**Related Design Decision:** Phase 2.2.4.4 — Procurement Workflow Authorization & Execution Architecture
+
+**Authoritative Document:** `docs/architecture/decisions/PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
+
 ---
 
 ## 2. Context

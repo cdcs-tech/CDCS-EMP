@@ -21,6 +21,10 @@ from app.core.workflow import (
     workflow_registry,
 )
 
+from app.core.execution import (
+    CommandDispatcher,
+)
+
 from app.core.discovery import (
     ModuleDependencyValidator,
     ModuleDiscovery,
@@ -64,8 +68,19 @@ def initialize_modules(app: Flask) -> ModuleManager:
 
     manager = ModuleManager()
 
+    # --------------------------------------------------
+    # Application Execution Infrastructure
+    # --------------------------------------------------
+
+    command_dispatcher = CommandDispatcher()
+
+    app.extensions[
+        "command_dispatcher"
+    ] = command_dispatcher
+
 
     discovery = ModuleDiscovery()
+
 
     manifests = discovery.discover()
 
@@ -80,6 +95,7 @@ def initialize_modules(app: Flask) -> ModuleManager:
     validator = ModuleDependencyValidator(
         manifests
     )
+
 
     validator.validate()
 
