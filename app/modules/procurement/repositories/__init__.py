@@ -1,16 +1,25 @@
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
-Procurement Repositories
+Procurement Module
 
-Module-local persistence repositories.
+Repository exports.
 """
 
-from .purchase_requirement import PurchaseRequirementRepository
-from .supplier import SupplierRepository
+from app.modules.procurement.repositories.purchase_requirement import (
+    PurchaseRequirementRepository,
+)
 
+from app.modules.procurement.repositories.purchase_request import (
+    PurchaseRequestRepository,
+)
+
+from app.modules.procurement.repositories.supplier import (
+    SupplierRepository,
+)
 
 __all__ = [
-    "SupplierRepository",
     "PurchaseRequirementRepository",
+    "PurchaseRequestRepository",
+    "SupplierRepository",
 ]

@@ -1,16 +1,25 @@
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
-Procurement Services
+Procurement Module
 
-Module-local application services.
+Service exports.
 """
 
-from .purchase_requirement import PurchaseRequirementService
-from .supplier import SupplierService
+from app.modules.procurement.services.purchase_requirement import (
+    PurchaseRequirementService,
+)
 
+from app.modules.procurement.services.purchase_request import (
+    PurchaseRequestService,
+)
+
+from app.modules.procurement.services.supplier import (
+    SupplierService,
+)
 
 __all__ = [
-    "SupplierService",
     "PurchaseRequirementService",
+    "PurchaseRequestService",
+    "SupplierService",
 ]
