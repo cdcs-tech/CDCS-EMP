@@ -61,7 +61,7 @@ def validate_execution_definition(
             command
         )
 
-        validate_command(
+        BaseCommand.validate(
             command_instance
         )
 
@@ -73,7 +73,7 @@ def validate_execution_definition(
     execute_name = getattr(
         command_instance,
         "execute_name",
-        None,
+        None
     )
 
     if not callable(

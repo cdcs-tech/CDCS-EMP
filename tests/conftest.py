@@ -24,9 +24,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app import create_app
 from app.extensions import db
-from app.models.user import User
 from app.core.platform.lifecycle import (
     ApplicationLifecycle,
+)
+from app.core.execution import (
+    command_registry,
 )
 
 # -------------------------------------------------------
@@ -41,7 +43,14 @@ def app():
     The application lifecycle is explicitly shut down after
     each test so that application-scoped enterprise services
     do not leak into subsequent application instances.
+
+    The process-global command registry is cleared at the
+    application test boundary because execution registrations
+    are stored in a shared registry while each test creates a
+    fresh application instance.
     """
+
+    command_registry.clear()
 
     app = create_app("testing")
 
@@ -55,6 +64,8 @@ def app():
             db.drop_all()
 
     finally:
+        command_registry.clear()
+
         lifecycle = ApplicationLifecycle.from_app(app)
 
         lifecycle.shutdown(app)
@@ -94,22 +105,34 @@ def runner(app):
 def session(app):
     """
     Database session.
+
+    This preserves the established Enterprise Fixture Manager
+    contract used by reusable test factories and fixtures.
     """
 
-    yield db.session
+    with app.app_context():
+        yield db.session
 
-    db.session.rollback()
+        db.session.rollback()
+
+
+# -------------------------------------------------------
+# Database Session Alias
+# -------------------------------------------------------
 
 @pytest.fixture(scope="function")
-def db_session(app):
+def db_session(session):
     """
-    Provide the active SQLAlchemy database session.
+    Active Flask-SQLAlchemy database session.
 
-    The app dependency guarantees that the Flask
-    application context is active.
+    This fixture is an explicit alias of the established
+    ``session`` fixture for tests that use the db_session name.
+    It does not introduce a separate SQLAlchemy session or
+    transaction architecture.
     """
 
-    return db.session
+    return session
+
 
 # -------------------------------------------------------
 # Import Reusable Fixtures

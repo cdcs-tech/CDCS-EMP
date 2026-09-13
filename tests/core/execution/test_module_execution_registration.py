@@ -124,6 +124,54 @@ def test_module_exposes_execution_definitions():
         TestHandler,
     )
 
+def test_execution_registration_accepts_command_with_constructor_payload():
+    class PayloadCommand(BaseCommand):
+
+        command_name = "test.module.payload"
+
+        def __init__(self, record_id: int) -> None:
+            self.record_id = record_id
+
+        def validate(self) -> None:
+            super().validate()
+
+            if not isinstance(self.record_id, int):
+                raise ValueError("record_id must be an integer.")
+
+            if self.record_id <= 0:
+                raise ValueError("record_id must be greater than zero.")
+
+        def execute_name(self) -> str:
+            return self.command_name
+
+    class PayloadHandler(BaseCommandHandler):
+
+        command_type = PayloadCommand
+
+        def handle(
+            self,
+            command,
+            context,
+        ):
+            return ExecutionResult.success_result(
+                data={
+                    "executed": True,
+                }
+            )
+
+    definition = ExecutionDefinition(
+        command=PayloadCommand,
+        handler=PayloadHandler(),
+    )
+
+    # Registration validation must validate the command contract
+    # without requiring a runtime payload.
+    from app.core.execution.registration import (
+        validate_execution_definition,
+    )
+
+    validate_execution_definition(definition)
+
 
 def test_module_registers_command_with_command_registry(
     app,

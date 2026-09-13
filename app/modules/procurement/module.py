@@ -8,12 +8,26 @@ Module definition and registration.
 
 from __future__ import annotations
 
+from app.core.execution import (
+    ExecutionDefinition,
+)
+
 from app.core.modules.base import (
     BaseModule,
 )
 
 from app.core.modules.metadata import (
     ModuleMetadata,
+)
+
+from app.modules.procurement.commands import (
+    ApprovePurchaseRequestCommand,
+    SubmitPurchaseRequestCommand,
+)
+
+from app.modules.procurement.handlers import (
+    ApprovePurchaseRequestHandler,
+    SubmitPurchaseRequestHandler,
 )
 
 from app.modules.procurement.security import (
@@ -29,7 +43,8 @@ class ProcurementModule(
 
     Provides the foundational Procurement domain model
     registration, enterprise security permission registration,
-    and Procurement HTTP blueprint registration.
+    Procurement HTTP blueprint registration, and approved
+    Purchase Request workflow execution registration.
 
     Operational workflows and cross-module integrations are
     introduced only at their approved implementation stages.
@@ -81,6 +96,25 @@ class ProcurementModule(
 
     def get_workflows(self):
         return []
+
+    def get_execution_definitions(self):
+        """
+        Return Procurement workflow execution definitions.
+
+        Workflow command authorization and transaction management
+        remain owned by the enterprise execution dispatcher.
+        """
+
+        return [
+            ExecutionDefinition(
+                command=SubmitPurchaseRequestCommand,
+                handler=SubmitPurchaseRequestHandler(),
+            ),
+            ExecutionDefinition(
+                command=ApprovePurchaseRequestCommand,
+                handler=ApprovePurchaseRequestHandler(),
+            ),
+        ]
 
     def register_blueprints(self, app):
         """
