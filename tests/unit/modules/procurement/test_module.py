@@ -8,6 +8,9 @@ Module tests.
 
 from app.core.modules import BaseModule
 from app.modules.procurement import ProcurementModule
+from app.modules.procurement.workflows import (
+    PurchaseRequestWorkflow,
+)
 
 
 def test_procurement_module_inherits_base_module():
@@ -83,15 +86,23 @@ def test_procurement_module_exposes_procurement_permissions():
     }
 
 
-def test_procurement_module_has_no_foundation_workflows():
+def test_procurement_module_exposes_purchase_request_workflow():
     """
-    Verify that Procurement workflow definitions remain deferred
-    to the dedicated Procurement Workflow stage.
+    Verify that Procurement exposes the approved Purchase
+    Request workflow definition.
     """
 
     module = ProcurementModule()
 
-    assert module.has_workflows() is False
+    assert module.has_workflows() is True
+    assert len(module.workflows) == 1
+    assert isinstance(
+        module.workflows[0].workflow,
+        PurchaseRequestWorkflow,
+    )
+
+    assert module.workflows[0].module_name == "PROCUREMENT"
+    assert module.workflows[0].workflow_name == "purchase_request"
 
 
 def test_procurement_module_registers_models():

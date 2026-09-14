@@ -20,6 +20,10 @@ from app.core.modules.metadata import (
     ModuleMetadata,
 )
 
+from app.core.workflow import (
+    WorkflowDefinition,
+)
+
 from app.modules.procurement.commands import (
     ApprovePurchaseRequestCommand,
     SubmitPurchaseRequestCommand,
@@ -43,7 +47,8 @@ class ProcurementModule(
 
     Provides the foundational Procurement domain model
     registration, enterprise security permission registration,
-    Procurement HTTP blueprint registration, and approved
+    Procurement HTTP blueprint registration, approved Purchase
+    Request workflow definition registration, and approved
     Purchase Request workflow execution registration.
 
     Operational workflows and cross-module integrations are
@@ -95,7 +100,24 @@ class ProcurementModule(
         return list(PROCUREMENT_PERMISSIONS)
 
     def get_workflows(self):
-        return []
+        """
+        Return Procurement enterprise workflow definitions.
+
+        Workflow registration is delegated to the
+        enterprise BaseModule lifecycle.
+        """
+
+        from app.modules.procurement.workflows import (
+            PurchaseRequestWorkflow,
+        )
+
+        return [
+            WorkflowDefinition(
+                module_name="PROCUREMENT",
+                workflow_name="purchase_request",
+                workflow=PurchaseRequestWorkflow(),
+            ),
+        ]
 
     def get_execution_definitions(self):
         """
