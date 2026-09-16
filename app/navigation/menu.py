@@ -17,18 +17,6 @@ MENU_ITEMS = [
     },
 
     {
-        "title": "Human Resources",
-        "endpoint": None,
-        "icon": "bi-people",
-    },
-
-    {
-        "title": "Finance",
-        "endpoint": None,
-        "icon": "bi-cash-stack",
-    },
-
-    {
         "title": "Procurement",
         "endpoint": None,
         "icon": "bi-cart4",
@@ -41,7 +29,23 @@ MENU_ITEMS = [
                 "title": "Purchase Requirements",
                 "endpoint": "procurement.purchase_requirements",
             },
+            {
+                "title": "Purchase Requests",
+                "endpoint": "procurement.purchase_requests",
+            },
         ],
+    },
+
+    {
+        "title": "Human Resources",
+        "endpoint": None,
+        "icon": "bi-people",
+    },
+
+    {
+        "title": "Finance",
+        "endpoint": None,
+        "icon": "bi-cash-stack",
     },
 
     {

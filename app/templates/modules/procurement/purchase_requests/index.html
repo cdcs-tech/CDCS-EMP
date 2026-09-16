@@ -1,0 +1,307 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Purchase Requests
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Purchase Requests",
+    subtitle="Manage Procurement purchase requests."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="d-flex justify-content-end mb-3">
+
+        <a href="{{ url_for('procurement.create_purchase_request') }}" class="btn btn-primary">
+            New Purchase Request
+        </a>
+
+    </div>
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <form method="get" class="row g-3 mb-4">
+
+                <div class="col-md-4">
+                    <label for="search" class="form-label">
+                        Search
+                    </label>
+
+                    <input type="text" class="form-control" id="search" name="search"
+                        value="{{ request.args.get('search', '') }}" placeholder="Search purchase requests...">
+                </div>
+
+                <div class="col-md-2">
+                    <label for="status" class="form-label">
+                        Status
+                    </label>
+
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All</option>
+
+                        {% for status_option in [
+                        "DRAFT",
+                        "SUBMITTED",
+                        "APPROVED",
+                        "REJECTED"
+                        ] %}
+                        <option value="{{ status_option }}" {% if request.args.get('status')==status_option %}selected{%
+                            endif %}>
+                            {{ status_option }}
+                        </option>
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="sort" class="form-label">
+                        Sort By
+                    </label>
+
+                    <select class="form-select" id="sort" name="sort">
+
+                        {% for field in [
+                        "reference",
+                        "purchase_requirement_id",
+                        "request_date",
+                        "required_by_date",
+                        "status"
+                        ] %}
+                        <option value="{{ field }}" {% if query_options.sort_by==field %}selected{% endif %}>
+                            {{ field|replace("_", " ")|title }}
+                        </option>
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="direction" class="form-label">
+                        Direction
+                    </label>
+
+                    <select class="form-select" id="direction" name="direction">
+
+                        <option value="asc" {% if query_options.sort_direction=="asc" %}selected{% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if query_options.sort_direction=="desc" %}selected{% endif %}>
+                            Descending
+                        </option>
+
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="page_size" class="form-label">
+                        Page Size
+                    </label>
+
+                    <select class="form-select" id="page_size" name="page_size">
+
+                        {% for size in [10, 20, 50, 100] %}
+                        <option value="{{ size }}" {% if query_options.page_size==size %}selected{% endif %}>
+                            {{ size }}
+                        </option>
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+
+                    <a href="{{ url_for('procurement.purchase_requests') }}" class="btn btn-outline-secondary">
+                        Reset
+                    </a>
+
+                </div>
+
+            </form>
+
+            {% if purchase_requests.items %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Purchase Requirement</th>
+                            <th>Request Date</th>
+                            <th>Required By</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for purchase_request in purchase_requests.items %}
+
+                        <tr>
+
+                            <td>
+                                {{ purchase_request.reference }}
+                            </td>
+
+                            <td>
+                                {% if purchase_request.purchase_requirement %}
+                                {{ purchase_request.purchase_requirement.reference }}
+                                {% else %}
+                                {{ purchase_request.purchase_requirement_id }}
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ purchase_request.request_date or "-" }}
+                            </td>
+
+                            <td>
+                                {{ purchase_request.required_by_date or "-" }}
+                            </td>
+
+                            <td>
+                                {{ purchase_request.status }}
+                            </td>
+
+                            <td>
+
+                                <div class="d-flex gap-1">
+
+                                    <a href="{{ url_for(
+                                            'procurement.view_purchase_request',
+                                            purchase_request_id=purchase_request.id
+                                        ) }}" class="btn btn-outline-primary btn-sm">
+                                        View
+                                    </a>
+
+                                    <a href="{{ url_for(
+                                            'procurement.edit_purchase_request',
+                                            purchase_request_id=purchase_request.id
+                                        ) }}" class="btn btn-outline-secondary btn-sm">
+                                        Edit
+                                    </a>
+
+                                    <form method="post" action="{{ url_for(
+                                              'procurement.delete_purchase_request',
+                                              purchase_request_id=purchase_request.id
+                                          ) }}" class="d-inline"
+                                        onsubmit="return confirm('Are you sure you want to delete this purchase request?');">
+
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            Delete
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <nav aria-label="Purchase request pagination">
+
+                <ul class="pagination">
+
+                    {% if purchase_requests.has_previous %}
+
+                    <li class="page-item">
+
+                        <a class="page-link" href="{{ url_for(
+                               'procurement.purchase_requests',
+                               page=purchase_requests.page - 1,
+                               page_size=query_options.page_size,
+                               search=query_options.search,
+                               status=query_options.filters.get('status', ''),
+                               sort=query_options.sort_by,
+                               direction=query_options.sort_direction
+                           ) }}">
+                            Previous
+                        </a>
+
+                    </li>
+
+                    {% endif %}
+
+                    <li class="page-item active">
+
+                        <span class="page-link">
+                            {{ purchase_requests.page }}
+                        </span>
+
+                    </li>
+
+                    {% if purchase_requests.has_next %}
+
+                    <li class="page-item">
+
+                        <a class="page-link" href="{{ url_for(
+                               'procurement.purchase_requests',
+                               page=purchase_requests.page + 1,
+                               page_size=query_options.page_size,
+                               search=query_options.search,
+                               status=query_options.filters.get('status', ''),
+                               sort=query_options.sort_by,
+                               direction=query_options.sort_direction
+                           ) }}">
+                            Next
+                        </a>
+
+                    </li>
+
+                    {% endif %}
+
+                </ul>
+
+            </nav>
+
+            {% else %}
+
+            {% if query_options.search or query_options.filters.get('status') %}
+
+            <div class="alert alert-info">
+                No purchase requests match the current filters.
+            </div>
+
+            {% else %}
+
+            <div class="alert alert-info">
+                No purchase requests have been created yet.
+            </div>
+
+            {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

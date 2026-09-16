@@ -92,6 +92,47 @@ PROCUREMENT_PURCHASE_REQUIREMENT_DELETE = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Purchase Request CRUD Permissions
+# ---------------------------------------------------------------------------
+
+PROCUREMENT_PURCHASE_REQUEST_CREATE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.CREATE",
+    name="procurement.purchase_request.create",
+    description="Create Procurement purchase requests.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="create",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_READ = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.READ",
+    name="procurement.purchase_request.read",
+    description="Read Procurement purchase requests.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="read",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_UPDATE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.UPDATE",
+    name="procurement.purchase_request.update",
+    description="Update Procurement purchase requests.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="update",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_DELETE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.DELETE",
+    name="procurement.purchase_request.delete",
+    description="Delete Procurement purchase requests.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="delete",
+)
+
+
+# ---------------------------------------------------------------------------
 # Purchase Request Workflow Permissions
 # ---------------------------------------------------------------------------
 
@@ -145,6 +186,10 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_PURCHASE_REQUIREMENT_READ,
     PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
     PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
+    PROCUREMENT_PURCHASE_REQUEST_CREATE,
+    PROCUREMENT_PURCHASE_REQUEST_READ,
+    PROCUREMENT_PURCHASE_REQUEST_UPDATE,
+    PROCUREMENT_PURCHASE_REQUEST_DELETE,
     PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
     PROCUREMENT_PURCHASE_REQUEST_APPROVE,
     PROCUREMENT_PURCHASE_REQUEST_REJECT,
@@ -160,10 +205,14 @@ __all__ = [
     "PROCUREMENT_PURCHASE_REQUIREMENT_CREATE",
     "PROCUREMENT_PURCHASE_REQUIREMENT_READ",
     "PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE",
+    "PROCUREMENT_PURCHASE_REQUIREMENT_DELETE",
+    "PROCUREMENT_PURCHASE_REQUEST_CREATE",
+    "PROCUREMENT_PURCHASE_REQUEST_READ",
+    "PROCUREMENT_PURCHASE_REQUEST_UPDATE",
+    "PROCUREMENT_PURCHASE_REQUEST_DELETE",
     "PROCUREMENT_PURCHASE_REQUEST_SUBMIT",
     "PROCUREMENT_PURCHASE_REQUEST_APPROVE",
     "PROCUREMENT_PURCHASE_REQUEST_REJECT",
     "PROCUREMENT_PURCHASE_REQUEST_RETURN",
-    "PROCUREMENT_PURCHASE_REQUIREMENT_DELETE",
     "PROCUREMENT_PERMISSIONS",
 ]

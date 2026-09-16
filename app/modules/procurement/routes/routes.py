@@ -20,14 +20,20 @@ from flask_login import login_required
 
 from app.core.data import QueryOptions
 from app.modules.procurement.forms import (
+    PurchaseRequestForm,
     PurchaseRequirementForm,
     SupplierForm,
 )
 from app.modules.procurement.models import (
+    PurchaseRequest,
     PurchaseRequirement,
     Supplier,
 )
 from app.modules.procurement.security import (
+    PROCUREMENT_PURCHASE_REQUEST_CREATE,
+    PROCUREMENT_PURCHASE_REQUEST_DELETE,
+    PROCUREMENT_PURCHASE_REQUEST_READ,
+    PROCUREMENT_PURCHASE_REQUEST_UPDATE,
     PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
     PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
     PROCUREMENT_PURCHASE_REQUIREMENT_READ,
@@ -38,6 +44,7 @@ from app.modules.procurement.security import (
     PROCUREMENT_SUPPLIER_UPDATE,
 )
 from app.modules.procurement.services import (
+    PurchaseRequestService,
     PurchaseRequirementService,
     SupplierService,
 )
@@ -62,6 +69,15 @@ _PURCHASE_REQUIREMENT_SORT_FIELDS = {
     "reference",
     "description",
     "source_module",
+    "required_by_date",
+    "status",
+}
+
+
+_PURCHASE_REQUEST_SORT_FIELDS = {
+    "reference",
+    "purchase_requirement_id",
+    "request_date",
     "required_by_date",
     "status",
 }
@@ -205,6 +221,66 @@ def _build_purchase_requirement_query_options() -> QueryOptions:
             request.args.get("status")
         ),
     )
+
+
+def _build_purchase_request_query_options() -> QueryOptions:
+    """
+    Build controlled query options for Purchase Requests.
+    """
+
+    return QueryOptions(
+        page=_parse_positive_int(
+            request.args.get("page"),
+            1,
+        ),
+        page_size=_parse_page_size(
+            request.args.get("page_size"),
+        ),
+        sort_by=_parse_sort(
+            request.args.get("sort"),
+            _PURCHASE_REQUEST_SORT_FIELDS,
+            "reference",
+        ),
+        sort_direction=_parse_sort_direction(
+            request.args.get("direction"),
+        ),
+        search=request.args.get(
+            "search"
+        ),
+        filters=_parse_status_filter(
+            request.args.get("status")
+        ),
+    )
+
+
+def _load_purchase_requirement_choices(
+    form: PurchaseRequestForm,
+) -> None:
+    """
+    Populate Purchase Request Purchase Requirement choices.
+
+    The selection is populated through the existing
+    Purchase Requirement service and pagination contract.
+    """
+
+    service = PurchaseRequirementService()
+
+    result = service.paginate(
+        QueryOptions(
+            page=1,
+            page_size=1000,
+            sort_by="reference",
+            sort_direction="asc",
+        )
+    )
+
+    form.purchase_requirement_id.choices = [
+        (
+            requirement.id,
+            requirement.reference,
+        )
+        for requirement in result.items
+    ]
 
 
 @procurement_bp.route(
@@ -595,6 +671,225 @@ def delete_purchase_requirement(
     return redirect(
         url_for(
             "procurement.purchase_requirements"
+        )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/",
+    methods=["GET"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_READ.name
+)
+def purchase_requests():
+    """
+    Render the Procurement Purchase Request management list.
+    """
+
+    service = PurchaseRequestService()
+    query_options = (
+        _build_purchase_request_query_options()
+    )
+
+    result = service.paginate(
+        query_options
+    )
+
+    return render_template(
+        "modules/procurement/purchase_requests/index.html",
+        purchase_requests=result,
+        query_options=query_options,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_CREATE.name
+)
+def create_purchase_request():
+    """
+    Create a Procurement Purchase Request.
+    """
+
+    form = PurchaseRequestForm()
+
+    _load_purchase_requirement_choices(
+        form
+    )
+
+    if form.validate_on_submit():
+        service = PurchaseRequestService()
+
+        purchase_request = service.create(
+            PurchaseRequest(
+                reference=form.reference.data,
+                purchase_requirement_id=(
+                    form.purchase_requirement_id.data
+                ),
+                request_date=form.request_date.data,
+                required_by_date=form.required_by_date.data,
+                status=form.status.data,
+                justification=form.justification.data,
+                notes=form.notes.data,
+            )
+        )
+
+        flash(
+            "Purchase request created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "procurement.purchase_requests"
+            )
+        )
+
+    return render_template(
+        "modules/procurement/purchase_requests/create.html",
+        form=form,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>",
+    methods=["GET"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_READ.name
+)
+def view_purchase_request(
+    purchase_request_id: int,
+):
+    """
+    View a Procurement Purchase Request.
+    """
+
+    service = PurchaseRequestService()
+
+    purchase_request = service.get(
+        purchase_request_id
+    )
+
+    return render_template(
+        "modules/procurement/purchase_requests/view.html",
+        purchase_request=purchase_request,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_UPDATE.name
+)
+def edit_purchase_request(
+    purchase_request_id: int,
+):
+    """
+    Edit a Procurement Purchase Request.
+    """
+
+    service = PurchaseRequestService()
+
+    purchase_request = service.get(
+        purchase_request_id
+    )
+
+    form = PurchaseRequestForm(
+        obj=purchase_request
+    )
+
+    _load_purchase_requirement_choices(
+        form
+    )
+
+    if form.validate_on_submit():
+        purchase_request.reference = (
+            form.reference.data
+        )
+        purchase_request.purchase_requirement_id = (
+            form.purchase_requirement_id.data
+        )
+        purchase_request.request_date = (
+            form.request_date.data
+        )
+        purchase_request.required_by_date = (
+            form.required_by_date.data
+        )
+        purchase_request.status = (
+            form.status.data
+        )
+        purchase_request.justification = (
+            form.justification.data
+        )
+        purchase_request.notes = (
+            form.notes.data
+        )
+
+        service.update(
+            purchase_request
+        )
+
+        flash(
+            "Purchase request updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "procurement.view_purchase_request",
+                purchase_request_id=(
+                    purchase_request.id
+                ),
+            )
+        )
+
+    return render_template(
+        "modules/procurement/purchase_requests/edit.html",
+        form=form,
+        purchase_request=purchase_request,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/delete",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_DELETE.name
+)
+def delete_purchase_request(
+    purchase_request_id: int,
+):
+    """
+    Delete a Procurement Purchase Request.
+    """
+
+    service = PurchaseRequestService()
+
+    service.delete(
+        purchase_request_id
+    )
+
+    flash(
+        "Purchase request deleted successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.purchase_requests"
         )
     )
 

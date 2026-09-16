@@ -1,0 +1,121 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Purchase Request Details
+{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    {% with
+    title="Purchase Request Details",
+    subtitle="View Procurement purchase request details."
+    %}
+    {% include "components/page_header.html" %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+
+            <h5 class="mb-0">
+                Purchase Request Details
+            </h5>
+
+        </div>
+
+        <div class="card-body">
+
+            <dl class="row mb-0">
+
+                <dt class="col-sm-3">
+                    Reference
+                </dt>
+
+                <dd class="col-sm-9">
+                    {{ purchase_request.reference }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Purchase Requirement
+                </dt>
+
+                <dd class="col-sm-9">
+
+                    {% if purchase_request.purchase_requirement %}
+
+                    {{ purchase_request.purchase_requirement.reference }}
+
+                    {% else %}
+
+                    {{ purchase_request.purchase_requirement_id }}
+
+                    {% endif %}
+
+                </dd>
+
+                <dt class="col-sm-3">
+                    Request Date
+                </dt>
+
+                <dd class="col-sm-9">
+                    {{ purchase_request.request_date or "-" }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Required By Date
+                </dt>
+
+                <dd class="col-sm-9">
+                    {{ purchase_request.required_by_date or "-" }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Status
+                </dt>
+
+                <dd class="col-sm-9">
+                    {{ purchase_request.status }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Justification
+                </dt>
+
+                <dd class="col-sm-9">
+                    {{ purchase_request.justification or "-" }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Notes
+                </dt>
+
+                <dd class="col-sm-9">
+                    {{ purchase_request.notes or "-" }}
+                </dd>
+
+            </dl>
+
+        </div>
+
+        <div class="card-footer d-flex gap-2">
+
+            <a href="{{ url_for(
+                    'procurement.edit_purchase_request',
+                    purchase_request_id=purchase_request.id
+                ) }}" class="btn btn-primary">
+                Edit Purchase Request
+            </a>
+
+            <a href="{{ url_for('procurement.purchase_requests') }}" class="btn btn-secondary">
+                Back to Purchase Requests
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
