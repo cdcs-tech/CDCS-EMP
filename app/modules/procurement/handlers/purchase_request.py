@@ -56,14 +56,22 @@ class SubmitPurchaseRequestHandler(
         context: ExecutionContext,
     ) -> ExecutionResult:
         """
-        Submit a Purchase Request from DRAFT to SUBMITTED.
+        Submit a Purchase Request through its workflow.
         """
 
         purchase_request = self.service.get(
             command.purchase_request_id
         )
 
-        if purchase_request.status != "DRAFT":
+        previous_status = (
+            purchase_request.status
+        )
+
+        try:
+            self.service.submit(
+                purchase_request
+            )
+        except ValueError:
             return ExecutionResult.failure_result(
                 message=(
                     "Purchase Request must be in "
@@ -75,12 +83,6 @@ class SubmitPurchaseRequestHandler(
                 data=purchase_request,
             )
 
-        purchase_request.status = "SUBMITTED"
-
-        self.service.update(
-            purchase_request
-        )
-
         return ExecutionResult.success_result(
             data=purchase_request,
             message=(
@@ -90,8 +92,8 @@ class SubmitPurchaseRequestHandler(
                 "purchase_request_id": (
                     purchase_request.id
                 ),
-                "previous_status": "DRAFT",
-                "new_status": "SUBMITTED",
+                "previous_status": previous_status,
+                "new_status": purchase_request.status,
                 "operation": context.operation,
             },
         )
@@ -123,15 +125,22 @@ class ApprovePurchaseRequestHandler(
         context: ExecutionContext,
     ) -> ExecutionResult:
         """
-        Approve a Purchase Request from
-        SUBMITTED to APPROVED.
+        Approve a Purchase Request through its workflow.
         """
 
         purchase_request = self.service.get(
             command.purchase_request_id
         )
 
-        if purchase_request.status != "SUBMITTED":
+        previous_status = (
+            purchase_request.status
+        )
+
+        try:
+            self.service.approve(
+                purchase_request
+            )
+        except ValueError:
             return ExecutionResult.failure_result(
                 message=(
                     "Purchase Request must be in "
@@ -143,12 +152,6 @@ class ApprovePurchaseRequestHandler(
                 data=purchase_request,
             )
 
-        purchase_request.status = "APPROVED"
-
-        self.service.update(
-            purchase_request
-        )
-
         return ExecutionResult.success_result(
             data=purchase_request,
             message=(
@@ -158,8 +161,8 @@ class ApprovePurchaseRequestHandler(
                 "purchase_request_id": (
                     purchase_request.id
                 ),
-                "previous_status": "SUBMITTED",
-                "new_status": "APPROVED",
+                "previous_status": previous_status,
+                "new_status": purchase_request.status,
                 "operation": context.operation,
             },
         )

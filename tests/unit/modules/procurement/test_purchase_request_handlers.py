@@ -59,7 +59,7 @@ def test_approve_handler_supports_approve_command():
     assert handler.supports(command) is True
 
 
-def test_submit_handler_moves_draft_to_submitted():
+def test_submit_handler_delegates_to_service():
     service = Mock()
 
     purchase_request = _purchase_request(
@@ -67,6 +67,9 @@ def test_submit_handler_moves_draft_to_submitted():
     )
 
     service.get.return_value = (
+        purchase_request
+    )
+    service.submit.return_value = (
         purchase_request
     )
 
@@ -86,15 +89,15 @@ def test_submit_handler_moves_draft_to_submitted():
         ExecutionResult,
     )
     assert result.success is True
-    assert purchase_request.status == "SUBMITTED"
+    assert result.data is purchase_request
 
     service.get.assert_called_once_with(1)
-    service.update.assert_called_once_with(
+    service.submit.assert_called_once_with(
         purchase_request
     )
 
 
-def test_submit_handler_rejects_non_draft():
+def test_submit_handler_returns_invalid_state_failure():
     service = Mock()
 
     purchase_request = _purchase_request(
@@ -103,6 +106,9 @@ def test_submit_handler_rejects_non_draft():
 
     service.get.return_value = (
         purchase_request
+    )
+    service.submit.side_effect = ValueError(
+        "Invalid workflow transition."
     )
 
     handler = SubmitPurchaseRequestHandler(
@@ -121,11 +127,17 @@ def test_submit_handler_rejects_non_draft():
         result.error_code
         == "INVALID_PURCHASE_REQUEST_STATE"
     )
+    assert result.data is purchase_request
     assert purchase_request.status == "SUBMITTED"
+
+    service.get.assert_called_once_with(1)
+    service.submit.assert_called_once_with(
+        purchase_request
+    )
     service.update.assert_not_called()
 
 
-def test_approve_handler_moves_submitted_to_approved():
+def test_approve_handler_delegates_to_service():
     service = Mock()
 
     purchase_request = _purchase_request(
@@ -133,6 +145,9 @@ def test_approve_handler_moves_submitted_to_approved():
     )
 
     service.get.return_value = (
+        purchase_request
+    )
+    service.approve.return_value = (
         purchase_request
     )
 
@@ -152,15 +167,15 @@ def test_approve_handler_moves_submitted_to_approved():
         ExecutionResult,
     )
     assert result.success is True
-    assert purchase_request.status == "APPROVED"
+    assert result.data is purchase_request
 
     service.get.assert_called_once_with(1)
-    service.update.assert_called_once_with(
+    service.approve.assert_called_once_with(
         purchase_request
     )
 
 
-def test_approve_handler_rejects_non_submitted():
+def test_approve_handler_returns_invalid_state_failure():
     service = Mock()
 
     purchase_request = _purchase_request(
@@ -169,6 +184,9 @@ def test_approve_handler_rejects_non_submitted():
 
     service.get.return_value = (
         purchase_request
+    )
+    service.approve.side_effect = ValueError(
+        "Invalid workflow transition."
     )
 
     handler = ApprovePurchaseRequestHandler(
@@ -187,7 +205,13 @@ def test_approve_handler_rejects_non_submitted():
         result.error_code
         == "INVALID_PURCHASE_REQUEST_STATE"
     )
+    assert result.data is purchase_request
     assert purchase_request.status == "DRAFT"
+
+    service.get.assert_called_once_with(1)
+    service.approve.assert_called_once_with(
+        purchase_request
+    )
     service.update.assert_not_called()
 
 
@@ -199,6 +223,9 @@ def test_submit_handler_does_not_authorize_directly():
     )
 
     service.get.return_value = (
+        purchase_request
+    )
+    service.submit.return_value = (
         purchase_request
     )
 
@@ -230,6 +257,9 @@ def test_approve_handler_does_not_authorize_directly():
     service.get.return_value = (
         purchase_request
     )
+    service.approve.return_value = (
+        purchase_request
+    )
 
     handler = ApprovePurchaseRequestHandler(
         service=service
@@ -259,6 +289,9 @@ def test_handlers_return_purchase_request_data():
     service.get.return_value = (
         purchase_request
     )
+    service.submit.return_value = (
+        purchase_request
+    )
 
     handler = SubmitPurchaseRequestHandler(
         service=service
@@ -279,5 +312,5 @@ def test_handlers_return_purchase_request_data():
     )
     assert (
         result.metadata["new_status"]
-        == "SUBMITTED"
+        == "DRAFT"
     )
