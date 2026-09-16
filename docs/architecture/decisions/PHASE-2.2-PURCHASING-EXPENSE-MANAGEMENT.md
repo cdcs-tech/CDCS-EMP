@@ -772,10 +772,10 @@ The operational components completed and verified under this stage are:
 
 * Supplier
 * Purchase Requirement
+* Purchase Request
 
 The remaining Procurement operational components are intentionally deferred to their subsequent implementation stages:
 
-* Purchase Request
 * Purchase Request Lines
 * Purchase Order
 * Purchase Order Lines
@@ -784,7 +784,7 @@ They are therefore **not considered implemented by this completion record**.
 
 ### Supplier Operational Surface
 
-The Supplier operational surface was previously implemented and verified as the first focused Procurement operational component.
+The Supplier operational surface was implemented and verified as the first focused Procurement operational component.
 
 It provides:
 
@@ -820,6 +820,30 @@ The Purchase Requirement operational surface provides:
 
 The implementation uses the approved Purchase Requirement fields and preserves the explicit `source_module`, `source_type`, and `source_reference` references without introducing direct cross-module foreign-key coupling.
 
+### Purchase Request Operational Surface
+
+The Purchase Request operational surface has been implemented and browser-verified as the next focused Procurement operational component.
+
+It provides:
+
+* Purchase Request list and detail views
+* Search
+* Status filtering
+* Sorting and pagination
+* Purchase Request creation
+* Purchase Request viewing
+* Purchase Request editing
+* Purchase Request deletion according to enterprise persistence conventions
+* Purchase Requirement association through the approved Purchase Request relationship
+* Permission-protected access
+* CSRF-protected Flask-WTF forms
+* Repository/service integration through the existing enterprise CRUD and data-access infrastructure
+* Procurement navigation integration through the established application navigation structure
+
+The Purchase Request operational surface intentionally does **not** introduce workflow actions. Submit, Approve, Reject, and Return remain governed by the dedicated Procurement Workflow implementation.
+
+Purchase Request Lines remain deferred. No independent Purchase Request Line operational surface has been introduced by this completion record.
+
 ### Architecture Conformance
 
 The completed operational components conform to the approved Phase 2.2 architecture:
@@ -829,33 +853,43 @@ The completed operational components conform to the approved Phase 2.2 architect
 * No parallel authorization, governance, or transaction architecture has been introduced.
 * No new Procurement domain entities have been introduced.
 * No direct Catering, Inventory, Finance, or Expense Management foreign-key coupling has been introduced.
-* Procurement workflow lifecycle actions remain deferred to the dedicated Procurement Workflow stage.
+* Procurement workflow lifecycle actions remain governed by the dedicated Procurement Workflow stage.
 * Receiving and physical inventory effects remain deferred to the Procurement ↔ Inventory integration stage.
 * Expense Management and Finance integration remain outside this stage.
 * Supplier banking, settlement, tax settlement, invoices, payments, and accounting remain outside this stage.
 * Catering integration and Reporting integration remain outside this stage.
+* Purchase Request Lines and Purchase Order operational surfaces remain deferred.
 
 ### Verification
 
 The completed Phase 2.2.3 operational components were verified through:
 
-* Procurement unit-test surface: **78 passed**
+* Procurement operational unit-test coverage: **78 passed**
 * Shared application transaction tests: **10 passed**
 * Full CDCS-EMP regression suite: **2,108 passed**
-* Browser verification of the complete Purchase Requirement CRUD surface: **Passed**
+* Browser verification of the Purchase Requirement CRUD surface: **Passed**
+* Browser verification of the Purchase Request CRUD surface: **Passed**
+* Procurement navigation verification: **Passed**
+* Purchase Request RBAC verification: **Passed**
+* Purchase Request list, create, view, edit, and delete operations: **Verified**
 * Search, filtering, sorting, and pagination: **Verified**
-* Create, View, Edit, and Delete operations: **Verified**
-* Procurement navigation and operational-surface access: **Verified**
-* Previously completed Supplier operational surface: **Verified**
+* Test Purchase Request creation, modification, and deletion: **Verified**
+* `git diff --check`: **Clean**
 
 ### Completion Decision
 
-The completed Supplier and Purchase Requirement operational components are hereby recorded as **IMPLEMENTED / VERIFIED** within Phase 2.2.3.
+The **Procurement Operational Surface** is approved as **implemented and verified** within Phase 2.2.3 for the following components:
 
-This completion establishes the approved Procurement operational CRUD pattern while deliberately deferring workflow, receiving, cross-module integration, financial processing, and the remaining Procurement operational components to their designated subsequent stages.
+* Supplier
+* Purchase Requirement
+* Purchase Request
+
+Purchase Request Lines, Purchase Order, and Purchase Order Lines remain intentionally deferred.
+
+The completed implementation establishes the approved Procurement operational CRUD pattern while preserving the separation between ordinary operational management and governed workflow execution. Procurement workflow actions, receiving, inventory effects, expense processing, financial processing, and cross-module integrations remain outside this operational-surface completion boundary.
 
 **Related Decision:** Phase 2.2.3 — Procurement Operational Surface Design
-**Authoritative Document:** `PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
+**Authoritative Document:** `docs/architecture/decisions/PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
 
 ## Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership
 
@@ -1900,6 +1934,109 @@ The stage establishes the enterprise execution-registration foundation required 
 Actual Purchase Request and Purchase Order workflow commands, handlers, lifecycle transitions, authorization requirements, transaction behavior, and workflow-specific business rules remain subject to their approved implementation stages and shall not be considered implemented by this completion record.
 
 **Related Design Decision:** Phase 2.2.4.4 — Procurement Workflow Authorization & Execution Architecture
+
+**Authoritative Document:** `docs/architecture/decisions/PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
+
+### Phase 2.2.5 — Purchase Request Workflow Execution & Authorization Implementation Completion
+
+**Component:** Purchase Request Workflow Execution & Authorization
+**Status:** IMPLEMENTED / VERIFIED / CLOSED
+**Implementation Status:** Complete
+**Verification Status:** Verified
+**Completion Date:** 16 September 2026
+
+#### Implementation Scope
+
+The approved Purchase Request workflow execution and authorization component has been implemented across the Procurement module and the enterprise execution architecture.
+
+The implementation establishes the complete execution path for the four approved Purchase Request workflow operations:
+
+* `purchase_request.submit`
+* `purchase_request.approve`
+* `purchase_request.reject`
+* `purchase_request.return`
+
+The implementation includes:
+
+* Purchase Request workflow command definitions for all four approved operations.
+* Purchase Request command registration through the existing enterprise execution registration mechanism.
+* Purchase Request workflow handlers for all four approved operations.
+* Service-level integration with the authoritative `PurchaseRequestWorkflow` transition model.
+* Explicit Procurement execution-permission declarations for each workflow command.
+* Procurement execution-permission definitions for SUBMIT, APPROVE, REJECT, and RETURN.
+* Enterprise startup composition of Procurement execution-permission mappings into the existing `PermissionExecutionPolicy`.
+* Permission-aware authorization configuration for the application `CommandDispatcher`.
+* Authorization through the existing enterprise security authorization engine.
+* Verification that unauthorized Purchase Request execution is denied before the command handler is invoked.
+* Preservation of the existing enterprise dispatcher, permission policy, transaction, and lifecycle architecture.
+
+The four approved workflow operations are mapped as follows:
+
+| Workflow Operation | Command                                | Required Permission                    |
+| ------------------ | -------------------------------------- | -------------------------------------- |
+| Submit             | `procurement.purchase_request.submit`  | `PROCUREMENT.PURCHASE_REQUEST.SUBMIT`  |
+| Approve            | `procurement.purchase_request.approve` | `PROCUREMENT.PURCHASE_REQUEST.APPROVE` |
+| Reject             | `procurement.purchase_request.reject`  | `PROCUREMENT.PURCHASE_REQUEST.REJECT`  |
+| Return             | `procurement.purchase_request.return`  | `PROCUREMENT.PURCHASE_REQUEST.RETURN`  |
+
+#### Architecture Conformance
+
+The implementation conforms to the approved Phase 2.2.4 Procurement Workflow Authorization & Execution Architecture:
+
+**Workflow Operation → Enterprise Command → Command Dispatcher → Authorization → Transaction → Command Handler → Workflow Transition → Execution Result**
+
+Workflow lifecycle ownership remains with the approved `PurchaseRequestWorkflow` definition. Command handlers do not implement a second workflow state machine.
+
+Authorization remains an enterprise execution concern. Procurement declares the required permissions for its execution commands, while the existing enterprise authorization infrastructure resolves and evaluates those permissions.
+
+No changes were made to the core `CommandDispatcher` or `PermissionExecutionPolicy` behavior.
+
+The implementation does not introduce:
+
+* duplicate authorization infrastructure;
+* direct cross-module foreign-key coupling;
+* Inventory integration;
+* Expense Management integration;
+* Finance integration;
+* receiving or physical stock effects;
+* invoice or payment processing;
+* accounting or General Ledger functionality;
+* new Purchase Request workflow states or transitions.
+
+#### Verification Results
+
+Focused Procurement workflow command, service, handler, registration, permission, and authorization tests passed.
+
+The combined execution and Procurement verification suite passed:
+
+**467 passed**
+
+The complete CDCS-EMP regression suite passed:
+
+**2,182 passed**
+
+`git diff --check` completed successfully with no formatting errors.
+
+The final implementation was committed to Git:
+
+**`fd34f56 feat(procurement): complete purchase request workflow authorization`**
+
+The working tree was verified clean after the commit.
+
+#### Completion Decision
+
+**IMPLEMENTED / VERIFIED / CLOSED**
+
+The approved Purchase Request workflow execution and authorization component is complete and conforms to the Phase 2.2 workflow and enterprise execution architecture.
+
+Further Procurement workflow implementation remains subject to the separately approved Purchase Order workflow scope and the established Phase 2.2 implementation sequence.
+
+#### Related Design Decisions
+
+* Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership
+* Phase 2.2.4.2 — Purchase Request Workflow Lifecycle & Transition Design
+* Phase 2.2.4.4 — Procurement Workflow Authorization & Execution Architecture
+* Phase 2.2.5 — Procurement Workflow Execution Implementation
 
 **Authoritative Document:** `docs/architecture/decisions/PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
 
