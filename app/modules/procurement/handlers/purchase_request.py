@@ -22,6 +22,8 @@ from app.core.execution.results import (
 
 from app.modules.procurement.commands import (
     ApprovePurchaseRequestCommand,
+    RejectPurchaseRequestCommand,
+    ReturnPurchaseRequestCommand,
     SubmitPurchaseRequestCommand,
 )
 
@@ -168,7 +170,149 @@ class ApprovePurchaseRequestHandler(
         )
 
 
+class RejectPurchaseRequestHandler(
+    BaseCommandHandler,
+):
+    """
+    Handle Purchase Request rejection.
+    """
+
+    command_type = (
+        RejectPurchaseRequestCommand
+    )
+
+    def __init__(
+        self,
+        service: PurchaseRequestService | None = None,
+    ) -> None:
+        self.service = (
+            service
+            or PurchaseRequestService()
+        )
+
+    def handle(
+        self,
+        command: RejectPurchaseRequestCommand,
+        context: ExecutionContext,
+    ) -> ExecutionResult:
+        """
+        Reject a Purchase Request through its workflow.
+        """
+
+        purchase_request = self.service.get(
+            command.purchase_request_id
+        )
+
+        previous_status = (
+            purchase_request.status
+        )
+
+        try:
+            self.service.reject(
+                purchase_request
+            )
+        except ValueError:
+            return ExecutionResult.failure_result(
+                message=(
+                    "Purchase Request must be in "
+                    "SUBMITTED status before rejection."
+                ),
+                error_code=(
+                    "INVALID_PURCHASE_REQUEST_STATE"
+                ),
+                data=purchase_request,
+            )
+
+        return ExecutionResult.success_result(
+            data=purchase_request,
+            message=(
+                "Purchase Request rejected successfully."
+            ),
+            metadata={
+                "purchase_request_id": (
+                    purchase_request.id
+                ),
+                "previous_status": previous_status,
+                "new_status": purchase_request.status,
+                "operation": context.operation,
+            },
+        )
+
+
+class ReturnPurchaseRequestHandler(
+    BaseCommandHandler,
+):
+    """
+    Handle returning a Purchase Request to draft.
+    """
+
+    command_type = (
+        ReturnPurchaseRequestCommand
+    )
+
+    def __init__(
+        self,
+        service: PurchaseRequestService | None = None,
+    ) -> None:
+        self.service = (
+            service
+            or PurchaseRequestService()
+        )
+
+    def handle(
+        self,
+        command: ReturnPurchaseRequestCommand,
+        context: ExecutionContext,
+    ) -> ExecutionResult:
+        """
+        Return a Purchase Request to draft
+        through its workflow.
+        """
+
+        purchase_request = self.service.get(
+            command.purchase_request_id
+        )
+
+        previous_status = (
+            purchase_request.status
+        )
+
+        try:
+            self.service.return_to_draft(
+                purchase_request
+            )
+        except ValueError:
+            return ExecutionResult.failure_result(
+                message=(
+                    "Purchase Request must be in "
+                    "SUBMITTED status before return."
+                ),
+                error_code=(
+                    "INVALID_PURCHASE_REQUEST_STATE"
+                ),
+                data=purchase_request,
+            )
+
+        return ExecutionResult.success_result(
+            data=purchase_request,
+            message=(
+                "Purchase Request returned to draft "
+                "successfully."
+            ),
+            metadata={
+                "purchase_request_id": (
+                    purchase_request.id
+                ),
+                "previous_status": previous_status,
+                "new_status": purchase_request.status,
+                "operation": context.operation,
+            },
+        )
+
+
 __all__ = [
     "ApprovePurchaseRequestHandler",
+    "RejectPurchaseRequestHandler",
+    "ReturnPurchaseRequestHandler",
     "SubmitPurchaseRequestHandler",
 ]

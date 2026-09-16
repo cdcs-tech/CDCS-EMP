@@ -26,11 +26,15 @@ from app.core.workflow import (
 
 from app.modules.procurement.commands import (
     ApprovePurchaseRequestCommand,
+    RejectPurchaseRequestCommand,
+    ReturnPurchaseRequestCommand,
     SubmitPurchaseRequestCommand,
 )
 
 from app.modules.procurement.handlers import (
     ApprovePurchaseRequestHandler,
+    RejectPurchaseRequestHandler,
+    ReturnPurchaseRequestHandler,
     SubmitPurchaseRequestHandler,
 )
 
@@ -136,7 +140,39 @@ class ProcurementModule(
                 command=ApprovePurchaseRequestCommand,
                 handler=ApprovePurchaseRequestHandler(),
             ),
+            ExecutionDefinition(
+                command=RejectPurchaseRequestCommand,
+                handler=RejectPurchaseRequestHandler(),
+            ),
+            ExecutionDefinition(
+                command=ReturnPurchaseRequestCommand,
+                handler=ReturnPurchaseRequestHandler(),
+            ),
         ]
+
+    def get_execution_permissions(self) -> dict[str, str]:
+        """
+        Return Procurement execution permission mappings.
+
+        Each approved Purchase Request workflow command is
+        explicitly mapped to its corresponding Procurement
+        execution permission.
+
+        Permission definitions remain owned by the Procurement
+        security boundary. This mapping only declares which
+        permission is required to execute each command.
+        """
+
+        return {
+            "procurement.purchase_request.submit":
+                "PROCUREMENT.PURCHASE_REQUEST.SUBMIT",
+            "procurement.purchase_request.approve":
+                "PROCUREMENT.PURCHASE_REQUEST.APPROVE",
+            "procurement.purchase_request.reject":
+                "PROCUREMENT.PURCHASE_REQUEST.REJECT",
+            "procurement.purchase_request.return":
+                "PROCUREMENT.PURCHASE_REQUEST.RETURN",
+        }
 
     def register_blueprints(self, app):
         """

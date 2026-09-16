@@ -61,13 +61,14 @@ def test_procurement_module_has_no_business_module_dependencies():
 def test_procurement_module_exposes_procurement_permissions():
     """
     Verify that the Procurement module exposes the approved
-    Supplier and PurchaseRequirement operational permissions.
+    Supplier, PurchaseRequirement, and PurchaseRequest workflow
+    permissions.
     """
 
     module = ProcurementModule()
 
     assert module.has_permissions() is True
-    assert len(module.permissions) == 8
+    assert len(module.permissions) == 12
 
     permission_codes = {
         permission.code
@@ -83,6 +84,10 @@ def test_procurement_module_exposes_procurement_permissions():
         "PROCUREMENT.PURCHASE_REQUIREMENT.READ",
         "PROCUREMENT.PURCHASE_REQUIREMENT.UPDATE",
         "PROCUREMENT.PURCHASE_REQUIREMENT.DELETE",
+        "PROCUREMENT.PURCHASE_REQUEST.SUBMIT",
+        "PROCUREMENT.PURCHASE_REQUEST.APPROVE",
+        "PROCUREMENT.PURCHASE_REQUEST.REJECT",
+        "PROCUREMENT.PURCHASE_REQUEST.RETURN",
     }
 
 
@@ -128,3 +133,23 @@ def test_procurement_module_public_import_boundary():
     from app.modules.procurement import ProcurementModule as ImportedModule
 
     assert ImportedModule is ProcurementModule
+
+
+def test_procurement_module_exposes_purchase_request_execution_permissions():
+    """
+    Procurement exposes the exact approved Purchase Request
+    workflow command-to-permission mappings.
+    """
+
+    module = ProcurementModule()
+
+    assert module.get_execution_permissions() == {
+        "procurement.purchase_request.submit":
+            "PROCUREMENT.PURCHASE_REQUEST.SUBMIT",
+        "procurement.purchase_request.approve":
+            "PROCUREMENT.PURCHASE_REQUEST.APPROVE",
+        "procurement.purchase_request.reject":
+            "PROCUREMENT.PURCHASE_REQUEST.REJECT",
+        "procurement.purchase_request.return":
+            "PROCUREMENT.PURCHASE_REQUEST.RETURN",
+    }

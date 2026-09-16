@@ -10,11 +10,15 @@ from app.core.execution.results import (
 
 from app.modules.procurement.commands import (
     ApprovePurchaseRequestCommand,
+    RejectPurchaseRequestCommand,
+    ReturnPurchaseRequestCommand,
     SubmitPurchaseRequestCommand,
 )
 
 from app.modules.procurement.handlers import (
     ApprovePurchaseRequestHandler,
+    RejectPurchaseRequestHandler,
+    ReturnPurchaseRequestHandler,
     SubmitPurchaseRequestHandler,
 )
 
@@ -53,6 +57,30 @@ def test_approve_handler_supports_approve_command():
     )
 
     command = ApprovePurchaseRequestCommand(
+        purchase_request_id=1
+    )
+
+    assert handler.supports(command) is True
+
+
+def test_reject_handler_supports_reject_command():
+    handler = RejectPurchaseRequestHandler(
+        service=Mock()
+    )
+
+    command = RejectPurchaseRequestCommand(
+        purchase_request_id=1
+    )
+
+    assert handler.supports(command) is True
+
+
+def test_return_handler_supports_return_command():
+    handler = ReturnPurchaseRequestHandler(
+        service=Mock()
+    )
+
+    command = ReturnPurchaseRequestCommand(
         purchase_request_id=1
     )
 
@@ -215,6 +243,162 @@ def test_approve_handler_returns_invalid_state_failure():
     service.update.assert_not_called()
 
 
+def test_reject_handler_delegates_to_service():
+    service = Mock()
+
+    purchase_request = _purchase_request(
+        "SUBMITTED"
+    )
+
+    service.get.return_value = (
+        purchase_request
+    )
+    service.reject.return_value = (
+        purchase_request
+    )
+
+    handler = RejectPurchaseRequestHandler(
+        service=service
+    )
+
+    result = handler.handle(
+        RejectPurchaseRequestCommand(1),
+        _context(
+            "purchase_request.reject"
+        ),
+    )
+
+    assert isinstance(
+        result,
+        ExecutionResult,
+    )
+    assert result.success is True
+    assert result.data is purchase_request
+
+    service.get.assert_called_once_with(1)
+    service.reject.assert_called_once_with(
+        purchase_request
+    )
+
+
+def test_reject_handler_returns_invalid_state_failure():
+    service = Mock()
+
+    purchase_request = _purchase_request(
+        "DRAFT"
+    )
+
+    service.get.return_value = (
+        purchase_request
+    )
+    service.reject.side_effect = ValueError(
+        "Invalid workflow transition."
+    )
+
+    handler = RejectPurchaseRequestHandler(
+        service=service
+    )
+
+    result = handler.handle(
+        RejectPurchaseRequestCommand(1),
+        _context(
+            "purchase_request.reject"
+        ),
+    )
+
+    assert result.success is False
+    assert (
+        result.error_code
+        == "INVALID_PURCHASE_REQUEST_STATE"
+    )
+    assert result.data is purchase_request
+    assert purchase_request.status == "DRAFT"
+
+    service.get.assert_called_once_with(1)
+    service.reject.assert_called_once_with(
+        purchase_request
+    )
+    service.update.assert_not_called()
+
+
+def test_return_handler_delegates_to_service():
+    service = Mock()
+
+    purchase_request = _purchase_request(
+        "SUBMITTED"
+    )
+
+    service.get.return_value = (
+        purchase_request
+    )
+    service.return_to_draft.return_value = (
+        purchase_request
+    )
+
+    handler = ReturnPurchaseRequestHandler(
+        service=service
+    )
+
+    result = handler.handle(
+        ReturnPurchaseRequestCommand(1),
+        _context(
+            "purchase_request.return"
+        ),
+    )
+
+    assert isinstance(
+        result,
+        ExecutionResult,
+    )
+    assert result.success is True
+    assert result.data is purchase_request
+
+    service.get.assert_called_once_with(1)
+    service.return_to_draft.assert_called_once_with(
+        purchase_request
+    )
+
+
+def test_return_handler_returns_invalid_state_failure():
+    service = Mock()
+
+    purchase_request = _purchase_request(
+        "APPROVED"
+    )
+
+    service.get.return_value = (
+        purchase_request
+    )
+    service.return_to_draft.side_effect = ValueError(
+        "Invalid workflow transition."
+    )
+
+    handler = ReturnPurchaseRequestHandler(
+        service=service
+    )
+
+    result = handler.handle(
+        ReturnPurchaseRequestCommand(1),
+        _context(
+            "purchase_request.return"
+        ),
+    )
+
+    assert result.success is False
+    assert (
+        result.error_code
+        == "INVALID_PURCHASE_REQUEST_STATE"
+    )
+    assert result.data is purchase_request
+    assert purchase_request.status == "APPROVED"
+
+    service.get.assert_called_once_with(1)
+    service.return_to_draft.assert_called_once_with(
+        purchase_request
+    )
+    service.update.assert_not_called()
+
+
 def test_submit_handler_does_not_authorize_directly():
     service = Mock()
 
@@ -279,28 +463,92 @@ def test_approve_handler_does_not_authorize_directly():
     )
 
 
-def test_handlers_return_purchase_request_data():
+def test_reject_handler_does_not_authorize_directly():
     service = Mock()
 
     purchase_request = _purchase_request(
-        "DRAFT"
+        "SUBMITTED"
     )
 
     service.get.return_value = (
         purchase_request
     )
-    service.submit.return_value = (
+    service.reject.return_value = (
         purchase_request
     )
 
-    handler = SubmitPurchaseRequestHandler(
+    handler = RejectPurchaseRequestHandler(
         service=service
     )
 
     result = handler.handle(
-        SubmitPurchaseRequestCommand(1),
+        RejectPurchaseRequestCommand(1),
         _context(
-            "purchase_request.submit"
+            "purchase_request.reject"
+        ),
+    )
+
+    assert result.success is True
+    assert not hasattr(
+        handler,
+        "authorize",
+    )
+
+
+def test_return_handler_does_not_authorize_directly():
+    service = Mock()
+
+    purchase_request = _purchase_request(
+        "SUBMITTED"
+    )
+
+    service.get.return_value = (
+        purchase_request
+    )
+    service.return_to_draft.return_value = (
+        purchase_request
+    )
+
+    handler = ReturnPurchaseRequestHandler(
+        service=service
+    )
+
+    result = handler.handle(
+        ReturnPurchaseRequestCommand(1),
+        _context(
+            "purchase_request.return"
+        ),
+    )
+
+    assert result.success is True
+    assert not hasattr(
+        handler,
+        "authorize",
+    )
+
+
+def test_handlers_return_purchase_request_data():
+    service = Mock()
+
+    purchase_request = _purchase_request(
+        "SUBMITTED"
+    )
+
+    service.get.return_value = (
+        purchase_request
+    )
+    service.return_to_draft.return_value = (
+        purchase_request
+    )
+
+    handler = ReturnPurchaseRequestHandler(
+        service=service
+    )
+
+    result = handler.handle(
+        ReturnPurchaseRequestCommand(1),
+        _context(
+            "purchase_request.return"
         ),
     )
 
@@ -308,9 +556,9 @@ def test_handlers_return_purchase_request_data():
     assert result.data is purchase_request
     assert (
         result.metadata["previous_status"]
-        == "DRAFT"
+        == "SUBMITTED"
     )
     assert (
         result.metadata["new_status"]
-        == "DRAFT"
+        == "SUBMITTED"
     )

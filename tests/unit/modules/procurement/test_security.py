@@ -3,20 +3,24 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 
 Procurement Module
 
-Supplier security permission tests.
+Permission definition tests.
 """
 
 from app.core.security import Permission
 from app.modules.procurement.security import (
     PROCUREMENT_PERMISSIONS,
+    PROCUREMENT_PURCHASE_REQUEST_APPROVE,
+    PROCUREMENT_PURCHASE_REQUEST_REJECT,
+    PROCUREMENT_PURCHASE_REQUEST_RETURN,
+    PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
+    PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
+    PROCUREMENT_PURCHASE_REQUIREMENT_READ,
+    PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
     PROCUREMENT_SUPPLIER_CREATE,
     PROCUREMENT_SUPPLIER_DELETE,
     PROCUREMENT_SUPPLIER_READ,
     PROCUREMENT_SUPPLIER_UPDATE,
-    PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
-    PROCUREMENT_PURCHASE_REQUIREMENT_READ,
-    PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
-    PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
 )
 
 
@@ -65,10 +69,92 @@ def test_supplier_permissions_have_expected_identity():
     assert PROCUREMENT_SUPPLIER_DELETE.action == "delete"
 
 
+def test_purchase_request_workflow_permissions_use_enterprise_permission_contract():
+    """
+    Verify that all Purchase Request workflow permissions use
+    the enterprise Permission contract.
+    """
+
+    permissions = [
+        PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
+        PROCUREMENT_PURCHASE_REQUEST_APPROVE,
+        PROCUREMENT_PURCHASE_REQUEST_REJECT,
+        PROCUREMENT_PURCHASE_REQUEST_RETURN,
+    ]
+
+    assert all(
+        isinstance(permission, Permission)
+        for permission in permissions
+    )
+
+
+def test_purchase_request_workflow_permissions_have_expected_identity():
+    """
+    Verify the approved Purchase Request workflow permission identities.
+    """
+
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_SUBMIT.code
+        == "PROCUREMENT.PURCHASE_REQUEST.SUBMIT"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_SUBMIT.name
+        == "procurement.purchase_request.submit"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_SUBMIT.resource
+        == "purchase_request"
+    )
+    assert PROCUREMENT_PURCHASE_REQUEST_SUBMIT.action == "submit"
+
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_APPROVE.code
+        == "PROCUREMENT.PURCHASE_REQUEST.APPROVE"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_APPROVE.name
+        == "procurement.purchase_request.approve"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_APPROVE.resource
+        == "purchase_request"
+    )
+    assert PROCUREMENT_PURCHASE_REQUEST_APPROVE.action == "approve"
+
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_REJECT.code
+        == "PROCUREMENT.PURCHASE_REQUEST.REJECT"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_REJECT.name
+        == "procurement.purchase_request.reject"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_REJECT.resource
+        == "purchase_request"
+    )
+    assert PROCUREMENT_PURCHASE_REQUEST_REJECT.action == "reject"
+
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_RETURN.code
+        == "PROCUREMENT.PURCHASE_REQUEST.RETURN"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_RETURN.name
+        == "procurement.purchase_request.return"
+    )
+    assert (
+        PROCUREMENT_PURCHASE_REQUEST_RETURN.resource
+        == "purchase_request"
+    )
+    assert PROCUREMENT_PURCHASE_REQUEST_RETURN.action == "return"
+
+
 def test_procurement_permissions_contains_currently_defined_permissions():
     """
     Verify that the Procurement aggregate contains all currently
-    approved Supplier and PurchaseRequirement permissions.
+    approved Supplier, PurchaseRequirement, and PurchaseRequest
+    workflow permissions.
     """
 
     assert PROCUREMENT_PERMISSIONS == (
@@ -80,12 +166,16 @@ def test_procurement_permissions_contains_currently_defined_permissions():
         PROCUREMENT_PURCHASE_REQUIREMENT_READ,
         PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
         PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
+        PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
+        PROCUREMENT_PURCHASE_REQUEST_APPROVE,
+        PROCUREMENT_PURCHASE_REQUEST_REJECT,
+        PROCUREMENT_PURCHASE_REQUEST_RETURN,
     )
 
 
-def test_supplier_permissions_use_procurement_module_boundary():
+def test_procurement_permissions_use_procurement_module_boundary():
     """
-    Verify that Supplier permissions remain owned by Procurement.
+    Verify that all Procurement permissions remain owned by Procurement.
     """
 
     for permission in PROCUREMENT_PERMISSIONS:
@@ -94,12 +184,20 @@ def test_supplier_permissions_use_procurement_module_boundary():
 
 def test_supplier_permissions_expose_no_workflow_actions():
     """
-    Verify that workflow-specific actions remain deferred.
+    Verify that Supplier permissions remain CRUD-only and expose
+    no workflow actions.
     """
+
+    supplier_permissions = (
+        PROCUREMENT_SUPPLIER_CREATE,
+        PROCUREMENT_SUPPLIER_READ,
+        PROCUREMENT_SUPPLIER_UPDATE,
+        PROCUREMENT_SUPPLIER_DELETE,
+    )
 
     actions = {
         permission.action
-        for permission in PROCUREMENT_PERMISSIONS
+        for permission in supplier_permissions
     }
 
     assert actions == {

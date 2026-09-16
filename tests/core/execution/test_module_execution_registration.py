@@ -339,3 +339,14 @@ def test_execution_definition_rejects_mismatched_handler():
         module.register_execution(
             application
         )
+
+
+def test_base_module_execution_permissions_default_to_empty_mapping():
+    """
+    Base modules expose an empty execution-permission
+    mapping by default.
+    """
+
+    module = TestModule()
+
+    assert module.get_execution_permissions() == {}

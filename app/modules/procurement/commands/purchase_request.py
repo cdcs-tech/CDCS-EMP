@@ -135,7 +135,123 @@ class ApprovePurchaseRequestCommand(
         return self.command_name
 
 
+class RejectPurchaseRequestCommand(
+    BaseCommand,
+):
+    """
+    Command to reject a submitted
+    Purchase Request.
+    """
+
+    command_name = (
+        "procurement.purchase_request.reject"
+    )
+
+    command_type = CommandType.EXECUTE
+
+    metadata = CommandMetadata(
+        name="Reject Purchase Request",
+        module_name="PROCUREMENT",
+        operation="purchase_request.reject",
+        version="1.0",
+        description=(
+            "Reject a submitted Purchase Request."
+        ),
+        category="workflow",
+    )
+
+    def __init__(
+        self,
+        purchase_request_id: int,
+    ) -> None:
+        self.purchase_request_id = (
+            purchase_request_id
+        )
+
+    def validate(self) -> None:
+        """Validate the command payload."""
+
+        super().validate()
+
+        if not isinstance(
+            self.purchase_request_id,
+            int,
+        ):
+            raise ValueError(
+                "purchase_request_id must be an integer."
+            )
+
+        if self.purchase_request_id <= 0:
+            raise ValueError(
+                "purchase_request_id must be greater than zero."
+            )
+
+    def execute_name(self) -> str:
+        """Return the represented operation name."""
+
+        return self.command_name
+
+
+class ReturnPurchaseRequestCommand(
+    BaseCommand,
+):
+    """
+    Command to return a submitted
+    Purchase Request to draft.
+    """
+
+    command_name = (
+        "procurement.purchase_request.return"
+    )
+
+    command_type = CommandType.EXECUTE
+
+    metadata = CommandMetadata(
+        name="Return Purchase Request",
+        module_name="PROCUREMENT",
+        operation="purchase_request.return",
+        version="1.0",
+        description=(
+            "Return a submitted Purchase Request to draft."
+        ),
+        category="workflow",
+    )
+
+    def __init__(
+        self,
+        purchase_request_id: int,
+    ) -> None:
+        self.purchase_request_id = (
+            purchase_request_id
+        )
+
+    def validate(self) -> None:
+        """Validate the command payload."""
+
+        super().validate()
+
+        if not isinstance(
+            self.purchase_request_id,
+            int,
+        ):
+            raise ValueError(
+                "purchase_request_id must be an integer."
+            )
+
+        if self.purchase_request_id <= 0:
+            raise ValueError(
+                "purchase_request_id must be greater than zero."
+            )
+
+    def execute_name(self) -> str:
+        """Return the represented operation name."""
+
+        return self.command_name
+
+
 __all__ = [
     "ApprovePurchaseRequestCommand",
+    "RejectPurchaseRequestCommand",
+    "ReturnPurchaseRequestCommand",
     "SubmitPurchaseRequestCommand",
 ]

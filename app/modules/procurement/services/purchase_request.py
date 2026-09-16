@@ -8,30 +8,15 @@ Purchase Request service.
 
 from __future__ import annotations
 
-from app.core.crud.service import (
-    CRUDService,
-)
-
+from app.core.crud.service import CRUDService
 from app.core.data import (
     PaginatedResult,
     QueryOptions,
 )
-
-from app.core.workflow.base import (
-    WorkflowState,
-)
-
-from app.modules.procurement.models import (
-    PurchaseRequest,
-)
-
-from app.modules.procurement.repositories import (
-    PurchaseRequestRepository,
-)
-
-from app.modules.procurement.workflows import (
-    PurchaseRequestWorkflow,
-)
+from app.core.workflow.base import WorkflowState
+from app.modules.procurement.models import PurchaseRequest
+from app.modules.procurement.repositories import PurchaseRequestRepository
+from app.modules.procurement.workflows import PurchaseRequestWorkflow
 
 
 class PurchaseRequestService(
@@ -53,14 +38,11 @@ class PurchaseRequestService(
         workflow: PurchaseRequestWorkflow | None = None,
     ) -> None:
         super().__init__(
-            repository
-            or PurchaseRequestRepository(),
+            repository or PurchaseRequestRepository(),
             entity_name="Purchase Request",
         )
-
         self.workflow = (
-            workflow
-            or PurchaseRequestWorkflow()
+            workflow or PurchaseRequestWorkflow()
         )
 
     def _transition_workflow(
@@ -68,69 +50,58 @@ class PurchaseRequestService(
         purchase_request: PurchaseRequest,
         target_state: str,
     ) -> WorkflowState:
-        """
-        Validate and apply a Purchase Request workflow transition.
-
-        The workflow remains authoritative for lifecycle validity.
-        This service applies the resulting workflow state to the
-        entity. Persistence remains the responsibility of the
-        calling business operation.
-        """
-
         state = self.workflow.transition(
             purchase_request.status,
             target_state,
         )
-
         purchase_request.status = state.name
-
         return state
 
     def submit(
         self,
         purchase_request: PurchaseRequest,
     ) -> PurchaseRequest:
-        """
-        Submit a Purchase Request through its workflow.
-        """
-
         self._transition_workflow(
             purchase_request,
             PurchaseRequestWorkflow.SUBMITTED,
         )
-
-        return self.update(
-            purchase_request
-        )
+        return self.update(purchase_request)
 
     def approve(
         self,
         purchase_request: PurchaseRequest,
     ) -> PurchaseRequest:
-        """
-        Approve a Purchase Request through its workflow.
-        """
-
         self._transition_workflow(
             purchase_request,
             PurchaseRequestWorkflow.APPROVED,
         )
+        return self.update(purchase_request)
 
-        return self.update(
-            purchase_request
+    def reject(
+        self,
+        purchase_request: PurchaseRequest,
+    ) -> PurchaseRequest:
+        self._transition_workflow(
+            purchase_request,
+            PurchaseRequestWorkflow.REJECTED,
         )
+        return self.update(purchase_request)
+
+    def return_to_draft(
+        self,
+        purchase_request: PurchaseRequest,
+    ) -> PurchaseRequest:
+        self._transition_workflow(
+            purchase_request,
+            PurchaseRequestWorkflow.DRAFT,
+        )
+        return self.update(purchase_request)
 
     def paginate(
         self,
         options: QueryOptions,
     ) -> PaginatedResult[PurchaseRequest]:
-        """
-        Return a paginated Purchase Request result.
-        """
-
-        return self.repository.paginate(
-            options
-        )
+        return self.repository.paginate(options)
 
 
 __all__ = [

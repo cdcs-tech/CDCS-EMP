@@ -119,6 +119,98 @@ def test_approve_invokes_workflow_transition():
     assert result is purchase_request
 
 
+def test_reject_invokes_workflow_transition():
+    repository = Mock()
+    workflow = Mock(
+        spec=PurchaseRequestWorkflow
+    )
+
+    workflow.transition.return_value = (
+        SimpleNamespace(
+            name=PurchaseRequestWorkflow.REJECTED
+        )
+    )
+
+    purchase_request = _purchase_request(
+        PurchaseRequestWorkflow.SUBMITTED
+    )
+
+    repository.update.return_value = (
+        purchase_request
+    )
+
+    service = PurchaseRequestService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    result = service.reject(
+        purchase_request
+    )
+
+    workflow.transition.assert_called_once_with(
+        PurchaseRequestWorkflow.SUBMITTED,
+        PurchaseRequestWorkflow.REJECTED,
+    )
+
+    assert (
+        purchase_request.status
+        == PurchaseRequestWorkflow.REJECTED
+    )
+
+    repository.update.assert_called_once_with(
+        purchase_request
+    )
+
+    assert result is purchase_request
+
+
+def test_return_to_draft_invokes_workflow_transition():
+    repository = Mock()
+    workflow = Mock(
+        spec=PurchaseRequestWorkflow
+    )
+
+    workflow.transition.return_value = (
+        SimpleNamespace(
+            name=PurchaseRequestWorkflow.DRAFT
+        )
+    )
+
+    purchase_request = _purchase_request(
+        PurchaseRequestWorkflow.SUBMITTED
+    )
+
+    repository.update.return_value = (
+        purchase_request
+    )
+
+    service = PurchaseRequestService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    result = service.return_to_draft(
+        purchase_request
+    )
+
+    workflow.transition.assert_called_once_with(
+        PurchaseRequestWorkflow.SUBMITTED,
+        PurchaseRequestWorkflow.DRAFT,
+    )
+
+    assert (
+        purchase_request.status
+        == PurchaseRequestWorkflow.DRAFT
+    )
+
+    repository.update.assert_called_once_with(
+        purchase_request
+    )
+
+    assert result is purchase_request
+
+
 def test_submit_invalid_workflow_transition_prevents_update():
     repository = Mock()
     workflow = Mock(
@@ -196,4 +288,84 @@ def test_approve_invalid_workflow_transition_prevents_update():
     assert (
         purchase_request.status
         == PurchaseRequestWorkflow.DRAFT
+    )
+
+
+def test_reject_invalid_workflow_transition_prevents_update():
+    repository = Mock()
+    workflow = Mock(
+        spec=PurchaseRequestWorkflow
+    )
+
+    workflow.transition.side_effect = ValueError(
+        "Invalid workflow transition."
+    )
+
+    purchase_request = _purchase_request(
+        PurchaseRequestWorkflow.DRAFT
+    )
+
+    service = PurchaseRequestService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid workflow transition",
+    ):
+        service.reject(
+            purchase_request
+        )
+
+    workflow.transition.assert_called_once_with(
+        PurchaseRequestWorkflow.DRAFT,
+        PurchaseRequestWorkflow.REJECTED,
+    )
+
+    repository.update.assert_not_called()
+
+    assert (
+        purchase_request.status
+        == PurchaseRequestWorkflow.DRAFT
+    )
+
+
+def test_return_to_draft_invalid_workflow_transition_prevents_update():
+    repository = Mock()
+    workflow = Mock(
+        spec=PurchaseRequestWorkflow
+    )
+
+    workflow.transition.side_effect = ValueError(
+        "Invalid workflow transition."
+    )
+
+    purchase_request = _purchase_request(
+        PurchaseRequestWorkflow.APPROVED
+    )
+
+    service = PurchaseRequestService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid workflow transition",
+    ):
+        service.return_to_draft(
+            purchase_request
+        )
+
+    workflow.transition.assert_called_once_with(
+        PurchaseRequestWorkflow.APPROVED,
+        PurchaseRequestWorkflow.DRAFT,
+    )
+
+    repository.update.assert_not_called()
+
+    assert (
+        purchase_request.status
+        == PurchaseRequestWorkflow.APPROVED
     )

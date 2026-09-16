@@ -197,6 +197,32 @@ class BaseModule(ABC):
 
         return []
 
+    def get_execution_permissions(self) -> dict[str, str]:
+        """
+        Return module execution permission mappings.
+
+        Modules override this method to declare the
+        permission required for each registered
+        execution command.
+
+        Expected format:
+
+            {
+                "command.name":
+                    "PERMISSION.CODE",
+            }
+
+        Permission definitions remain owned by the
+        module security boundary. This mapping only
+        declares the permission required to execute
+        a command.
+
+        The mapping is consumed by the enterprise
+        execution authorization integration.
+        """
+
+        return {}
+
     def register_models(self, app):
         """
         Register module models.

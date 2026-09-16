@@ -92,6 +92,47 @@ PROCUREMENT_PURCHASE_REQUIREMENT_DELETE = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Purchase Request Workflow Permissions
+# ---------------------------------------------------------------------------
+
+PROCUREMENT_PURCHASE_REQUEST_SUBMIT = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.SUBMIT",
+    name="procurement.purchase_request.submit",
+    description="Submit Procurement purchase requests for approval.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="submit",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_APPROVE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.APPROVE",
+    name="procurement.purchase_request.approve",
+    description="Approve submitted Procurement purchase requests.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="approve",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_REJECT = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.REJECT",
+    name="procurement.purchase_request.reject",
+    description="Reject submitted Procurement purchase requests.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="reject",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_RETURN = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST.RETURN",
+    name="procurement.purchase_request.return",
+    description="Return submitted Procurement purchase requests to draft.",
+    module="PROCUREMENT",
+    resource="purchase_request",
+    action="return",
+)
+
+
+# ---------------------------------------------------------------------------
 # Aggregate Procurement Permissions
 # ---------------------------------------------------------------------------
 
@@ -104,6 +145,10 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_PURCHASE_REQUIREMENT_READ,
     PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE,
     PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
+    PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
+    PROCUREMENT_PURCHASE_REQUEST_APPROVE,
+    PROCUREMENT_PURCHASE_REQUEST_REJECT,
+    PROCUREMENT_PURCHASE_REQUEST_RETURN,
 )
 
 
@@ -115,6 +160,10 @@ __all__ = [
     "PROCUREMENT_PURCHASE_REQUIREMENT_CREATE",
     "PROCUREMENT_PURCHASE_REQUIREMENT_READ",
     "PROCUREMENT_PURCHASE_REQUIREMENT_UPDATE",
+    "PROCUREMENT_PURCHASE_REQUEST_SUBMIT",
+    "PROCUREMENT_PURCHASE_REQUEST_APPROVE",
+    "PROCUREMENT_PURCHASE_REQUEST_REJECT",
+    "PROCUREMENT_PURCHASE_REQUEST_RETURN",
     "PROCUREMENT_PURCHASE_REQUIREMENT_DELETE",
     "PROCUREMENT_PERMISSIONS",
 ]
