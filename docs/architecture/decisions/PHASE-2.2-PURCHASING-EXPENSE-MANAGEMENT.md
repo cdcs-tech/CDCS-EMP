@@ -774,10 +774,10 @@ The operational components completed and verified under this stage are:
 * Purchase Requirement
 * Purchase Request
 * Purchase Request Lines
-
-The remaining Procurement operational components are intentionally deferred to their subsequent implementation stages:
-
 * Purchase Order
+
+The remaining Procurement operational component is intentionally deferred to its subsequent implementation stage:
+
 * Purchase Order Lines
 
 ### Supplier Operational Surface
@@ -876,6 +876,31 @@ The verification also confirmed that Purchase Request Line CRUD permissions are 
 
 The implementation introduced no new domain entity or migration because the approved Purchase Request Line domain model already existed from the Procurement foundation stage.
 
+### Purchase Order Operational Surface
+
+The Purchase Order operational surface has been implemented and browser-verified as the next focused Procurement operational component.
+
+It provides:
+
+- Purchase Order list and detail views
+- Search
+- Status filtering
+- Sorting and pagination
+- Purchase Order creation
+- Purchase Order viewing
+- Purchase Order editing
+- Purchase Order deletion according to enterprise persistence conventions
+- Supplier association through the approved Purchase Order relationship
+- Purchase Request association through the approved Purchase Order relationship
+- Permission-protected access
+- CSRF-protected Flask-WTF forms
+- Repository/service integration through the existing enterprise CRUD and data-access infrastructure
+- Procurement navigation integration through the established application navigation structure
+
+The Purchase Order operational surface intentionally does not introduce workflow actions. Submit, Approve, Reject, Return, approval routing, and workflow-driven status transitions remain governed by the dedicated Procurement Workflow implementation.
+
+Purchase Order Lines remain a separate child-document operational component and are intentionally deferred to the next focused implementation stage.
+
 ### Architecture Conformance
 
 The completed operational components conform to the approved Phase 2.2 architecture:
@@ -915,8 +940,10 @@ The **Procurement Operational Surface** is approved as **implemented and verifie
 * Supplier
 * Purchase Requirement
 * Purchase Request
+* Purchase Request Lines
+* Purchase Order
 
-Purchase Order and Purchase Order Lines remain intentionally deferred.
+Purchase Order Lines remain intentionally deferred.
 
 The completed implementation establishes the approved Procurement operational CRUD pattern while preserving the separation between ordinary operational management and governed workflow execution. Procurement workflow actions, receiving, inventory effects, expense processing, financial processing, and cross-module integrations remain outside this operational-surface completion boundary.
 
