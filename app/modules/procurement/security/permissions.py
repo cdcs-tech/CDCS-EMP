@@ -131,6 +131,11 @@ PROCUREMENT_PURCHASE_REQUEST_DELETE = Permission(
     action="delete",
 )
 
+
+# ---------------------------------------------------------------------------
+# Purchase Request Line Permissions
+# ---------------------------------------------------------------------------
+
 PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE = Permission(
     code="PROCUREMENT.PURCHASE_REQUEST_LINE.CREATE",
     name="procurement.purchase_request_line.create",
@@ -160,6 +165,47 @@ PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE = Permission(
     name="procurement.purchase_request_line.delete",
     module="PROCUREMENT",
     resource="purchase_request_line",
+    action="delete",
+)
+
+
+# ---------------------------------------------------------------------------
+# Purchase Order CRUD Permissions
+# ---------------------------------------------------------------------------
+
+PROCUREMENT_PURCHASE_ORDER_CREATE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.CREATE",
+    name="procurement.purchase_order.create",
+    description="Create Procurement purchase orders.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="create",
+)
+
+PROCUREMENT_PURCHASE_ORDER_READ = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.READ",
+    name="procurement.purchase_order.read",
+    description="Read Procurement purchase orders.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="read",
+)
+
+PROCUREMENT_PURCHASE_ORDER_UPDATE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.UPDATE",
+    name="procurement.purchase_order.update",
+    description="Update Procurement purchase orders.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="update",
+)
+
+PROCUREMENT_PURCHASE_ORDER_DELETE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.DELETE",
+    name="procurement.purchase_order.delete",
+    description="Delete Procurement purchase orders.",
+    module="PROCUREMENT",
+    resource="purchase_order",
     action="delete",
 )
 
@@ -230,6 +276,10 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
     PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
     PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
+    PROCUREMENT_PURCHASE_ORDER_CREATE,
+    PROCUREMENT_PURCHASE_ORDER_READ,
+    PROCUREMENT_PURCHASE_ORDER_UPDATE,
+    PROCUREMENT_PURCHASE_ORDER_DELETE,
 )
 
 
@@ -254,5 +304,9 @@ __all__ = [
     "PROCUREMENT_PURCHASE_REQUEST_LINE_READ",
     "PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE",
     "PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE",
+    "PROCUREMENT_PURCHASE_ORDER_CREATE",
+    "PROCUREMENT_PURCHASE_ORDER_READ",
+    "PROCUREMENT_PURCHASE_ORDER_UPDATE",
+    "PROCUREMENT_PURCHASE_ORDER_DELETE",
     "PROCUREMENT_PERMISSIONS",
 ]
