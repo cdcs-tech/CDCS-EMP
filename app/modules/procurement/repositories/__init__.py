@@ -6,8 +6,12 @@ Procurement Module
 Repository exports.
 """
 
-from app.modules.procurement.repositories.purchase_requirement import (
-    PurchaseRequirementRepository,
+from app.modules.procurement.repositories.purchase_order import (
+    PurchaseOrderRepository,
+)
+
+from app.modules.procurement.repositories.purchase_order_line import (
+    PurchaseOrderLineRepository,
 )
 
 from app.modules.procurement.repositories.purchase_request import (
@@ -18,8 +22,8 @@ from app.modules.procurement.repositories.purchase_request_line import (
     PurchaseRequestLineRepository,
 )
 
-from app.modules.procurement.repositories.purchase_order import (
-    PurchaseOrderRepository,
+from app.modules.procurement.repositories.purchase_requirement import (
+    PurchaseRequirementRepository,
 )
 
 from app.modules.procurement.repositories.supplier import (
@@ -33,4 +37,5 @@ __all__ = [
     "PurchaseRequestRepository",
     "PurchaseRequestLineRepository",
     "PurchaseOrderRepository",
+    "PurchaseOrderLineRepository",
 ]

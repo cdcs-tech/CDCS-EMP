@@ -6,8 +6,12 @@ Procurement Module
 Service exports.
 """
 
-from app.modules.procurement.services.purchase_requirement import (
-    PurchaseRequirementService,
+from app.modules.procurement.services.purchase_order import (
+    PurchaseOrderService,
+)
+
+from app.modules.procurement.services.purchase_order_line import (
+    PurchaseOrderLineService,
 )
 
 from app.modules.procurement.services.purchase_request import (
@@ -18,8 +22,8 @@ from app.modules.procurement.services.purchase_request_line import (
     PurchaseRequestLineService,
 )
 
-from app.modules.procurement.services.purchase_order import (
-    PurchaseOrderService,
+from app.modules.procurement.services.purchase_requirement import (
+    PurchaseRequirementService,
 )
 
 from app.modules.procurement.services.supplier import (
@@ -33,4 +37,5 @@ __all__ = [
     "PurchaseRequestService",
     "PurchaseRequestLineService",
     "PurchaseOrderService",
+    "PurchaseOrderLineService",
 ]

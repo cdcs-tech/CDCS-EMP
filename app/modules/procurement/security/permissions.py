@@ -209,6 +209,46 @@ PROCUREMENT_PURCHASE_ORDER_DELETE = Permission(
     action="delete",
 )
 
+# ---------------------------------------------------------------------------
+# Purchase Order Line Permissions
+# ---------------------------------------------------------------------------
+
+PROCUREMENT_PURCHASE_ORDER_LINE_CREATE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER_LINE.CREATE",
+    name="procurement.purchase_order_line.create",
+    description="Create Procurement purchase order lines.",
+    module="PROCUREMENT",
+    resource="purchase_order_line",
+    action="create",
+)
+
+PROCUREMENT_PURCHASE_ORDER_LINE_READ = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER_LINE.READ",
+    name="procurement.purchase_order_line.read",
+    description="Read Procurement purchase order lines.",
+    module="PROCUREMENT",
+    resource="purchase_order_line",
+    action="read",
+)
+
+PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER_LINE.UPDATE",
+    name="procurement.purchase_order_line.update",
+    description="Update Procurement purchase order lines.",
+    module="PROCUREMENT",
+    resource="purchase_order_line",
+    action="update",
+)
+
+PROCUREMENT_PURCHASE_ORDER_LINE_DELETE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER_LINE.DELETE",
+    name="procurement.purchase_order_line.delete",
+    description="Delete Procurement purchase order lines.",
+    module="PROCUREMENT",
+    resource="purchase_order_line",
+    action="delete",
+)
+
 
 # ---------------------------------------------------------------------------
 # Purchase Request Workflow Permissions
@@ -280,6 +320,10 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_PURCHASE_ORDER_READ,
     PROCUREMENT_PURCHASE_ORDER_UPDATE,
     PROCUREMENT_PURCHASE_ORDER_DELETE,
+    PROCUREMENT_PURCHASE_ORDER_LINE_CREATE,
+    PROCUREMENT_PURCHASE_ORDER_LINE_READ,
+    PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
+    PROCUREMENT_PURCHASE_ORDER_LINE_DELETE,
 )
 
 
@@ -308,5 +352,9 @@ __all__ = [
     "PROCUREMENT_PURCHASE_ORDER_READ",
     "PROCUREMENT_PURCHASE_ORDER_UPDATE",
     "PROCUREMENT_PURCHASE_ORDER_DELETE",
+    "PROCUREMENT_PURCHASE_ORDER_LINE_CREATE",
+    "PROCUREMENT_PURCHASE_ORDER_LINE_READ",
+    "PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE",
+    "PROCUREMENT_PURCHASE_ORDER_LINE_DELETE",
     "PROCUREMENT_PERMISSIONS",
 ]

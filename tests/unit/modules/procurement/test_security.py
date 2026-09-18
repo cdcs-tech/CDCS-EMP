@@ -29,6 +29,14 @@ from app.modules.procurement.security import (
     PROCUREMENT_SUPPLIER_DELETE,
     PROCUREMENT_SUPPLIER_READ,
     PROCUREMENT_SUPPLIER_UPDATE,
+    PROCUREMENT_PURCHASE_ORDER_CREATE,
+    PROCUREMENT_PURCHASE_ORDER_READ,
+    PROCUREMENT_PURCHASE_ORDER_UPDATE,
+    PROCUREMENT_PURCHASE_ORDER_DELETE,
+    PROCUREMENT_PURCHASE_ORDER_LINE_CREATE,
+    PROCUREMENT_PURCHASE_ORDER_LINE_READ,
+    PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
+    PROCUREMENT_PURCHASE_ORDER_LINE_DELETE,
 )
 
 
@@ -230,8 +238,9 @@ def test_purchase_request_workflow_permissions_have_expected_identity():
 def test_procurement_permissions_contains_currently_defined_permissions():
     """
     Verify that the Procurement aggregate contains all currently
-    defined Supplier, PurchaseRequirement, PurchaseRequest, and
-    PurchaseRequestLine permissions.
+    defined Supplier, PurchaseRequirement, PurchaseRequest,
+    PurchaseRequestLine, PurchaseOrder, and PurchaseOrderLine
+    permissions.
     """
 
     assert PROCUREMENT_PERMISSIONS == (
@@ -255,6 +264,14 @@ def test_procurement_permissions_contains_currently_defined_permissions():
         PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
         PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
         PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
+        PROCUREMENT_PURCHASE_ORDER_CREATE,
+        PROCUREMENT_PURCHASE_ORDER_READ,
+        PROCUREMENT_PURCHASE_ORDER_UPDATE,
+        PROCUREMENT_PURCHASE_ORDER_DELETE,
+        PROCUREMENT_PURCHASE_ORDER_LINE_CREATE,
+        PROCUREMENT_PURCHASE_ORDER_LINE_READ,
+        PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
+        PROCUREMENT_PURCHASE_ORDER_LINE_DELETE,
     )
 
 
