@@ -17,6 +17,10 @@ from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_REQUEST_RETURN,
     PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
     PROCUREMENT_PURCHASE_REQUEST_UPDATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
     PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
     PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
     PROCUREMENT_PURCHASE_REQUIREMENT_READ,
@@ -226,8 +230,8 @@ def test_purchase_request_workflow_permissions_have_expected_identity():
 def test_procurement_permissions_contains_currently_defined_permissions():
     """
     Verify that the Procurement aggregate contains all currently
-    approved Supplier, PurchaseRequirement, and PurchaseRequest
-    permissions.
+    defined Supplier, PurchaseRequirement, PurchaseRequest, and
+    PurchaseRequestLine permissions.
     """
 
     assert PROCUREMENT_PERMISSIONS == (
@@ -247,6 +251,10 @@ def test_procurement_permissions_contains_currently_defined_permissions():
         PROCUREMENT_PURCHASE_REQUEST_APPROVE,
         PROCUREMENT_PURCHASE_REQUEST_REJECT,
         PROCUREMENT_PURCHASE_REQUEST_RETURN,
+        PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
+        PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
+        PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
+        PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
     )
 
 

@@ -68,7 +68,7 @@ def test_procurement_module_exposes_procurement_permissions():
     module = ProcurementModule()
 
     assert module.has_permissions() is True
-    assert len(module.permissions) == 12
+    assert len(module.permissions) == 20
 
     permission_codes = {
         permission.code
@@ -84,10 +84,18 @@ def test_procurement_module_exposes_procurement_permissions():
         "PROCUREMENT.PURCHASE_REQUIREMENT.READ",
         "PROCUREMENT.PURCHASE_REQUIREMENT.UPDATE",
         "PROCUREMENT.PURCHASE_REQUIREMENT.DELETE",
+        "PROCUREMENT.PURCHASE_REQUEST.CREATE",
+        "PROCUREMENT.PURCHASE_REQUEST.READ",
+        "PROCUREMENT.PURCHASE_REQUEST.UPDATE",
+        "PROCUREMENT.PURCHASE_REQUEST.DELETE",
         "PROCUREMENT.PURCHASE_REQUEST.SUBMIT",
         "PROCUREMENT.PURCHASE_REQUEST.APPROVE",
         "PROCUREMENT.PURCHASE_REQUEST.REJECT",
         "PROCUREMENT.PURCHASE_REQUEST.RETURN",
+        "PROCUREMENT.PURCHASE_REQUEST_LINE.CREATE",
+        "PROCUREMENT.PURCHASE_REQUEST_LINE.READ",
+        "PROCUREMENT.PURCHASE_REQUEST_LINE.UPDATE",
+        "PROCUREMENT.PURCHASE_REQUEST_LINE.DELETE",
     }
 
 

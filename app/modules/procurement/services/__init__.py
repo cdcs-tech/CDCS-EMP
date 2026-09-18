@@ -14,12 +14,17 @@ from app.modules.procurement.services.purchase_request import (
     PurchaseRequestService,
 )
 
+from app.modules.procurement.services.purchase_request_line import (
+    PurchaseRequestLineService,
+)
+
 from app.modules.procurement.services.supplier import (
     SupplierService,
 )
 
 __all__ = [
+    "SupplierService",
     "PurchaseRequirementService",
     "PurchaseRequestService",
-    "SupplierService",
+    "PurchaseRequestLineService",
 ]

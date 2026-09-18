@@ -18,8 +18,13 @@ from app.modules.procurement.repositories.supplier import (
     SupplierRepository,
 )
 
+from app.modules.procurement.repositories.purchase_request_line import (
+    PurchaseRequestLineRepository
+)
+
 __all__ = [
+    "SupplierRepository",
     "PurchaseRequirementRepository",
     "PurchaseRequestRepository",
-    "SupplierRepository",
+    "PurchaseRequestLineRepository",
 ]

@@ -131,6 +131,38 @@ PROCUREMENT_PURCHASE_REQUEST_DELETE = Permission(
     action="delete",
 )
 
+PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST_LINE.CREATE",
+    name="procurement.purchase_request_line.create",
+    module="PROCUREMENT",
+    resource="purchase_request_line",
+    action="create",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_LINE_READ = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST_LINE.READ",
+    name="procurement.purchase_request_line.read",
+    module="PROCUREMENT",
+    resource="purchase_request_line",
+    action="read",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST_LINE.UPDATE",
+    name="procurement.purchase_request_line.update",
+    module="PROCUREMENT",
+    resource="purchase_request_line",
+    action="update",
+)
+
+PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE = Permission(
+    code="PROCUREMENT.PURCHASE_REQUEST_LINE.DELETE",
+    name="procurement.purchase_request_line.delete",
+    module="PROCUREMENT",
+    resource="purchase_request_line",
+    action="delete",
+)
+
 
 # ---------------------------------------------------------------------------
 # Purchase Request Workflow Permissions
@@ -194,6 +226,10 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_PURCHASE_REQUEST_APPROVE,
     PROCUREMENT_PURCHASE_REQUEST_REJECT,
     PROCUREMENT_PURCHASE_REQUEST_RETURN,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
 )
 
 
@@ -214,5 +250,9 @@ __all__ = [
     "PROCUREMENT_PURCHASE_REQUEST_APPROVE",
     "PROCUREMENT_PURCHASE_REQUEST_REJECT",
     "PROCUREMENT_PURCHASE_REQUEST_RETURN",
+    "PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE",
+    "PROCUREMENT_PURCHASE_REQUEST_LINE_READ",
+    "PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE",
+    "PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE",
     "PROCUREMENT_PERMISSIONS",
 ]

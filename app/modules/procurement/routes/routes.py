@@ -21,17 +21,23 @@ from flask_login import login_required
 from app.core.data import QueryOptions
 from app.modules.procurement.forms import (
     PurchaseRequestForm,
+    PurchaseRequestLineForm,
     PurchaseRequirementForm,
     SupplierForm,
 )
 from app.modules.procurement.models import (
     PurchaseRequest,
+    PurchaseRequestLine,
     PurchaseRequirement,
     Supplier,
 )
 from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_REQUEST_CREATE,
     PROCUREMENT_PURCHASE_REQUEST_DELETE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
     PROCUREMENT_PURCHASE_REQUEST_READ,
     PROCUREMENT_PURCHASE_REQUEST_UPDATE,
     PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
@@ -44,12 +50,21 @@ from app.modules.procurement.security import (
     PROCUREMENT_SUPPLIER_UPDATE,
 )
 from app.modules.procurement.services import (
+    PurchaseRequestLineService,
     PurchaseRequestService,
     PurchaseRequirementService,
     SupplierService,
 )
 from app.security.decorators import require_permission
-
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 procurement_bp = Blueprint(
     "procurement",
@@ -890,6 +905,166 @@ def delete_purchase_request(
     return redirect(
         url_for(
             "procurement.purchase_requests"
+        )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/lines/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE.name
+)
+def create_purchase_request_line(
+    purchase_request_id: int,
+):
+    purchase_request_service = PurchaseRequestService()
+    purchase_request = purchase_request_service.get(
+        purchase_request_id
+    )
+
+    if purchase_request is None:
+        abort(404)
+
+    form = PurchaseRequestLineForm()
+
+    if form.validate_on_submit():
+        service = PurchaseRequestLineService()
+
+        line = PurchaseRequestLine(
+            purchase_request_id=purchase_request_id,
+            description=form.description.data,
+            item_reference=form.item_reference.data,
+            quantity=form.quantity.data,
+            unit=form.unit.data,
+            estimated_unit_cost=form.estimated_unit_cost.data,
+            estimated_total=form.estimated_total.data,
+            required_by_date=form.required_by_date.data,
+            notes=form.notes.data,
+        )
+
+        service.create(line)
+
+        flash(
+            "Purchase request line created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "procurement.view_purchase_request",
+                purchase_request_id=purchase_request_id,
+            )
+        )
+
+    return render_template(
+        "modules/procurement/purchase_requests/line_form.html",
+        form=form,
+        purchase_request=purchase_request,
+        page_title="Add Purchase Request Line",
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/lines/<int:line_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE.name
+)
+def edit_purchase_request_line(
+    purchase_request_id: int,
+    line_id: int,
+):
+    purchase_request_service = PurchaseRequestService()
+    purchase_request = purchase_request_service.get(
+        purchase_request_id
+    )
+
+    if purchase_request is None:
+        abort(404)
+
+    service = PurchaseRequestLineService()
+    line = service.get(line_id)
+
+    if line is None or line.purchase_request_id != purchase_request_id:
+        abort(404)
+
+    form = PurchaseRequestLineForm(obj=line)
+
+    if form.validate_on_submit():
+        line.description = form.description.data
+        line.item_reference = form.item_reference.data
+        line.quantity = form.quantity.data
+        line.unit = form.unit.data
+        line.estimated_unit_cost = form.estimated_unit_cost.data
+        line.estimated_total = form.estimated_total.data
+        line.required_by_date = form.required_by_date.data
+        line.notes = form.notes.data
+
+        service.update(line)
+
+        flash(
+            "Purchase request line updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "procurement.view_purchase_request",
+                purchase_request_id=purchase_request_id,
+            )
+        )
+
+    return render_template(
+        "modules/procurement/purchase_requests/line_form.html",
+        form=form,
+        purchase_request=purchase_request,
+        line=line,
+        page_title="Edit Purchase Request Line",
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/lines/<int:line_id>/delete",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE.name
+)
+def delete_purchase_request_line(
+    purchase_request_id: int,
+    line_id: int,
+):
+    purchase_request_service = PurchaseRequestService()
+    purchase_request = purchase_request_service.get(
+        purchase_request_id
+    )
+
+    if purchase_request is None:
+        abort(404)
+
+    service = PurchaseRequestLineService()
+    line = service.get(line_id)
+
+    if line is None or line.purchase_request_id != purchase_request_id:
+        abort(404)
+
+    service.delete(line_id)
+
+    flash(
+        "Purchase request line deleted successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.view_purchase_request",
+            purchase_request_id=purchase_request_id,
         )
     )
 

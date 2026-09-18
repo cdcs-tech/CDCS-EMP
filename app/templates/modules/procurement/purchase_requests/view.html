@@ -99,6 +99,166 @@ Purchase Request Details
 
         </div>
 
+    </div>
+
+    <div class="card shadow-sm mt-4">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <h5 class="mb-0">
+                Purchase Request Lines
+            </h5>
+
+            <a href="{{ url_for(
+                    'procurement.create_purchase_request_line',
+                    purchase_request_id=purchase_request.id
+                ) }}" class="btn btn-primary btn-sm">
+                Add Line
+            </a>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            {% if purchase_request.lines %}
+
+            <div class="table-responsive">
+
+                <table class="table table-striped table-hover mb-0">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Description
+                            </th>
+
+                            <th>
+                                Item Reference
+                            </th>
+
+                            <th>
+                                Quantity
+                            </th>
+
+                            <th>
+                                Unit
+                            </th>
+
+                            <th>
+                                Estimated Unit Cost
+                            </th>
+
+                            <th>
+                                Estimated Total
+                            </th>
+
+                            <th>
+                                Required By
+                            </th>
+
+                            <th>
+                                Notes
+                            </th>
+
+                            <th>
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for line in purchase_request.lines %}
+
+                        <tr>
+
+                            <td>
+                                {{ line.description }}
+                            </td>
+
+                            <td>
+                                {{ line.item_reference or "-" }}
+                            </td>
+
+                            <td>
+                                {{ line.quantity }}
+                            </td>
+
+                            <td>
+                                {{ line.unit }}
+                            </td>
+
+                            <td>
+                                {{ line.estimated_unit_cost or "-" }}
+                            </td>
+
+                            <td>
+                                {{ line.estimated_total or "-" }}
+                            </td>
+
+                            <td>
+                                {{ line.required_by_date or "-" }}
+                            </td>
+
+                            <td>
+                                {{ line.notes or "-" }}
+                            </td>
+
+                            <td class="text-nowrap">
+
+                                <a href="{{ url_for(
+                                        'procurement.edit_purchase_request_line',
+                                        purchase_request_id=purchase_request.id,
+                                        line_id=line.id
+                                    ) }}" class="btn btn-sm btn-outline-primary">
+                                    Edit
+                                </a>
+
+                                <form method="post" action="{{ url_for(
+                                        'procurement.delete_purchase_request_line',
+                                        purchase_request_id=purchase_request.id,
+                                        line_id=line.id
+                                    ) }}" class="d-inline">
+
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Delete this purchase request line?');">
+                                        Delete
+                                    </button>
+
+                                </form>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <div class="p-4 text-muted">
+                No purchase request lines have been added.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <div class="card shadow-sm mt-4">
+
         <div class="card-footer d-flex gap-2">
 
             <a href="{{ url_for(
