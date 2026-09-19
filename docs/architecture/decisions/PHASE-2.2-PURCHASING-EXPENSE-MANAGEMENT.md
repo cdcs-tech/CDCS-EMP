@@ -776,7 +776,7 @@ The operational components completed and verified under this stage are:
 * Purchase Request Lines
 * Purchase Order
 
-The remaining Procurement operational component is intentionally deferred to its subsequent implementation stage:
+The Procurement operational components completed and verified under this stage now include:
 
 * Purchase Order Lines
 
@@ -899,7 +899,8 @@ It provides:
 
 The Purchase Order operational surface intentionally does not introduce workflow actions. Submit, Approve, Reject, Return, approval routing, and workflow-driven status transitions remain governed by the dedicated Procurement Workflow implementation.
 
-Purchase Order Lines remain a separate child-document operational component and are intentionally deferred to the next focused implementation stage.
+Purchase Order Lines have been implemented as a separate child-document operational component within the Purchase Order surface. They remain governed by the Purchase Order lifecycle and do not introduce an independent
+workflow.
 
 ### Architecture Conformance
 
@@ -942,8 +943,10 @@ The **Procurement Operational Surface** is approved as **implemented and verifie
 * Purchase Request
 * Purchase Request Lines
 * Purchase Order
+* Purchase Order Lines
 
-Purchase Order Lines remain intentionally deferred.
+The Procurement operational surface now includes the approved Purchase Order child-document
+management boundary, with Purchase Order Lines managed within their parent Purchase Order surface.
 
 The completed implementation establishes the approved Procurement operational CRUD pattern while preserving the separation between ordinary operational management and governed workflow execution. Procurement workflow actions, receiving, inventory effects, expense processing, financial processing, and cross-module integrations remain outside this operational-surface completion boundary.
 
