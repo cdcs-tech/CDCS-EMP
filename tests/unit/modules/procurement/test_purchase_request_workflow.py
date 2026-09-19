@@ -158,9 +158,13 @@ def test_procurement_module_exposes_purchase_request_workflow():
 
     workflows = module.get_workflows()
 
-    assert len(workflows) == 1
+    assert len(workflows) == 2
 
-    definition = workflows[0]
+    definition = next(
+        definition
+        for definition in workflows
+        if definition.workflow_name == "purchase_request"
+    )
 
     assert isinstance(
         definition,

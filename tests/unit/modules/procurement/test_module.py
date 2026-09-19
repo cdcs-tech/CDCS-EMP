@@ -9,6 +9,7 @@ Module tests.
 from app.core.modules import BaseModule
 from app.modules.procurement import ProcurementModule
 from app.modules.procurement.workflows import (
+    PurchaseOrderWorkflow,
     PurchaseRequestWorkflow,
 )
 
@@ -18,7 +19,6 @@ def test_procurement_module_inherits_base_module():
     Verify that ProcurementModule uses the enterprise
     BaseModule contract.
     """
-
     module = ProcurementModule()
 
     assert isinstance(
@@ -31,7 +31,6 @@ def test_procurement_module_metadata_is_valid():
     """
     Verify the Procurement module metadata.
     """
-
     module = ProcurementModule()
 
     assert module.metadata.code == "PROCUREMENT"
@@ -52,7 +51,6 @@ def test_procurement_module_has_no_business_module_dependencies():
     Verify that Procurement has no dependencies on other
     business modules.
     """
-
     module = ProcurementModule()
 
     assert module.metadata.dependencies == []
@@ -63,11 +61,10 @@ def test_procurement_module_exposes_procurement_permissions():
     Verify that the Procurement module exposes the approved
     Procurement business and workflow permissions.
     """
-
     module = ProcurementModule()
 
     assert module.has_permissions() is True
-    assert len(module.permissions) == 28
+    assert len(module.permissions) == 33
 
     permission_codes = {
         permission.code
@@ -99,6 +96,11 @@ def test_procurement_module_exposes_procurement_permissions():
         "PROCUREMENT.PURCHASE_ORDER.READ",
         "PROCUREMENT.PURCHASE_ORDER.UPDATE",
         "PROCUREMENT.PURCHASE_ORDER.DELETE",
+        "PROCUREMENT.PURCHASE_ORDER.SUBMIT",
+        "PROCUREMENT.PURCHASE_ORDER.APPROVE",
+        "PROCUREMENT.PURCHASE_ORDER.REJECT",
+        "PROCUREMENT.PURCHASE_ORDER.RETURN",
+        "PROCUREMENT.PURCHASE_ORDER.CANCEL",
         "PROCUREMENT.PURCHASE_ORDER_LINE.CREATE",
         "PROCUREMENT.PURCHASE_ORDER_LINE.READ",
         "PROCUREMENT.PURCHASE_ORDER_LINE.UPDATE",
@@ -111,18 +113,47 @@ def test_procurement_module_exposes_purchase_request_workflow():
     Verify that Procurement exposes the approved Purchase
     Request workflow definition.
     """
-
     module = ProcurementModule()
 
     assert module.has_workflows() is True
-    assert len(module.workflows) == 1
+    assert len(module.workflows) == 2
+
+    purchase_request_workflow = next(
+        workflow
+        for workflow in module.workflows
+        if workflow.workflow_name == "purchase_request"
+    )
+
     assert isinstance(
-        module.workflows[0].workflow,
+        purchase_request_workflow.workflow,
         PurchaseRequestWorkflow,
     )
 
-    assert module.workflows[0].module_name == "PROCUREMENT"
-    assert module.workflows[0].workflow_name == "purchase_request"
+    assert purchase_request_workflow.module_name == "PROCUREMENT"
+
+
+def test_procurement_module_exposes_purchase_order_workflow():
+    """
+    Verify that Procurement exposes the approved Purchase
+    Order workflow definition.
+    """
+    module = ProcurementModule()
+
+    assert module.has_workflows() is True
+
+    purchase_order_workflow = next(
+        workflow
+        for workflow in module.workflows
+        if workflow.workflow_name == "purchase_order"
+    )
+
+    assert isinstance(
+        purchase_order_workflow.workflow,
+        PurchaseOrderWorkflow,
+    )
+
+    assert purchase_order_workflow.module_name == "PROCUREMENT"
+    assert purchase_order_workflow.workflow_name == "purchase_order"
 
 
 def test_procurement_module_registers_models():
@@ -130,7 +161,6 @@ def test_procurement_module_registers_models():
     Verify that Procurement models remain registered through
     the standard module model-registration mechanism.
     """
-
     module = ProcurementModule()
 
     assert hasattr(
@@ -144,7 +174,6 @@ def test_procurement_module_public_import_boundary():
     Verify that ProcurementModule is publicly exposed by
     the Procurement module package.
     """
-
     from app.modules.procurement import ProcurementModule as ImportedModule
 
     assert ImportedModule is ProcurementModule
@@ -152,13 +181,22 @@ def test_procurement_module_public_import_boundary():
 
 def test_procurement_module_exposes_purchase_request_execution_permissions():
     """
-    Procurement exposes the exact approved Purchase Request
+    Procurement exposes the approved Purchase Request
     workflow command-to-permission mappings.
     """
-
     module = ProcurementModule()
 
-    assert module.get_execution_permissions() == {
+    execution_permissions = module.get_execution_permissions()
+
+    assert {
+        key: execution_permissions[key]
+        for key in (
+            "procurement.purchase_request.submit",
+            "procurement.purchase_request.approve",
+            "procurement.purchase_request.reject",
+            "procurement.purchase_request.return",
+        )
+    } == {
         "procurement.purchase_request.submit":
             "PROCUREMENT.PURCHASE_REQUEST.SUBMIT",
         "procurement.purchase_request.approve":
@@ -167,4 +205,36 @@ def test_procurement_module_exposes_purchase_request_execution_permissions():
             "PROCUREMENT.PURCHASE_REQUEST.REJECT",
         "procurement.purchase_request.return":
             "PROCUREMENT.PURCHASE_REQUEST.RETURN",
+    }
+
+
+def test_procurement_module_exposes_purchase_order_execution_permissions():
+    """
+    Procurement exposes the approved Purchase Order
+    workflow command-to-permission mappings.
+    """
+    module = ProcurementModule()
+
+    execution_permissions = module.get_execution_permissions()
+
+    assert {
+        key: execution_permissions[key]
+        for key in (
+            "procurement.purchase_order.submit",
+            "procurement.purchase_order.approve",
+            "procurement.purchase_order.reject",
+            "procurement.purchase_order.return",
+            "procurement.purchase_order.cancel",
+        )
+    } == {
+        "procurement.purchase_order.submit":
+            "PROCUREMENT.PURCHASE_ORDER.SUBMIT",
+        "procurement.purchase_order.approve":
+            "PROCUREMENT.PURCHASE_ORDER.APPROVE",
+        "procurement.purchase_order.reject":
+            "PROCUREMENT.PURCHASE_ORDER.REJECT",
+        "procurement.purchase_order.return":
+            "PROCUREMENT.PURCHASE_ORDER.RETURN",
+        "procurement.purchase_order.cancel":
+            "PROCUREMENT.PURCHASE_ORDER.CANCEL",
     }

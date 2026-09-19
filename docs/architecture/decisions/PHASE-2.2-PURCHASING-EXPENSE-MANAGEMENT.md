@@ -2761,14 +2761,62 @@ The approved internal relationships, cardinalities, cross-module reference strat
 
 Subsequent design and implementation work shall refine contracts, lifecycle behavior, workflow, authorization, persistence details, and integration behavior without silently transferring ownership between Catering, Procurement / Purchasing, Inventory, Expense Management, Finance, or Reporting.
 
+**Phase 2.2.4 — Procurement Workflow & Lifecycle is implemented and verified.**
+
+The Procurement workflow scope and lifecycle ownership decisions recorded in the Phase 2.2 architecture establish dedicated workflow lifecycles for Purchase Request and Purchase Order. Purchase Request and Purchase Order workflows are implemented as separate controlled Procurement workflows, while Supplier, Purchase Requirement, Purchase Request Line, and Purchase Order Line remain governed by their respective parent or CRUD-oriented lifecycle boundaries.
+
+Purchase Request supports the approved lifecycle:
+`DRAFT → SUBMITTED → APPROVED / REJECTED`, with controlled return from `SUBMITTED` to `DRAFT`.
+
+Purchase Order supports the approved lifecycle:
+`DRAFT → SUBMITTED → APPROVED / REJECTED`, with controlled return from `SUBMITTED` to `DRAFT`, and cancellation from `APPROVED` to `CANCELLED`.
+
+Workflow operations are represented through enterprise execution commands and handlers rather than direct workflow-status mutation at the application surface.
+
+**Phase 2.2.4 / 2.2.5 — Procurement Workflow Authorization & Execution Integration is implemented and verified.**
+
+The approved Procurement workflow authorization model uses the existing enterprise execution architecture. Procurement declares workflow execution permissions and command-handler mappings through the established module contract.
+
+Application-level execution authorization is integrated through the approved application execution authorization adapter recorded in `ADR-016-APPLICATION-EXECUTION-AUTHORIZATION-ADAPTER.md`.
+
+The adapter resolves the application user through the existing application RBAC model and delegates the final authorization decision to the existing enterprise AuthorizationEngine without introducing a parallel enterprise authorization system or modifying the enterprise core security architecture.
+
+The verified execution path is:
+
+`ExecutionContext.user_id → Application Execution Authorization Adapter → Application User Permission Resolution → Enterprise Authorization Representation → AuthorizationEngine → Enterprise Policy/Audit Evaluation → Execution Decision`
+
+Unauthorized execution is denied before command-handler invocation, while authorized execution reaches the registered Procurement command handler.
+
+**Verification Status**
+
+The completed Procurement workflow and authorization integration has been verified through:
+
+- Purchase Request workflow tests;
+- Purchase Order workflow tests;
+- Purchase Order workflow service tests;
+- Purchase Order command tests;
+- Purchase Order handler tests;
+- Procurement module workflow and permission tests;
+- Purchase Order execution-registration tests;
+- Purchase Request execution-registration tests;
+- startup execution-authorization composition tests; and
+- full CDCS-EMP regression testing.
+
+The final full regression result is:
+
+**2,359 passed, 0 failed.**
+
+The completed implementation therefore satisfies the current Phase 2.2 Procurement workflow and execution-authorization verification boundary.
+
 ---
 
 ## 15. Related Architecture Documentation
 
-* `ADR-001-phase-2-business-module-architecture.md`
-* `ADR-008-catering-inventory-domain-boundary.md`
-* `ADR-015` — Inventory transaction posting boundary
-* `PHASE-2-AUTHORITATIVE-ROADMAP.md`
+- `ADR-001-phase-2-business-module-architecture.md`
+- `ADR-008-catering-inventory-domain-boundary.md`
+- `ADR-015` — Inventory transaction posting boundary
+- `ADR-016-APPLICATION-EXECUTION-AUTHORIZATION-ADAPTER.md`
+- `PHASE-2-AUTHORITATIVE-ROADMAP.md`
 
 ---
 
@@ -2778,4 +2826,4 @@ Subsequent design and implementation work shall refine contracts, lifecycle beha
 **Approval Status:** Approved / Locked
 **Effective Phase:** Phase 2.2 — Purchasing & Expense Management
 
-**Locked Decisions:** Phase 2.2.1 Capability Ownership & Boundaries; Phase 2.2.2.1 Procurement/Purchasing Domain Entities & Relationships
+**Locked Decisions:** Phase 2.2.1 Capability Ownership & Boundaries; Phase 2.2.2.1 Procurement/Purchasing Domain Entities & Relationships; Phase 2.2.4 Procurement Workflow & Lifecycle; Phase 2.2.4 / 2.2.5 Procurement Workflow Authorization & Execution Integration

@@ -157,17 +157,10 @@ def initialize_modules(app: Flask) -> ModuleManager:
 
     execution_permission_policy.validate_registered_permissions()
 
-    def evaluate_execution_permission(
-        command,
-        context,
-        permission,
-    ):
-        """
-        Evaluate an execution permission through
-        the established application authorization engine.
-        """
+    def evaluate_execution_permission(command, context, permission):
+        from app.security.authorization import AuthorizationService
 
-        return authorization_engine.can(
+        return AuthorizationService.authorize_execution(
             context.user_id,
             permission.code,
             context=context,

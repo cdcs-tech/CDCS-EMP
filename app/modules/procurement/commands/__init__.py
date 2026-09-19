@@ -6,6 +6,13 @@ Procurement Module
 Command exports.
 """
 
+from app.modules.procurement.commands.purchase_order import (
+    ApprovePurchaseOrderCommand,
+    CancelPurchaseOrderCommand,
+    RejectPurchaseOrderCommand,
+    ReturnPurchaseOrderCommand,
+    SubmitPurchaseOrderCommand,
+)
 from app.modules.procurement.commands.purchase_request import (
     ApprovePurchaseRequestCommand,
     RejectPurchaseRequestCommand,
@@ -14,8 +21,13 @@ from app.modules.procurement.commands.purchase_request import (
 )
 
 __all__ = [
+    "ApprovePurchaseOrderCommand",
     "ApprovePurchaseRequestCommand",
+    "CancelPurchaseOrderCommand",
+    "RejectPurchaseOrderCommand",
     "RejectPurchaseRequestCommand",
+    "ReturnPurchaseOrderCommand",
     "ReturnPurchaseRequestCommand",
+    "SubmitPurchaseOrderCommand",
     "SubmitPurchaseRequestCommand",
 ]

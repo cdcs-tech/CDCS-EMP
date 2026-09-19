@@ -3,7 +3,7 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 
 Procurement Module
 
-Purchase Request workflow execution registration tests.
+Purchase Order workflow execution registration tests.
 """
 
 from flask import Flask
@@ -13,47 +13,49 @@ from app.core.execution import (
     command_registry,
 )
 from app.modules.procurement.commands import (
-    ApprovePurchaseRequestCommand,
-    RejectPurchaseRequestCommand,
-    ReturnPurchaseRequestCommand,
-    SubmitPurchaseRequestCommand,
+    ApprovePurchaseOrderCommand,
+    CancelPurchaseOrderCommand,
+    RejectPurchaseOrderCommand,
+    ReturnPurchaseOrderCommand,
+    SubmitPurchaseOrderCommand,
 )
 from app.modules.procurement.handlers import (
-    ApprovePurchaseRequestHandler,
-    RejectPurchaseRequestHandler,
-    ReturnPurchaseRequestHandler,
-    SubmitPurchaseRequestHandler,
+    ApprovePurchaseOrderHandler,
+    CancelPurchaseOrderHandler,
+    RejectPurchaseOrderHandler,
+    ReturnPurchaseOrderHandler,
+    SubmitPurchaseOrderHandler,
 )
-from app.modules.procurement.module import (
-    ProcurementModule,
-)
+from app.modules.procurement.module import ProcurementModule
 
 
-def test_procurement_module_exposes_purchase_request_execution_definitions():
+def test_procurement_module_exposes_purchase_order_execution_definitions():
     """
-    Procurement exposes all approved Purchase Request workflow
+    Procurement exposes all approved Purchase Order workflow
     executions alongside other registered Procurement executions.
     """
     module = ProcurementModule()
 
     definitions = module.get_execution_definitions()
 
-    purchase_request_commands = [
+    purchase_order_commands = [
         definition.command
         for definition in definitions
         if definition.command in {
-            SubmitPurchaseRequestCommand,
-            ApprovePurchaseRequestCommand,
-            RejectPurchaseRequestCommand,
-            ReturnPurchaseRequestCommand,
+            SubmitPurchaseOrderCommand,
+            ApprovePurchaseOrderCommand,
+            RejectPurchaseOrderCommand,
+            ReturnPurchaseOrderCommand,
+            CancelPurchaseOrderCommand,
         }
     ]
 
-    assert purchase_request_commands == [
-        SubmitPurchaseRequestCommand,
-        ApprovePurchaseRequestCommand,
-        RejectPurchaseRequestCommand,
-        ReturnPurchaseRequestCommand,
+    assert purchase_order_commands == [
+        SubmitPurchaseOrderCommand,
+        ApprovePurchaseOrderCommand,
+        RejectPurchaseOrderCommand,
+        ReturnPurchaseOrderCommand,
+        CancelPurchaseOrderCommand,
     ]
 
 
@@ -68,12 +70,12 @@ def test_submit_command_is_paired_with_submit_handler():
     definition = next(
         item
         for item in definitions
-        if item.command is SubmitPurchaseRequestCommand
+        if item.command is SubmitPurchaseOrderCommand
     )
 
     assert isinstance(
         definition.handler,
-        SubmitPurchaseRequestHandler,
+        SubmitPurchaseOrderHandler,
     )
 
 
@@ -88,12 +90,12 @@ def test_approve_command_is_paired_with_approve_handler():
     definition = next(
         item
         for item in definitions
-        if item.command is ApprovePurchaseRequestCommand
+        if item.command is ApprovePurchaseOrderCommand
     )
 
     assert isinstance(
         definition.handler,
-        ApprovePurchaseRequestHandler,
+        ApprovePurchaseOrderHandler,
     )
 
 
@@ -108,12 +110,12 @@ def test_reject_command_is_paired_with_reject_handler():
     definition = next(
         item
         for item in definitions
-        if item.command is RejectPurchaseRequestCommand
+        if item.command is RejectPurchaseOrderCommand
     )
 
     assert isinstance(
         definition.handler,
-        RejectPurchaseRequestHandler,
+        RejectPurchaseOrderHandler,
     )
 
 
@@ -128,19 +130,39 @@ def test_return_command_is_paired_with_return_handler():
     definition = next(
         item
         for item in definitions
-        if item.command is ReturnPurchaseRequestCommand
+        if item.command is ReturnPurchaseOrderCommand
     )
 
     assert isinstance(
         definition.handler,
-        ReturnPurchaseRequestHandler,
+        ReturnPurchaseOrderHandler,
     )
 
 
-def test_procurement_module_registers_purchase_request_commands():
+def test_cancel_command_is_paired_with_cancel_handler():
+    """
+    Cancel command is paired with its approved handler.
+    """
+    module = ProcurementModule()
+
+    definitions = module.get_execution_definitions()
+
+    definition = next(
+        item
+        for item in definitions
+        if item.command is CancelPurchaseOrderCommand
+    )
+
+    assert isinstance(
+        definition.handler,
+        CancelPurchaseOrderHandler,
+    )
+
+
+def test_procurement_module_registers_purchase_order_commands():
     """
     All Procurement workflow commands register successfully,
-    including the approved Purchase Request commands.
+    including the approved Purchase Order commands.
     """
     module = ProcurementModule()
     app = Flask(__name__)
@@ -154,46 +176,53 @@ def test_procurement_module_registers_purchase_request_commands():
         assert command_registry.count() == 9
 
         assert {
-            "procurement.purchase_request.submit",
-            "procurement.purchase_request.approve",
-            "procurement.purchase_request.reject",
-            "procurement.purchase_request.return",
+            "procurement.purchase_order.submit",
+            "procurement.purchase_order.approve",
+            "procurement.purchase_order.reject",
+            "procurement.purchase_order.return",
+            "procurement.purchase_order.cancel",
         }.issubset(
             set(command_registry.names())
         )
 
         assert (
             command_registry.get(
-                "procurement.purchase_request.submit"
+                "procurement.purchase_order.submit"
             )
-            is SubmitPurchaseRequestCommand
+            is SubmitPurchaseOrderCommand
         )
         assert (
             command_registry.get(
-                "procurement.purchase_request.approve"
+                "procurement.purchase_order.approve"
             )
-            is ApprovePurchaseRequestCommand
+            is ApprovePurchaseOrderCommand
         )
         assert (
             command_registry.get(
-                "procurement.purchase_request.reject"
+                "procurement.purchase_order.reject"
             )
-            is RejectPurchaseRequestCommand
+            is RejectPurchaseOrderCommand
         )
         assert (
             command_registry.get(
-                "procurement.purchase_request.return"
+                "procurement.purchase_order.return"
             )
-            is ReturnPurchaseRequestCommand
+            is ReturnPurchaseOrderCommand
+        )
+        assert (
+            command_registry.get(
+                "procurement.purchase_order.cancel"
+            )
+            is CancelPurchaseOrderCommand
         )
     finally:
         command_registry.clear()
 
 
-def test_procurement_module_registers_purchase_request_handlers():
+def test_procurement_module_registers_purchase_order_handlers():
     """
     All Procurement workflow handlers register successfully,
-    including the approved Purchase Request handlers.
+    including the approved Purchase Order handlers.
     """
     module = ProcurementModule()
     app = Flask(__name__)
@@ -208,41 +237,50 @@ def test_procurement_module_registers_purchase_request_handlers():
         assert dispatcher.handler_count() == 9
 
         assert dispatcher.has_handler(
-            SubmitPurchaseRequestCommand
+            SubmitPurchaseOrderCommand
         )
         assert dispatcher.has_handler(
-            ApprovePurchaseRequestCommand
+            ApprovePurchaseOrderCommand
         )
         assert dispatcher.has_handler(
-            RejectPurchaseRequestCommand
+            RejectPurchaseOrderCommand
         )
         assert dispatcher.has_handler(
-            ReturnPurchaseRequestCommand
+            ReturnPurchaseOrderCommand
+        )
+        assert dispatcher.has_handler(
+            CancelPurchaseOrderCommand
         )
 
         assert isinstance(
             dispatcher.get_handler(
-                SubmitPurchaseRequestCommand
+                SubmitPurchaseOrderCommand
             ),
-            SubmitPurchaseRequestHandler,
+            SubmitPurchaseOrderHandler,
         )
         assert isinstance(
             dispatcher.get_handler(
-                ApprovePurchaseRequestCommand
+                ApprovePurchaseOrderCommand
             ),
-            ApprovePurchaseRequestHandler,
+            ApprovePurchaseOrderHandler,
         )
         assert isinstance(
             dispatcher.get_handler(
-                RejectPurchaseRequestCommand
+                RejectPurchaseOrderCommand
             ),
-            RejectPurchaseRequestHandler,
+            RejectPurchaseOrderHandler,
         )
         assert isinstance(
             dispatcher.get_handler(
-                ReturnPurchaseRequestCommand
+                ReturnPurchaseOrderCommand
             ),
-            ReturnPurchaseRequestHandler,
+            ReturnPurchaseOrderHandler,
+        )
+        assert isinstance(
+            dispatcher.get_handler(
+                CancelPurchaseOrderCommand
+            ),
+            CancelPurchaseOrderHandler,
         )
     finally:
         command_registry.clear()

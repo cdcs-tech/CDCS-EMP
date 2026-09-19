@@ -209,6 +209,57 @@ PROCUREMENT_PURCHASE_ORDER_DELETE = Permission(
     action="delete",
 )
 
+
+# ---------------------------------------------------------------------------
+# Purchase Order Workflow Permissions
+# ---------------------------------------------------------------------------
+
+PROCUREMENT_PURCHASE_ORDER_SUBMIT = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.SUBMIT",
+    name="procurement.purchase_order.submit",
+    description="Submit Procurement purchase orders for approval.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="submit",
+)
+
+PROCUREMENT_PURCHASE_ORDER_APPROVE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.APPROVE",
+    name="procurement.purchase_order.approve",
+    description="Approve submitted Procurement purchase orders.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="approve",
+)
+
+PROCUREMENT_PURCHASE_ORDER_REJECT = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.REJECT",
+    name="procurement.purchase_order.reject",
+    description="Reject submitted Procurement purchase orders.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="reject",
+)
+
+PROCUREMENT_PURCHASE_ORDER_RETURN = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.RETURN",
+    name="procurement.purchase_order.return",
+    description="Return submitted Procurement purchase orders to draft.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="return",
+)
+
+PROCUREMENT_PURCHASE_ORDER_CANCEL = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.CANCEL",
+    name="procurement.purchase_order.cancel",
+    description="Cancel approved Procurement purchase orders.",
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="cancel",
+)
+
+
 # ---------------------------------------------------------------------------
 # Purchase Order Line Permissions
 # ---------------------------------------------------------------------------
@@ -320,6 +371,11 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_PURCHASE_ORDER_READ,
     PROCUREMENT_PURCHASE_ORDER_UPDATE,
     PROCUREMENT_PURCHASE_ORDER_DELETE,
+    PROCUREMENT_PURCHASE_ORDER_SUBMIT,
+    PROCUREMENT_PURCHASE_ORDER_APPROVE,
+    PROCUREMENT_PURCHASE_ORDER_REJECT,
+    PROCUREMENT_PURCHASE_ORDER_RETURN,
+    PROCUREMENT_PURCHASE_ORDER_CANCEL,
     PROCUREMENT_PURCHASE_ORDER_LINE_CREATE,
     PROCUREMENT_PURCHASE_ORDER_LINE_READ,
     PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
@@ -352,6 +408,11 @@ __all__ = [
     "PROCUREMENT_PURCHASE_ORDER_READ",
     "PROCUREMENT_PURCHASE_ORDER_UPDATE",
     "PROCUREMENT_PURCHASE_ORDER_DELETE",
+    "PROCUREMENT_PURCHASE_ORDER_SUBMIT",
+    "PROCUREMENT_PURCHASE_ORDER_APPROVE",
+    "PROCUREMENT_PURCHASE_ORDER_REJECT",
+    "PROCUREMENT_PURCHASE_ORDER_RETURN",
+    "PROCUREMENT_PURCHASE_ORDER_CANCEL",
     "PROCUREMENT_PURCHASE_ORDER_LINE_CREATE",
     "PROCUREMENT_PURCHASE_ORDER_LINE_READ",
     "PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE",

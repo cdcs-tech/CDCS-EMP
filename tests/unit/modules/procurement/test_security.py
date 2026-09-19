@@ -33,6 +33,11 @@ from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_ORDER_READ,
     PROCUREMENT_PURCHASE_ORDER_UPDATE,
     PROCUREMENT_PURCHASE_ORDER_DELETE,
+    PROCUREMENT_PURCHASE_ORDER_SUBMIT,
+    PROCUREMENT_PURCHASE_ORDER_APPROVE,
+    PROCUREMENT_PURCHASE_ORDER_REJECT,
+    PROCUREMENT_PURCHASE_ORDER_RETURN,
+    PROCUREMENT_PURCHASE_ORDER_CANCEL,
     PROCUREMENT_PURCHASE_ORDER_LINE_CREATE,
     PROCUREMENT_PURCHASE_ORDER_LINE_READ,
     PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
@@ -45,7 +50,6 @@ def test_supplier_permissions_use_enterprise_permission_contract():
     Verify that all Supplier permissions use the enterprise
     Permission contract.
     """
-
     permissions = [
         PROCUREMENT_SUPPLIER_CREATE,
         PROCUREMENT_SUPPLIER_READ,
@@ -63,7 +67,6 @@ def test_supplier_permissions_have_expected_identity():
     """
     Verify the approved Supplier permission identities.
     """
-
     assert PROCUREMENT_SUPPLIER_CREATE.code == "PROCUREMENT.SUPPLIER.CREATE"
     assert PROCUREMENT_SUPPLIER_CREATE.name == "procurement.supplier.create"
     assert PROCUREMENT_SUPPLIER_CREATE.resource == "supplier"
@@ -90,7 +93,6 @@ def test_purchase_request_crud_permissions_use_enterprise_permission_contract():
     Verify that all Purchase Request CRUD permissions use the
     enterprise Permission contract.
     """
-
     permissions = [
         PROCUREMENT_PURCHASE_REQUEST_CREATE,
         PROCUREMENT_PURCHASE_REQUEST_READ,
@@ -108,7 +110,6 @@ def test_purchase_request_crud_permissions_have_expected_identity():
     """
     Verify the approved Purchase Request CRUD permission identities.
     """
-
     assert (
         PROCUREMENT_PURCHASE_REQUEST_CREATE.code
         == "PROCUREMENT.PURCHASE_REQUEST.CREATE"
@@ -159,7 +160,6 @@ def test_purchase_request_workflow_permissions_use_enterprise_permission_contrac
     Verify that all Purchase Request workflow permissions use
     the enterprise Permission contract.
     """
-
     permissions = [
         PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
         PROCUREMENT_PURCHASE_REQUEST_APPROVE,
@@ -177,7 +177,6 @@ def test_purchase_request_workflow_permissions_have_expected_identity():
     """
     Verify the approved Purchase Request workflow permission identities.
     """
-
     assert (
         PROCUREMENT_PURCHASE_REQUEST_SUBMIT.code
         == "PROCUREMENT.PURCHASE_REQUEST.SUBMIT"
@@ -214,10 +213,7 @@ def test_purchase_request_workflow_permissions_have_expected_identity():
         PROCUREMENT_PURCHASE_REQUEST_REJECT.name
         == "procurement.purchase_request.reject"
     )
-    assert (
-        PROCUREMENT_PURCHASE_REQUEST_REJECT.resource
-        == "purchase_request"
-    )
+    assert PROCUREMENT_PURCHASE_REQUEST_REJECT.resource == "purchase_request"
     assert PROCUREMENT_PURCHASE_REQUEST_REJECT.action == "reject"
 
     assert (
@@ -228,10 +224,7 @@ def test_purchase_request_workflow_permissions_have_expected_identity():
         PROCUREMENT_PURCHASE_REQUEST_RETURN.name
         == "procurement.purchase_request.return"
     )
-    assert (
-        PROCUREMENT_PURCHASE_REQUEST_RETURN.resource
-        == "purchase_request"
-    )
+    assert PROCUREMENT_PURCHASE_REQUEST_RETURN.resource == "purchase_request"
     assert PROCUREMENT_PURCHASE_REQUEST_RETURN.action == "return"
 
 
@@ -242,7 +235,6 @@ def test_procurement_permissions_contains_currently_defined_permissions():
     PurchaseRequestLine, PurchaseOrder, and PurchaseOrderLine
     permissions.
     """
-
     assert PROCUREMENT_PERMISSIONS == (
         PROCUREMENT_SUPPLIER_CREATE,
         PROCUREMENT_SUPPLIER_READ,
@@ -268,6 +260,11 @@ def test_procurement_permissions_contains_currently_defined_permissions():
         PROCUREMENT_PURCHASE_ORDER_READ,
         PROCUREMENT_PURCHASE_ORDER_UPDATE,
         PROCUREMENT_PURCHASE_ORDER_DELETE,
+        PROCUREMENT_PURCHASE_ORDER_SUBMIT,
+        PROCUREMENT_PURCHASE_ORDER_APPROVE,
+        PROCUREMENT_PURCHASE_ORDER_REJECT,
+        PROCUREMENT_PURCHASE_ORDER_RETURN,
+        PROCUREMENT_PURCHASE_ORDER_CANCEL,
         PROCUREMENT_PURCHASE_ORDER_LINE_CREATE,
         PROCUREMENT_PURCHASE_ORDER_LINE_READ,
         PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
@@ -279,7 +276,6 @@ def test_procurement_permissions_use_procurement_module_boundary():
     """
     Verify that all Procurement permissions remain owned by Procurement.
     """
-
     for permission in PROCUREMENT_PERMISSIONS:
         assert permission.module == "PROCUREMENT"
 
@@ -289,7 +285,6 @@ def test_supplier_permissions_expose_no_workflow_actions():
     Verify that Supplier permissions remain CRUD-only and expose
     no workflow actions.
     """
-
     supplier_permissions = (
         PROCUREMENT_SUPPLIER_CREATE,
         PROCUREMENT_SUPPLIER_READ,
@@ -315,7 +310,6 @@ def test_purchase_request_crud_permissions_expose_only_crud_actions():
     Verify that Purchase Request CRUD permissions remain separate
     from workflow actions.
     """
-
     purchase_request_crud_permissions = (
         PROCUREMENT_PURCHASE_REQUEST_CREATE,
         PROCUREMENT_PURCHASE_REQUEST_READ,

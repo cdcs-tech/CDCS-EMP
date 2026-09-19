@@ -25,16 +25,26 @@ from app.core.workflow import (
 )
 
 from app.modules.procurement.commands import (
+    ApprovePurchaseOrderCommand,
     ApprovePurchaseRequestCommand,
+    CancelPurchaseOrderCommand,
+    RejectPurchaseOrderCommand,
     RejectPurchaseRequestCommand,
+    ReturnPurchaseOrderCommand,
     ReturnPurchaseRequestCommand,
+    SubmitPurchaseOrderCommand,
     SubmitPurchaseRequestCommand,
 )
 
 from app.modules.procurement.handlers import (
+    ApprovePurchaseOrderHandler,
     ApprovePurchaseRequestHandler,
+    CancelPurchaseOrderHandler,
+    RejectPurchaseOrderHandler,
     RejectPurchaseRequestHandler,
+    ReturnPurchaseOrderHandler,
     ReturnPurchaseRequestHandler,
+    SubmitPurchaseOrderHandler,
     SubmitPurchaseRequestHandler,
 )
 
@@ -43,17 +53,13 @@ from app.modules.procurement.security import (
 )
 
 
-class ProcurementModule(
-    BaseModule,
-):
+class ProcurementModule(BaseModule):
     """
-    Procurement business module.
-
     Provides the foundational Procurement domain model
     registration, enterprise security permission registration,
     Procurement HTTP blueprint registration, approved Purchase
-    Request workflow definition registration, and approved
-    Purchase Request workflow execution registration.
+    Request and Purchase Order workflow definition registration,
+    and approved workflow execution registration.
 
     Operational workflows and cross-module integrations are
     introduced only at their approved implementation stages.
@@ -112,6 +118,7 @@ class ProcurementModule(
         """
 
         from app.modules.procurement.workflows import (
+            PurchaseOrderWorkflow,
             PurchaseRequestWorkflow,
         )
 
@@ -120,6 +127,11 @@ class ProcurementModule(
                 module_name="PROCUREMENT",
                 workflow_name="purchase_request",
                 workflow=PurchaseRequestWorkflow(),
+            ),
+            WorkflowDefinition(
+                module_name="PROCUREMENT",
+                workflow_name="purchase_order",
+                workflow=PurchaseOrderWorkflow(),
             ),
         ]
 
@@ -148,13 +160,33 @@ class ProcurementModule(
                 command=ReturnPurchaseRequestCommand,
                 handler=ReturnPurchaseRequestHandler(),
             ),
+            ExecutionDefinition(
+                command=SubmitPurchaseOrderCommand,
+                handler=SubmitPurchaseOrderHandler(),
+            ),
+            ExecutionDefinition(
+                command=ApprovePurchaseOrderCommand,
+                handler=ApprovePurchaseOrderHandler(),
+            ),
+            ExecutionDefinition(
+                command=RejectPurchaseOrderCommand,
+                handler=RejectPurchaseOrderHandler(),
+            ),
+            ExecutionDefinition(
+                command=ReturnPurchaseOrderCommand,
+                handler=ReturnPurchaseOrderHandler(),
+            ),
+            ExecutionDefinition(
+                command=CancelPurchaseOrderCommand,
+                handler=CancelPurchaseOrderHandler(),
+            ),
         ]
 
     def get_execution_permissions(self) -> dict[str, str]:
         """
         Return Procurement execution permission mappings.
 
-        Each approved Purchase Request workflow command is
+        Each approved Procurement workflow command is
         explicitly mapped to its corresponding Procurement
         execution permission.
 
@@ -172,6 +204,16 @@ class ProcurementModule(
                 "PROCUREMENT.PURCHASE_REQUEST.REJECT",
             "procurement.purchase_request.return":
                 "PROCUREMENT.PURCHASE_REQUEST.RETURN",
+            "procurement.purchase_order.submit":
+                "PROCUREMENT.PURCHASE_ORDER.SUBMIT",
+            "procurement.purchase_order.approve":
+                "PROCUREMENT.PURCHASE_ORDER.APPROVE",
+            "procurement.purchase_order.reject":
+                "PROCUREMENT.PURCHASE_ORDER.REJECT",
+            "procurement.purchase_order.return":
+                "PROCUREMENT.PURCHASE_ORDER.RETURN",
+            "procurement.purchase_order.cancel":
+                "PROCUREMENT.PURCHASE_ORDER.CANCEL",
         }
 
     def register_blueprints(self, app):
