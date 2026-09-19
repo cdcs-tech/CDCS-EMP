@@ -61,14 +61,13 @@ def test_procurement_module_has_no_business_module_dependencies():
 def test_procurement_module_exposes_procurement_permissions():
     """
     Verify that the Procurement module exposes the approved
-    Supplier, PurchaseRequirement, and PurchaseRequest workflow
-    permissions.
+    Procurement business and workflow permissions.
     """
 
     module = ProcurementModule()
 
     assert module.has_permissions() is True
-    assert len(module.permissions) == 20
+    assert len(module.permissions) == 28
 
     permission_codes = {
         permission.code
@@ -96,6 +95,14 @@ def test_procurement_module_exposes_procurement_permissions():
         "PROCUREMENT.PURCHASE_REQUEST_LINE.READ",
         "PROCUREMENT.PURCHASE_REQUEST_LINE.UPDATE",
         "PROCUREMENT.PURCHASE_REQUEST_LINE.DELETE",
+        "PROCUREMENT.PURCHASE_ORDER.CREATE",
+        "PROCUREMENT.PURCHASE_ORDER.READ",
+        "PROCUREMENT.PURCHASE_ORDER.UPDATE",
+        "PROCUREMENT.PURCHASE_ORDER.DELETE",
+        "PROCUREMENT.PURCHASE_ORDER_LINE.CREATE",
+        "PROCUREMENT.PURCHASE_ORDER_LINE.READ",
+        "PROCUREMENT.PURCHASE_ORDER_LINE.UPDATE",
+        "PROCUREMENT.PURCHASE_ORDER_LINE.DELETE",
     }
 
 

@@ -33,6 +33,10 @@ MENU_ITEMS = [
                 "title": "Purchase Requests",
                 "endpoint": "procurement.purchase_requests",
             },
+            {
+                "title": "Purchase Orders",
+                "endpoint": "procurement.purchase_orders",
+            },
         ],
     },
 

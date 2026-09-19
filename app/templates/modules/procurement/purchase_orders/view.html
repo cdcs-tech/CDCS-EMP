@@ -50,6 +50,13 @@
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Purchase Order Lines</h5>
+
+        <a href="{{ url_for(
+                'procurement.create_purchase_order_line',
+                purchase_order_id=purchase_order.id
+            ) }}" class="btn btn-primary btn-sm">
+            Add Purchase Order Line
+        </a>
     </div>
 
     <div class="card-body p-0">
@@ -65,6 +72,7 @@
                         <th>Unit Price</th>
                         <th>Total Amount</th>
                         <th>Notes</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
 
@@ -78,6 +86,30 @@
                         <td>{{ line.unit_price }}</td>
                         <td>{{ line.total_amount }}</td>
                         <td>{{ line.notes or "—" }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for(
+                                        'procurement.edit_purchase_order_line',
+                                        purchase_order_id=purchase_order.id,
+                                        line_id=line.id
+                                    ) }}" class="btn btn-sm btn-outline-primary">
+                                    Edit
+                                </a>
+
+                                <form method="post" action="{{ url_for(
+                                          'procurement.delete_purchase_order_line',
+                                          purchase_order_id=purchase_order.id,
+                                          line_id=line.id
+                                      ) }}" class="d-inline" onsubmit="return confirm(
+                                          'Are you sure you want to delete this Purchase Order Line?'
+                                      );">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -92,8 +124,10 @@
 </div>
 
 <div class="d-flex gap-2">
-    <a href="{{ url_for('procurement.edit_purchase_order', purchase_order_id=purchase_order.id) }}"
-        class="btn btn-primary">
+    <a href="{{ url_for(
+            'procurement.edit_purchase_order',
+            purchase_order_id=purchase_order.id
+        ) }}" class="btn btn-primary">
         Edit Purchase Order
     </a>
 
