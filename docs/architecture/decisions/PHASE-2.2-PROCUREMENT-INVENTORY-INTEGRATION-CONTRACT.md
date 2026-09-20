@@ -1007,6 +1007,20 @@ One PO / PO Line
 → multiple receiving operations
 ```
 
+### Partial Receipt Ownership Clarification
+
+Partial receipt support does not require Procurement to maintain a cumulative physical-receipt ledger.
+
+The `quantity_received` field represents only the quantity physically received in the current receiving operation. Multiple receiving operations may reference the same Purchase Order or Purchase Order Line, with each successful operation producing its own Inventory `RECEIPT` StockMovement.
+
+Procurement remains authoritative for the ordered Purchase Order Line quantity. Inventory remains authoritative for physical receipt history and physical stock effects.
+
+Procurement shall not calculate cumulative physical receipt quantity by maintaining duplicate receipt state or by parsing Inventory `StockMovement` presentation fields such as `reason` or other descriptive text.
+
+If future business requirements require enforcement that cumulative physical receipts cannot exceed the ordered Purchase Order Line quantity, that requirement shall be implemented through an explicit, architecture-approved Inventory read/query contract. It shall not be implemented by introducing a duplicate Procurement receipt ledger, a `ProcurementReceipt` entity, a direct Procurement-to-Inventory foreign key, or direct Procurement access to Inventory persistence.
+
+Partial receipt does not introduce a `purchase_order.receive` workflow transition. The Purchase Order workflow remains separate from the physical receiving operation.
+
 ### Invariant 6 — Idempotent receipt
 
 ```text
@@ -1440,3 +1454,16 @@ Phase 2.2 Procurement ↔ Inventory Integration — Receiving Execution Boundary
 - Inventory remains authoritative for physical stock effects.
 - Verification: 21 focused tests passed; 39 Procurement tests passed; 436 combined Core Execution/Core Integration/Procurement tests passed.
 - No direct Procurement → Inventory repository access was introduced.
+
+### Phase 2.2 Procurement ↔ Inventory Integration — Partial Receipt Handling
+- Status: Completed
+- Partial Purchase Order Line receipts are supported through multiple independent receiving operations.
+- `quantity_received` represents only the quantity received in the current receiving operation.
+- Multiple receiving operations may reference the same Purchase Order or Purchase Order Line.
+- Each successful receipt is represented by an independent Inventory `StockMovement(RECEIPT)`.
+- Procurement does not maintain duplicate cumulative physical-receipt state.
+- Partial receipt does not change the Purchase Order workflow state.
+- No `purchase_order.receive` workflow transition was introduced.
+- No `ProcurementReceipt` entity or direct Procurement-to-Inventory foreign key was introduced.
+- Cumulative physical-receipt or over-receipt enforcement is not implicitly introduced by this stage.
+- Verification: focused partial receipt handling tests cover partial quantities, multiple independent receipts, workflow-state preservation, quantity independence, and absence of Procurement cumulative receipt state.
