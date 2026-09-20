@@ -77,13 +77,21 @@ class FakeMovementService:
         self.error = error
         self.received_movement = None
         self.received_subject = None
+        self.received_idempotency_key = None
 
-    def post_movement(self, movement, *, subject):
+    def post_receipt_movement(
+        self,
+        movement,
+        *,
+        subject,
+        idempotency_key,
+    ):
         if self.error is not None:
             raise self.error
 
         self.received_movement = movement
         self.received_subject = subject
+        self.received_idempotency_key = idempotency_key
 
         if self.movement is not None:
             return self.movement

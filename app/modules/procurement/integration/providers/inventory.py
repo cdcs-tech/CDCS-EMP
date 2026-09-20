@@ -8,8 +8,6 @@ Inventory receipt integration provider.
 
 from __future__ import annotations
 
-from typing import Any
-
 from app.core.integration import (
     IntegrationRequest,
     IntegrationResponse,
@@ -44,8 +42,8 @@ class InventoryReceiptIntegrationProvider(
     physical stock posting to StockMovementService.
 
     Authorization, transaction handling, StockBalance
-    mutation, and StockMovement lifecycle rules remain
-    owned by the Inventory service boundary.
+    mutation, lifecycle rules, and duplicate receipt
+    protection remain owned by the Inventory service boundary.
     """
 
     def __init__(
@@ -60,14 +58,17 @@ class InventoryReceiptIntegrationProvider(
             product_repository
             or ProductRepository()
         )
+
         self.stock_item_repository = (
             stock_item_repository
             or StockItemRepository()
         )
+
         self.location_repository = (
             location_repository
             or InventoryLocationRepository()
         )
+
         self.movement_service = movement_service
 
     @property
@@ -127,7 +128,11 @@ class InventoryReceiptIntegrationProvider(
 
         try:
             self.validate(request)
-        except (TypeError, ValueError, RuntimeError) as exc:
+        except (
+            TypeError,
+            ValueError,
+            RuntimeError,
+        ) as exc:
             return IntegrationResponse(
                 success=False,
                 message=str(exc),
@@ -209,11 +214,16 @@ class InventoryReceiptIntegrationProvider(
 
         try:
             posted_movement = (
-                self.movement_service.post_movement(
+                self.movement_service
+                .post_receipt_movement(
                     movement,
                     subject=subject,
+                    idempotency_key=(
+                        receipt.idempotency_key
+                    ),
                 )
             )
+
         except Exception as exc:
             return IntegrationResponse(
                 success=False,
@@ -243,3 +253,8 @@ class InventoryReceiptIntegrationProvider(
             },
             request_id=request.request_id,
         )
+
+
+__all__ = [
+    "InventoryReceiptIntegrationProvider",
+]

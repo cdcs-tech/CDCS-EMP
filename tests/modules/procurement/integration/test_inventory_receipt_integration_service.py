@@ -69,10 +69,18 @@ class FakeMovementService:
     def __init__(self):
         self.movement = None
         self.subject = None
+        self.idempotency_key = None
 
-    def post_movement(self, movement, *, subject):
+    def post_receipt_movement(
+        self,
+        movement,
+        *,
+        subject,
+        idempotency_key,
+    ):
         self.movement = movement
         self.subject = subject
+        self.idempotency_key = idempotency_key
         return FakeMovement()
 
 
