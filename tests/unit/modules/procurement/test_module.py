@@ -13,6 +13,14 @@ from app.modules.procurement.workflows import (
     PurchaseRequestWorkflow,
 )
 
+from app.core.integration import (
+    integration_provider_registry,
+)
+
+from app.modules.procurement.integration.providers.inventory import (
+    InventoryReceiptIntegrationProvider,
+)
+
 
 def test_procurement_module_inherits_base_module():
     """
@@ -59,12 +67,12 @@ def test_procurement_module_has_no_business_module_dependencies():
 def test_procurement_module_exposes_procurement_permissions():
     """
     Verify that the Procurement module exposes the approved
-    Procurement business and workflow permissions.
+    Procurement business, workflow, and integration permissions.
     """
     module = ProcurementModule()
 
     assert module.has_permissions() is True
-    assert len(module.permissions) == 33
+    assert len(module.permissions) == 34
 
     permission_codes = {
         permission.code
@@ -101,6 +109,7 @@ def test_procurement_module_exposes_procurement_permissions():
         "PROCUREMENT.PURCHASE_ORDER.REJECT",
         "PROCUREMENT.PURCHASE_ORDER.RETURN",
         "PROCUREMENT.PURCHASE_ORDER.CANCEL",
+        "PROCUREMENT.PURCHASE_ORDER.RECEIVE",
         "PROCUREMENT.PURCHASE_ORDER_LINE.CREATE",
         "PROCUREMENT.PURCHASE_ORDER_LINE.READ",
         "PROCUREMENT.PURCHASE_ORDER_LINE.UPDATE",
@@ -134,8 +143,8 @@ def test_procurement_module_exposes_purchase_request_workflow():
 
 def test_procurement_module_exposes_purchase_order_workflow():
     """
-    Verify that Procurement exposes the approved Purchase
-    Order workflow definition.
+    Verify that Procurement exposes the approved Purchase Order
+    workflow definition.
     """
     module = ProcurementModule()
 
@@ -238,3 +247,113 @@ def test_procurement_module_exposes_purchase_order_execution_permissions():
         "procurement.purchase_order.cancel":
             "PROCUREMENT.PURCHASE_ORDER.CANCEL",
     }
+
+
+def test_procurement_module_exposes_integration_registration():
+    """
+    Verify that Procurement exposes its approved integration
+    provider registration boundary.
+    """
+    module = ProcurementModule()
+
+    assert hasattr(
+        module,
+        "register_integrations",
+    )
+
+
+def test_procurement_module_registers_inventory_provider():
+    """
+    Verify that Procurement registers the approved Inventory
+    integration provider through the enterprise registry.
+    """
+    module = ProcurementModule()
+
+    original_providers = (
+        integration_provider_registry.all()
+    )
+
+    try:
+        integration_provider_registry.clear()
+
+        module.register_integrations(
+            None
+        )
+
+        provider = (
+            integration_provider_registry.get(
+                "inventory"
+            )
+        )
+
+        assert isinstance(
+            provider,
+            InventoryReceiptIntegrationProvider,
+        )
+
+        assert provider.provider_name == "inventory"
+
+        assert provider.movement_service is not None
+
+        assert (
+            provider.movement_service.authorization_adapter
+            is not None
+        )
+
+    finally:
+        integration_provider_registry.clear()
+
+        for existing_provider in original_providers:
+            integration_provider_registry.register(
+                existing_provider
+            )
+
+
+def test_procurement_module_inventory_registration_is_idempotent():
+    """
+    Verify that repeated Procurement integration registration
+    does not attempt duplicate Inventory provider registration.
+    """
+    module = ProcurementModule()
+
+    original_providers = (
+        integration_provider_registry.all()
+    )
+
+    try:
+        integration_provider_registry.clear()
+
+        module.register_integrations(
+            None
+        )
+
+        first_provider = (
+            integration_provider_registry.get(
+                "inventory"
+            )
+        )
+
+        module.register_integrations(
+            None
+        )
+
+        second_provider = (
+            integration_provider_registry.get(
+                "inventory"
+            )
+        )
+
+        assert first_provider is second_provider
+
+        assert (
+            integration_provider_registry.count()
+            == 1
+        )
+
+    finally:
+        integration_provider_registry.clear()
+
+        for existing_provider in original_providers:
+            integration_provider_registry.register(
+                existing_provider
+            )

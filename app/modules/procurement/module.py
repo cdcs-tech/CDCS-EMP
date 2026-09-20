@@ -12,6 +12,10 @@ from app.core.execution import (
     ExecutionDefinition,
 )
 
+from app.core.integration import (
+    integration_provider_registry,
+)
+
 from app.core.modules.base import (
     BaseModule,
 )
@@ -52,6 +56,14 @@ from app.modules.procurement.security import (
     PROCUREMENT_PERMISSIONS,
 )
 
+from app.modules.procurement.commands import (
+    ReceivePurchaseOrderCommand,
+)
+
+from app.modules.procurement.handlers import (
+    ReceivePurchaseOrderHandler,
+)
+
 
 class ProcurementModule(BaseModule):
     """
@@ -59,7 +71,8 @@ class ProcurementModule(BaseModule):
     registration, enterprise security permission registration,
     Procurement HTTP blueprint registration, approved Purchase
     Request and Purchase Order workflow definition registration,
-    and approved workflow execution registration.
+    approved workflow execution registration, and Procurement
+    integration-provider registration.
 
     Operational workflows and cross-module integrations are
     introduced only at their approved implementation stages.
@@ -180,6 +193,10 @@ class ProcurementModule(BaseModule):
                 command=CancelPurchaseOrderCommand,
                 handler=CancelPurchaseOrderHandler(),
             ),
+            ExecutionDefinition(
+                command=ReceivePurchaseOrderCommand,
+                handler=ReceivePurchaseOrderHandler(),
+            ),
         ]
 
     def get_execution_permissions(self) -> dict[str, str]:
@@ -192,7 +209,7 @@ class ProcurementModule(BaseModule):
 
         Permission definitions remain owned by the Procurement
         security boundary. This mapping only declares which
-        permission is required to execute each command.
+        permission is required to execute a command.
         """
 
         return {
@@ -214,7 +231,71 @@ class ProcurementModule(BaseModule):
                 "PROCUREMENT.PURCHASE_ORDER.RETURN",
             "procurement.purchase_order.cancel":
                 "PROCUREMENT.PURCHASE_ORDER.CANCEL",
+            "procurement.purchase_order.receive":
+                "PROCUREMENT.PURCHASE_ORDER.RECEIVE",
         }
+
+    def register_integrations(self, app) -> None:
+        """
+        Register Procurement-owned integration providers.
+
+        The Inventory provider is registered through the
+        enterprise IntegrationProviderRegistry. Inventory
+        authorization and physical stock mutation remain
+        owned by the Inventory service boundary.
+        """
+
+        if integration_provider_registry.has(
+            "inventory"
+        ):
+            return None
+
+        from app.modules.catering.security.authorization import (
+            CateringAuthorizationAdapter,
+        )
+
+        from app.security.authorization import (
+            AuthorizationService,
+        )
+
+        from app.modules.catering.services import (
+            StockMovementService,
+        )
+
+        from app.modules.procurement.integration.providers.inventory import (
+            InventoryReceiptIntegrationProvider,
+        )
+
+        authorization_adapter = (
+            CateringAuthorizationAdapter(
+                AuthorizationService.authorize_execution
+            )
+        )
+
+        movement_service = StockMovementService(
+            authorization_adapter=authorization_adapter,
+        )
+
+        provider = InventoryReceiptIntegrationProvider(
+            movement_service=movement_service,
+        )
+
+        integration_provider_registry.register(
+            provider
+        )
+
+        return None
+
+    def initialize(self, app) -> None:
+        """
+        Initialize the Procurement module using the standard
+        enterprise lifecycle, then register Procurement-owned
+        integration providers.
+        """
+
+        super().initialize(app)
+
+        self.register_integrations(app)
 
     def register_blueprints(self, app):
         """
@@ -232,8 +313,3 @@ class ProcurementModule(BaseModule):
             procurement_bp,
             url_prefix=self.metadata.url_prefix,
         )
-
-
-__all__ = [
-    "ProcurementModule",
-]

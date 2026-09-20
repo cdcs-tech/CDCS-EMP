@@ -261,6 +261,23 @@ PROCUREMENT_PURCHASE_ORDER_CANCEL = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Purchase Order Integration Permissions
+# ---------------------------------------------------------------------------
+
+PROCUREMENT_PURCHASE_ORDER_RECEIVE = Permission(
+    code="PROCUREMENT.PURCHASE_ORDER.RECEIVE",
+    name="procurement.purchase_order.receive",
+    description=(
+        "Communicate received Procurement purchase orders "
+        "to Inventory."
+    ),
+    module="PROCUREMENT",
+    resource="purchase_order",
+    action="receive",
+)
+
+
+# ---------------------------------------------------------------------------
 # Purchase Order Line Permissions
 # ---------------------------------------------------------------------------
 
@@ -380,6 +397,7 @@ PROCUREMENT_PERMISSIONS = (
     PROCUREMENT_PURCHASE_ORDER_LINE_READ,
     PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
     PROCUREMENT_PURCHASE_ORDER_LINE_DELETE,
+    PROCUREMENT_PURCHASE_ORDER_RECEIVE,
 )
 
 
@@ -417,5 +435,6 @@ __all__ = [
     "PROCUREMENT_PURCHASE_ORDER_LINE_READ",
     "PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE",
     "PROCUREMENT_PURCHASE_ORDER_LINE_DELETE",
+    "PROCUREMENT_PURCHASE_ORDER_RECEIVE",
     "PROCUREMENT_PERMISSIONS",
 ]

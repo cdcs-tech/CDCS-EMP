@@ -151,7 +151,7 @@ def test_procurement_module_registers_purchase_request_commands():
     try:
         module.register_execution(app)
 
-        assert command_registry.count() == 9
+        assert command_registry.count() == 10
 
         assert {
             "procurement.purchase_request.submit",
@@ -205,7 +205,7 @@ def test_procurement_module_registers_purchase_request_handlers():
     try:
         module.register_execution(app)
 
-        assert dispatcher.handler_count() == 9
+        assert dispatcher.handler_count() == 10
 
         assert dispatcher.has_handler(
             SubmitPurchaseRequestCommand

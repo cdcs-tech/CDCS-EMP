@@ -19,6 +19,9 @@ from app.modules.procurement.handlers.purchase_request import (
     ReturnPurchaseRequestHandler,
     SubmitPurchaseRequestHandler,
 )
+from app.modules.procurement.handlers.purchase_order_receive import (
+    ReceivePurchaseOrderHandler,
+)
 
 __all__ = [
     "ApprovePurchaseOrderHandler",
@@ -30,4 +33,5 @@ __all__ = [
     "ReturnPurchaseRequestHandler",
     "SubmitPurchaseOrderHandler",
     "SubmitPurchaseRequestHandler",
+    "ReceivePurchaseOrderHandler",
 ]

@@ -1424,3 +1424,19 @@ The authoritative CDCS-EMP Procurement ↔ Inventory boundary is:
 Inventory determines, records, and owns the physical stock effect.**
 
 This separation is the authoritative architectural rule for Phase 2.2 Procurement ↔ Inventory integration.
+
+## Implementation Status
+
+Phase 2.2 Procurement ↔ Inventory Integration — Receiving Execution Boundary
+- Status: Completed
+- Procurement receiving is represented by ReceivePurchaseOrderCommand.
+- Operation: procurement.purchase_order.receive.
+- Permission: PROCUREMENT.PURCHASE_ORDER.RECEIVE.
+- Receiving remains outside the Purchase Order workflow.
+- The handler validates that the Purchase Order is APPROVED.
+- The handler constructs PurchaseOrderReceiptRequest.
+- Delivery occurs through enterprise IntegrationService.
+- Procurement does not directly mutate Inventory state.
+- Inventory remains authoritative for physical stock effects.
+- Verification: 21 focused tests passed; 39 Procurement tests passed; 436 combined Core Execution/Core Integration/Procurement tests passed.
+- No direct Procurement → Inventory repository access was introduced.

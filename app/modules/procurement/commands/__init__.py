@@ -19,6 +19,9 @@ from app.modules.procurement.commands.purchase_request import (
     ReturnPurchaseRequestCommand,
     SubmitPurchaseRequestCommand,
 )
+from app.modules.procurement.commands.purchase_order_receive import (
+    ReceivePurchaseOrderCommand,
+)
 
 __all__ = [
     "ApprovePurchaseOrderCommand",
@@ -30,4 +33,5 @@ __all__ = [
     "ReturnPurchaseRequestCommand",
     "SubmitPurchaseOrderCommand",
     "SubmitPurchaseRequestCommand",
+    "ReceivePurchaseOrderCommand",
 ]
