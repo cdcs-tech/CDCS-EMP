@@ -1505,3 +1505,28 @@ Phase 2.2 Procurement ↔ Inventory Integration — Receiving Execution Boundary
 - Verification: 51 focused tests passed; 657 broader relevant regression tests passed; 2,434 full-suite tests passed.
 - Working tree verified clean after regression testing.
 - No production-code change was required for this verification stage.
+
+### Phase 2.2 Procurement ↔ Inventory Integration — End-to-End Integration Verification
+
+- **Status:** Completed
+- A real application-level end-to-end verification was executed using the testing application composition and real enterprise execution/integration components.
+- A real Purchase Order was created, submitted, approved, and then processed through the Procurement receiving execution path.
+- The real `CommandDispatcher` resolved and executed `ReceivePurchaseOrderCommand` using the registered Procurement receiving handler.
+- Execution authorization completed before the receiving handler was invoked.
+- The receiving handler delegated the receipt through the enterprise `IntegrationLifecycle`; no direct Procurement-to-Inventory repository or model mutation was introduced.
+- The enterprise integration request used provider `inventory` and operation `receive_purchase_order`.
+- The Inventory integration provider resolved the Product, StockItem, and InventoryLocation through the existing Inventory integration boundary.
+- Inventory receipt authorization was successfully evaluated using the Inventory-owned `CATERING.STOCK_MOVEMENT.POST` permission boundary.
+- The receipt produced one Inventory `StockMovement` with movement type `RECEIPT`, status `POSTED`, and quantity `4.000`.
+- The corresponding Inventory `StockBalance` was updated to `4.000`.
+- The Inventory-owned receipt idempotency record was created and linked to the posted Stock Movement.
+- The real end-to-end chain completed successfully: Procurement Purchase Order → Execution Authorization → Receiving Handler → Integration Lifecycle → Inventory Provider → Stock Movement → Stock Balance → Idempotency.
+- The Purchase Order remained in `APPROVED` status after receiving, confirming that Inventory receiving does not constitute a Purchase Order workflow transition.
+- The integration request carried the Procurement execution subject through the receiving handler and lifecycle into the integration request metadata.
+- No direct Procurement-to-Inventory foreign-key relationship or cross-module repository mutation was introduced.
+- No distributed transaction or parallel integration, authorization, audit, event, or governance mechanism was introduced.
+- The temporary Stage 7 E2E verification probe was removed after successful execution.
+- Verification result: **Stage 7 real E2E verification passed.**
+- Verification evidence: real execution successfully posted Stock Movement ID `1`, quantity `4.000`, Stock Balance `4.000`, with the idempotency record referencing Stock Movement ID `1`.
+- The full regression suite had previously passed with **2,434 tests** during the preceding integration security/governance checkpoint; the Stage 7 verification itself completed successfully through the real application path.
+- No production-code change was required for the Stage 7 verification.
