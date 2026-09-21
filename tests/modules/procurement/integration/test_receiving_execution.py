@@ -74,9 +74,9 @@ class FakePurchaseOrderService:
         return self.purchase_order
 
 
-class FakeIntegrationService:
+class FakeIntegrationLifecycle:
     """
-    Minimal IntegrationService test double.
+    Minimal IntegrationLifecycle test double.
 
     Records the IntegrationRequest received by the
     Procurement receiving handler and returns a
@@ -91,19 +91,22 @@ class FakeIntegrationService:
         self.result = result
         self.error = error
         self.requests: list[IntegrationRequest] = []
+        self.subjects: list[str] = []
 
     def execute(
         self,
         request: IntegrationRequest,
+        subject: str = "",
     ) -> IntegrationResult:
         self.requests.append(request)
+        self.subjects.append(subject)
 
         if self.error is not None:
             raise self.error
 
         if self.result is None:
             raise AssertionError(
-                "FakeIntegrationService requires "
+                "FakeIntegrationLifecycle requires "
                 "a result unless an error is configured."
             )
 
@@ -246,19 +249,19 @@ def receiving_handler(
 ):
     """Build a receiving handler with controlled dependencies."""
 
-    integration_service = FakeIntegrationService(
+    integration_lifecycle = FakeIntegrationLifecycle(
         result=successful_result
     )
 
     handler = ReceivePurchaseOrderHandler(
         service=approved_purchase_order_service,
-        integration_service=integration_service,
+        integration_lifecycle=integration_lifecycle,
     )
 
     return (
         handler,
         approved_purchase_order_service,
-        integration_service,
+        integration_lifecycle,
     )
 
 
@@ -363,13 +366,13 @@ def test_handler_rejects_receipt_for_non_approved_purchase_order(
         purchase_order
     )
 
-    integration_service = FakeIntegrationService(
+    integration_lifecycle = FakeIntegrationLifecycle(
         result=None
     )
 
     handler = ReceivePurchaseOrderHandler(
         service=purchase_order_service,
-        integration_service=integration_service,
+        integration_lifecycle=integration_lifecycle,
     )
 
     result = handler.handle(
@@ -382,7 +385,7 @@ def test_handler_rejects_receipt_for_non_approved_purchase_order(
         result.error_code
         == "INVALID_PURCHASE_ORDER_STATE"
     )
-    assert integration_service.requests == []
+    assert integration_lifecycle.requests == []
 
 
 # ---------------------------------------------------------------------------
@@ -397,7 +400,7 @@ def test_handler_builds_purchase_order_receipt_request(
 ):
     """The handler must construct the approved domain receipt contract."""
 
-    handler, _, integration_service = (
+    handler, _, integration_lifecycle = (
         receiving_handler
     )
 
@@ -407,9 +410,9 @@ def test_handler_builds_purchase_order_receipt_request(
     )
 
     assert result.success is True
-    assert len(integration_service.requests) == 1
+    assert len(integration_lifecycle.requests) == 1
 
-    request = integration_service.requests[0]
+    request = integration_lifecycle.requests[0]
 
     assert isinstance(
         request.payload,
@@ -465,7 +468,7 @@ def test_handler_creates_inventory_integration_request(
 ):
     """The handler must use the approved IntegrationRequest envelope."""
 
-    handler, _, integration_service = (
+    handler, _, integration_lifecycle = (
         receiving_handler
     )
 
@@ -475,9 +478,9 @@ def test_handler_creates_inventory_integration_request(
     )
 
     assert result.success is True
-    assert len(integration_service.requests) == 1
+    assert len(integration_lifecycle.requests) == 1
 
-    request = integration_service.requests[0]
+    request = integration_lifecycle.requests[0]
 
     assert isinstance(
         request,
@@ -500,7 +503,7 @@ def test_handler_places_execution_context_in_integration_metadata(
 ):
     """The integration request must retain execution context."""
 
-    handler, _, integration_service = (
+    handler, _, integration_lifecycle = (
         receiving_handler
     )
 
@@ -509,7 +512,7 @@ def test_handler_places_execution_context_in_integration_metadata(
         context,
     )
 
-    request = integration_service.requests[0]
+    request = integration_lifecycle.requests[0]
 
     assert (
         request.metadata["module"]
@@ -530,14 +533,14 @@ def test_handler_places_execution_context_in_integration_metadata(
 # ---------------------------------------------------------------------------
 
 
-def test_handler_delegates_to_integration_service(
+def test_handler_delegates_to_integration_lifecycle(
     receiving_handler,
     command: ReceivePurchaseOrderCommand,
     context: ExecutionContext,
 ):
-    """The handler must delegate delivery through IntegrationService."""
+    """The handler must delegate delivery through IntegrationLifecycle."""
 
-    handler, purchase_order_service, integration_service = (
+    handler, purchase_order_service, integration_lifecycle = (
         receiving_handler
     )
 
@@ -548,7 +551,8 @@ def test_handler_delegates_to_integration_service(
 
     assert result.success is True
     assert purchase_order_service.requested_ids == [101]
-    assert len(integration_service.requests) == 1
+    assert len(integration_lifecycle.requests) == 1
+    assert integration_lifecycle.subjects == [context.user_id]
 
 
 # ---------------------------------------------------------------------------
@@ -597,13 +601,13 @@ def test_handler_returns_rejection_when_inventory_rejects_receipt(
         )
     )
 
-    integration_service = FakeIntegrationService(
+    integration_lifecycle = FakeIntegrationLifecycle(
         result=rejected_result
     )
 
     handler = ReceivePurchaseOrderHandler(
         service=purchase_order_service,
-        integration_service=integration_service,
+        integration_lifecycle=integration_lifecycle,
     )
 
     result = handler.handle(
@@ -642,13 +646,13 @@ def test_handler_returns_failure_for_invalid_receipt_contract(
         )
     )
 
-    integration_service = FakeIntegrationService(
+    integration_lifecycle = FakeIntegrationLifecycle(
         result=None
     )
 
     handler = ReceivePurchaseOrderHandler(
         service=purchase_order_service,
-        integration_service=integration_service,
+        integration_lifecycle=integration_lifecycle,
     )
 
     result = handler.handle(
@@ -661,7 +665,7 @@ def test_handler_returns_failure_for_invalid_receipt_contract(
         result.error_code
         == "INVALID_PURCHASE_ORDER_RECEIPT"
     )
-    assert integration_service.requests == []
+    assert integration_lifecycle.requests == []
 
 
 # ---------------------------------------------------------------------------
@@ -669,7 +673,7 @@ def test_handler_returns_failure_for_invalid_receipt_contract(
 # ---------------------------------------------------------------------------
 
 
-def test_handler_returns_failure_when_integration_service_raises(
+def test_handler_returns_failure_when_integration_lifecycle_raises(
     command: ReceivePurchaseOrderCommand,
     context: ExecutionContext,
 ):
@@ -682,7 +686,7 @@ def test_handler_returns_failure_when_integration_service_raises(
         )
     )
 
-    integration_service = FakeIntegrationService(
+    integration_lifecycle = FakeIntegrationLifecycle(
         error=RuntimeError(
             "Inventory provider unavailable."
         )
@@ -690,7 +694,7 @@ def test_handler_returns_failure_when_integration_service_raises(
 
     handler = ReceivePurchaseOrderHandler(
         service=purchase_order_service,
-        integration_service=integration_service,
+        integration_lifecycle=integration_lifecycle,
     )
 
     result = handler.handle(
@@ -750,7 +754,7 @@ def test_receiving_handler_does_not_depend_on_inventory_repositories(
 ):
     """
     The receiving boundary must communicate through the
-    IntegrationService rather than directly manipulating
+    IntegrationLifecycle rather than directly manipulating
     Inventory repositories.
     """
 
@@ -758,7 +762,7 @@ def test_receiving_handler_does_not_depend_on_inventory_repositories(
 
     assert hasattr(
         handler,
-        "integration_service",
+        "integration_lifecycle",
     )
     assert not hasattr(
         handler,

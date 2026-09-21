@@ -12,8 +12,8 @@ from app.core.execution.context import ExecutionContext
 from app.core.execution.handlers.base import BaseCommandHandler
 from app.core.execution.results import ExecutionResult
 from app.core.integration import (
+    IntegrationLifecycle,
     IntegrationRequest,
-    IntegrationService,
 )
 from app.modules.procurement.commands.purchase_order_receive import (
     ReceivePurchaseOrderCommand,
@@ -35,7 +35,7 @@ class ReceivePurchaseOrderHandler(
     This handler does not modify the Purchase Order workflow
     or Inventory state directly. It constructs the approved
     Procurement ↔ Inventory contract and delegates delivery
-    to the enterprise IntegrationService.
+    to the enterprise IntegrationLifecycle.
     """
 
     command_type = ReceivePurchaseOrderCommand
@@ -43,15 +43,15 @@ class ReceivePurchaseOrderHandler(
     def __init__(
         self,
         service: PurchaseOrderService | None = None,
-        integration_service: IntegrationService | None = None,
+        integration_lifecycle: IntegrationLifecycle | None = None,
     ) -> None:
         self.service = (
             service
             or PurchaseOrderService()
         )
-        self.integration_service = (
-            integration_service
-            or IntegrationService()
+        self.integration_lifecycle = (
+            integration_lifecycle
+            or IntegrationLifecycle()
         )
 
     def handle(
@@ -129,8 +129,9 @@ class ReceivePurchaseOrderHandler(
         )
 
         try:
-            result = self.integration_service.execute(
-                request
+            result = self.integration_lifecycle.execute(
+                request,
+                subject=context.user_id,
             )
         except Exception as exc:
             return ExecutionResult.failure_result(

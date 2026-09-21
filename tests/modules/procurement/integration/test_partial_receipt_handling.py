@@ -56,12 +56,14 @@ class FakeIntegrationResult:
         )
 
 
-class FakeIntegrationService:
+class FakeIntegrationLifecycle:
     def __init__(self):
         self.requests = []
+        self.subjects = []
 
-    def execute(self, request):
+    def execute(self, request, subject=""):
         self.requests.append(request)
+        self.subjects.append(subject)
         return FakeIntegrationResult()
 
 
@@ -102,16 +104,16 @@ def build_handler(
         status="APPROVED",
     )
 
-    integration_service = FakeIntegrationService()
+    integration_lifecycle = FakeIntegrationLifecycle()
 
     handler = ReceivePurchaseOrderHandler(
         service=FakePurchaseOrderService(
             purchase_order,
         ),
-        integration_service=integration_service,
+        integration_lifecycle=integration_lifecycle,
     )
 
-    return handler, integration_service, purchase_order
+    return handler, integration_lifecycle, purchase_order
 
 
 def build_context():
@@ -127,7 +129,7 @@ def test_partial_receipt_smaller_than_ordered_quantity_is_accepted():
     A receipt may represent less than the ordered Purchase Order
     Line quantity.
     """
-    handler, integration_service, purchase_order = build_handler()
+    handler, integration_lifecycle, purchase_order = build_handler()
 
     command = build_command(
         quantity_received=Decimal("30.000"),
@@ -142,10 +144,10 @@ def test_partial_receipt_smaller_than_ordered_quantity_is_accepted():
 
     assert result.success is True
     assert purchase_order.status == "APPROVED"
-    assert len(integration_service.requests) == 1
+    assert len(integration_lifecycle.requests) == 1
 
     receipt = (
-        integration_service.requests[0].payload
+        integration_lifecycle.requests[0].payload
     )
 
     assert receipt.quantity_received == Decimal(
@@ -158,7 +160,7 @@ def test_multiple_partial_receipts_are_independent_operations():
     Multiple partial receipts for the same Purchase Order Line
     are communicated as independent receiving operations.
     """
-    handler, integration_service, purchase_order = build_handler()
+    handler, integration_lifecycle, purchase_order = build_handler()
 
     first_command = build_command(
         quantity_received=Decimal("30.000"),
@@ -188,14 +190,14 @@ def test_multiple_partial_receipts_are_independent_operations():
     assert purchase_order.status == "APPROVED"
 
     assert len(
-        integration_service.requests
+        integration_lifecycle.requests
     ) == 2
 
     first_receipt = (
-        integration_service.requests[0].payload
+        integration_lifecycle.requests[0].payload
     )
     second_receipt = (
-        integration_service.requests[1].payload
+        integration_lifecycle.requests[1].payload
     )
 
     assert first_receipt.quantity_received == Decimal(
@@ -225,7 +227,7 @@ def test_partial_receipts_do_not_change_purchase_order_workflow_state():
     Receiving a partial quantity does not transition the Purchase
     Order workflow.
     """
-    handler, integration_service, purchase_order = build_handler()
+    handler, integration_lifecycle, purchase_order = build_handler()
 
     command = build_command(
         quantity_received=Decimal("25.000"),
@@ -240,7 +242,7 @@ def test_partial_receipts_do_not_change_purchase_order_workflow_state():
 
     assert result.success is True
     assert purchase_order.status == "APPROVED"
-    assert len(integration_service.requests) == 1
+    assert len(integration_lifecycle.requests) == 1
 
 
 def test_partial_receipts_do_not_require_quantity_equal_to_ordered_quantity():
@@ -248,7 +250,7 @@ def test_partial_receipts_do_not_require_quantity_equal_to_ordered_quantity():
     The receiving contract communicates the current receipt quantity
     independently from the Purchase Order Line ordered quantity.
     """
-    handler, integration_service, purchase_order = build_handler()
+    handler, integration_lifecycle, purchase_order = build_handler()
 
     command = build_command(
         quantity_received=Decimal("0.500"),
@@ -265,7 +267,7 @@ def test_partial_receipts_do_not_require_quantity_equal_to_ordered_quantity():
     assert purchase_order.status == "APPROVED"
 
     receipt = (
-        integration_service.requests[0].payload
+        integration_lifecycle.requests[0].payload
     )
 
     assert receipt.quantity_received == Decimal(
@@ -278,7 +280,7 @@ def test_partial_receipts_do_not_create_procurement_cumulative_state():
     The receiving handler delegates individual receipt quantities
     without maintaining cumulative receipt state.
     """
-    handler, integration_service, purchase_order = build_handler()
+    handler, integration_lifecycle, purchase_order = build_handler()
 
     first_command = build_command(
         quantity_received=Decimal("20.000"),
@@ -306,7 +308,7 @@ def test_partial_receipts_do_not_create_procurement_cumulative_state():
     assert second_result.success is True
 
     assert purchase_order.status == "APPROVED"
-    assert len(integration_service.requests) == 2
+    assert len(integration_lifecycle.requests) == 2
 
     assert not hasattr(
         purchase_order,
