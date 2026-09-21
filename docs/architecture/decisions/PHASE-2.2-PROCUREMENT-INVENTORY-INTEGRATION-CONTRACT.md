@@ -1467,3 +1467,25 @@ Phase 2.2 Procurement ↔ Inventory Integration — Receiving Execution Boundary
 - No `ProcurementReceipt` entity or direct Procurement-to-Inventory foreign key was introduced.
 - Cumulative physical-receipt or over-receipt enforcement is not implicitly introduced by this stage.
 - Verification: focused partial receipt handling tests cover partial quantities, multiple independent receipts, workflow-state preservation, quantity independence, and absence of Procurement cumulative receipt state.
+
+### Phase 2.2 Procurement ↔ Inventory Integration — Idempotency / Duplicate Receipt Protection
+- Status: Completed
+- Inventory owns receipt idempotency through the `InventoryReceiptIdempotency` model and repository.
+- A database-level unique idempotency key protects against concurrent duplicate receipt delivery.
+- The idempotency record, `StockMovement`, and `StockBalance` effect are committed within the authoritative Inventory transaction boundary.
+- A previously successful idempotency key returns the originally posted Inventory movement without applying another physical stock effect; duplicate-key races resolve to that same outcome after the transaction rolls back.
+- The Procurement Inventory receipt provider propagates the approved receiving `idempotency_key` to Inventory; Procurement does not create a duplicate receipt ledger.
+- A migration creates the Inventory receipt-idempotency persistence structure.
+- Verification: focused idempotency tests cover duplicate receipt behavior and provider-to-Inventory idempotency propagation.
+- Implementation checkpoint: commit `e0a0aa3` (`feat(inventory): add receipt idempotency protection`).
+
+### Phase 2.2 Procurement ↔ Inventory Integration — Events & Audit / Lifecycle Wiring
+- Status: Lifecycle/event/audit wiring completed; Integration Security / Governance Verification next; End-to-End Integration Verification pending.
+- `ReceivePurchaseOrderHandler` delegates receiving execution through the enterprise `IntegrationLifecycle`, rather than calling the integration service directly.
+- The lifecycle publishes `integration.request`, `integration.result`, and `integration.failure` through the existing enterprise event publisher.
+- The lifecycle records `INTEGRATION_REQUEST`, `INTEGRATION_RESULT`, and `INTEGRATION_FAILURE` through the existing enterprise security-audit registry.
+- The handler propagates the enterprise execution subject as `context.user_id`; the lifecycle propagates that subject to its event and audit hooks.
+- The lifecycle preserves enterprise exception behavior: exceptions before an integration result publish and record failure activity, then propagate to the execution boundary.
+- No Procurement-specific event, audit, or lifecycle framework was introduced.
+- Verification: receiving execution and partial-receipt integration coverage was updated for lifecycle delegation.
+- Implementation checkpoint: commit `f6973c5` (`Wire purchase order receiving through lifecycle`).
