@@ -14,12 +14,12 @@ MANAGER = "Manager"
 
 STAFF = "Staff"
 
+
 # ==========================================================
 # Role Definitions
 # ==========================================================
 
 ROLES = [
-
     {
         "name": SYSTEM_ADMINISTRATOR,
         "description": (
@@ -27,7 +27,6 @@ ROLES = [
         ),
         "is_system": True,
     },
-
     {
         "name": MANAGER,
         "description": (
@@ -35,7 +34,6 @@ ROLES = [
         ),
         "is_system": True,
     },
-
     {
         "name": STAFF,
         "description": (
@@ -43,8 +41,8 @@ ROLES = [
         ),
         "is_system": True,
     },
-
 ]
+
 
 # ==========================================================
 # Administrator Account
@@ -73,122 +71,138 @@ MODULE_USER = "User"
 
 MODULE_ROLE = "Role"
 
+MODULE_EXPENSE = "EXPENSE"
+
 
 # ==========================================================
 # Permissions
 # ==========================================================
 
 PERMISSIONS = [
-
     {
         "module": MODULE_SYSTEM,
         "name": "system.admin",
         "description": "Full system administration",
     },
-
     {
         "module": MODULE_DASHBOARD,
         "name": "dashboard.view",
         "description": "View dashboard",
     },
-
     {
         "module": MODULE_USER,
         "name": "user.create",
         "description": "Create users",
     },
-
     {
         "module": MODULE_USER,
         "name": "user.read",
         "description": "View users",
     },
-
     {
         "module": MODULE_USER,
         "name": "user.update",
         "description": "Update users",
     },
-
     {
         "module": MODULE_USER,
         "name": "user.delete",
         "description": "Delete users",
     },
-
     {
         "module": MODULE_ROLE,
         "name": "role.create",
         "description": "Create roles",
     },
-
     {
         "module": MODULE_ROLE,
         "name": "role.read",
         "description": "View roles",
     },
-
     {
         "module": MODULE_ROLE,
         "name": "role.update",
         "description": "Update roles",
     },
-
     {
         "module": MODULE_ROLE,
         "name": "role.delete",
         "description": "Delete roles",
     },
-
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense_classification.create",
+        "description": "Create expense classifications",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense_classification.read",
+        "description": "View expense classifications",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense_classification.update",
+        "description": "Update expense classifications",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense_classification.delete",
+        "description": "Delete expense classifications",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.create",
+        "description": "Create expenses",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.read",
+        "description": "View expenses",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.update",
+        "description": "Update expenses",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.delete",
+        "description": "Delete expenses",
+    },
 ]
+
 
 # ==========================================================
 # Role Permission Mapping
 # ==========================================================
 
-
 ROLE_PERMISSIONS = {
-
     SYSTEM_ADMINISTRATOR: [
-
         "system.admin",
-
         "dashboard.view",
-
         "user.create",
-
         "user.read",
-
         "user.update",
-
         "user.delete",
-
         "role.create",
-
         "role.read",
-
         "role.update",
-
         "role.delete",
-
+        "expense.expense_classification.create",
+        "expense.expense_classification.read",
+        "expense.expense_classification.update",
+        "expense.expense_classification.delete",
+        "expense.expense.create",
+        "expense.expense.read",
+        "expense.expense.update",
+        "expense.expense.delete",
     ],
-
-
     MANAGER: [
-
         "dashboard.view",
-
         "user.read",
-
         "user.update",
-
     ],
-
-
     STAFF: [
-
         "dashboard.view",
-
     ],
-
 }

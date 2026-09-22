@@ -229,8 +229,9 @@ def test_request_without_blueprint_remains_outside_application_transaction():
         )
 
 
-def test_procurement_and_catering_are_application_transaction_blueprints():
+def test_business_module_blueprints_are_application_transaction_blueprints():
     lifecycle = ApplicationLifecycle()
 
     assert "catering" in lifecycle.APPLICATION_TRANSACTION_BLUEPRINTS
     assert "procurement" in lifecycle.APPLICATION_TRANSACTION_BLUEPRINTS
+    assert "expense" in lifecycle.APPLICATION_TRANSACTION_BLUEPRINTS

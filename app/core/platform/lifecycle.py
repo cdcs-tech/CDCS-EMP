@@ -103,6 +103,7 @@ class ApplicationLifecycle:
         {
             "catering",
             "procurement",
+            "expense",
         }
     )
 
