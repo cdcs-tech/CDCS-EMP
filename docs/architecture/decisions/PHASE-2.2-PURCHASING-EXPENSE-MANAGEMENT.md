@@ -2191,6 +2191,25 @@ Expense Management is a distinct bounded capability concerned with operational e
 
 Expense Management shall not absorb the procurement lifecycle merely because a purchase may eventually result in an expense.
 
+#### 4.4.1 Expense Foundation Boundary
+
+**Status:** APPROVED / LOCKED
+
+Expense Management is a reusable cross-enterprise business capability. It supports Catering where Catering supplies relevant operational context, but it is not a Catering submodule and shall not be implemented as a Catering-owned capability.
+
+The initial Expense Foundation consists of exactly two Expense Management domain entities:
+
+1. `Expense`
+2. `ExpenseClassification`
+
+Expense Management owns operational expense records, classifications, lifecycle rules, and expense-related business rules.
+
+Finance owns financial transactions, accounting treatment, invoices, payments, general-ledger and other accounting responsibilities.
+
+Procurement relationships and Finance integration remain deferred until explicit future integration contracts are separately designed and approved. The Expense Foundation shall not introduce hidden cross-module ownership or direct persistence coupling to Procurement, Catering, Finance, or other business capabilities.
+
+The following are explicitly excluded from the Expense Foundation: `ExpenseApproval`, `ExpensePayment`, `ExpenseInvoice`, `ExpenseReimbursement`, `ExpenseAllocation`, `ExpenseBudget`, `FinancialTransaction`, `JournalEntry`, `GLAccount`, and similar financial, payment, reimbursement, allocation, budget, invoice, approval, or accounting constructs.
+
 ### 4.5 Finance
 
 Finance is a future bounded business capability.
