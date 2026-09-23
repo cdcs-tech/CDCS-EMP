@@ -759,6 +759,109 @@ The implementation establishes the Supplier CRUD operational pattern without pre
 **Related Design Decision:** Phase 2.2.3 — Procurement Operational Surface Design
 **Authoritative Document:** `docs/architecture/decisions/PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
 
+### Phase 2.2 — Expense Foundation & Operational Surface Implementation Completion
+
+**Component:** Expense Management — Foundation & Operational Surface
+**Status:** IMPLEMENTED / VERIFIED
+**Implementation Status:** Complete
+**Verification Status:** Passed
+**Verification Date:** 22/09/2026
+
+#### Implementation Scope
+
+The Expense Management Foundation and Operational Surface have been implemented as a reusable cross-enterprise business capability within Phase 2.2.
+
+The implementation establishes the approved Expense Management foundation consisting of exactly two domain entities:
+
+1. `ExpenseClassification`
+2. `Expense`
+
+The approved internal relationship is:
+
+- `ExpenseClassification` 1 → many `Expense`
+- `Expense.classification_id` references `ExpenseClassification.id`.
+
+The implemented Expense Management capabilities are:
+
+- Expense Classification listing.
+- Expense Classification creation.
+- Expense Classification viewing.
+- Expense Classification editing.
+- Expense Classification deletion.
+- Expense Classification activation.
+- Expense Classification deactivation.
+- Expense listing.
+- Expense creation.
+- Expense viewing.
+- Expense editing.
+- Expense deletion.
+- Active Expense Classifications supplied as selectable values when creating or editing an Expense.
+- Expense-specific RBAC permission definitions and enforcement.
+- Integration with the enterprise application transaction boundary.
+- Integration with the existing enterprise navigation.
+- Reuse of the established enterprise repository, service, query, validation, security, transaction, and UI foundations.
+
+#### Architecture Conformance
+
+The implementation conforms to the approved Expense Management boundary established in Section 4.4:
+
+- Expense Management remains a reusable cross-enterprise capability.
+- Expense Management is not implemented as a Catering submodule.
+- `ExpenseClassification` remains Expense Management-owned master data.
+- `Expense` remains an Expense Management-owned operational record.
+- Expense Management owns operational expense records, classifications, lifecycle rules, and expense-related business rules.
+- `Expense` is not treated as a financial transaction.
+- Finance ownership of financial transactions, accounting treatment, invoices, payments, general-ledger, and other accounting responsibilities remains unchanged.
+- No direct Procurement, Catering, Inventory, or Finance foreign-key dependency has been introduced.
+- No hidden cross-module persistence coupling has been introduced.
+- No Expense approval, payment, invoice, reimbursement, allocation, budget, financial transaction, journal entry, general-ledger, or accounting constructs have been introduced.
+- Expense Workflow has not been introduced at this stage.
+- Procurement ↔ Expense integration has not been introduced.
+- Expense ↔ Finance integration has not been introduced.
+
+#### Security and Transaction Conformance
+
+The Expense Management implementation reuses the established enterprise security and transaction architecture.
+
+The implemented Expense Management permissions are:
+
+- `expense.expense_classification.create`
+- `expense.expense_classification.read`
+- `expense.expense_classification.update`
+- `expense.expense_classification.delete`
+- `expense.expense.create`
+- `expense.expense.read`
+- `expense.expense.update`
+- `expense.expense.delete`
+
+The Expense application blueprint is included within the established application transaction boundary so successful mutating requests are committed through the platform transaction lifecycle.
+
+No parallel authorization or transaction architecture has been introduced.
+
+#### Verification
+
+The following verification was completed:
+
+- Expense Management automated test surface: **63 passed**.
+- Expense Classification browser verification completed for create, view, edit, deactivate, activate, and delete operations.
+- Expense operational-record browser verification completed for navigation, list, create, persistence, view, edit, persistence, and delete.
+- Browser verification confirmed successful CSRF protection for standalone POST actions.
+- Browser verification confirmed successful transaction persistence for Expense Classification and Expense records.
+- `git diff --check`: **clean**.
+- Working-tree inspection confirmed the implementation checkpoint was clean after commit.
+- Operational-surface implementation checkpoint: `e11c463 feat(expense): establish operational record surface`.
+
+#### Completion Decision
+
+The **Expense Management Foundation and Operational Surface** are approved as **implemented and verified** within Phase 2.2.
+
+This implementation establishes the reusable operational Expense Management capability while preserving the approved ownership boundaries and deferring workflow, cross-module integration, financial processing, and accounting concerns to their explicitly designated future design stages.
+
+**Next designated stage:** Expense Workflow.
+
+**Related Architecture Decision:** Phase 2.2 — Purchasing & Expense Management
+**Authoritative Document:** `docs/architecture/decisions/PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
+
 ## Phase 2.2.3 — Procurement Operational Surface
 
 **Status:** IMPLEMENTED / VERIFIED
@@ -2703,13 +2806,13 @@ Procurement Workflow
 Procurement ↔ Inventory
        │
        ▼
-Expense Foundation
+Expense Foundation                    [COMPLETED]
        │
        ▼
-Expense Operational Surface
+Expense Operational Surface           [COMPLETED]
        │
        ▼
-Expense Workflow
+Expense Workflow                      [NEXT STAGE]
        │
        ▼
 Procurement ↔ Finance
@@ -2721,7 +2824,11 @@ Catering Integration
 Reporting Integration
 ```
 
-This sequence is an implementation direction rather than a license to predefine entities or contracts before the corresponding design stage.
+The Expense Foundation and Expense Operational Surface implementation stages have been completed and verified against the approved Phase 2.2 Expense Management boundary.
+
+The next designated Expense Management stage is **Expense Workflow**. That stage shall be separately designed and validated before implementation.
+
+This sequence remains an implementation direction rather than a license to predefine entities, workflows, integration contracts, or financial responsibilities before the corresponding design stage.
 
 ---
 
