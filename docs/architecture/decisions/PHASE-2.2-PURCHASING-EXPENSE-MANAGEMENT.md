@@ -3716,6 +3716,985 @@ The next designated stage is:
 
 **Phase 2.2.5.3 — Expense Workflow Authorization & Execution Design**
 
+## Phase 2.2.5.3 — Expense Workflow Authorization & Execution Design
+
+**Status:** APPROVED / LOCKED
+**Approved By:** Project Architecture Review
+**Effective Phase:** Phase 2.2 — Purchasing & Expense Management
+**Decision Date:** 23 September 2026
+
+### Related Decisions
+
+- Phase 2.2 — Purchasing & Expense Management
+- Expense Foundation & Operational Surface
+- Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership
+- Phase 2.2.4.4 — Procurement Workflow Authorization & Execution Design
+- Phase 2.2.5.1 — Expense Workflow Scope & Lifecycle Ownership
+- Phase 2.2.5.2 — Expense Workflow Detailed Transition Design
+
+---
+
+### 1. Purpose
+
+This decision establishes the authorization and execution architecture for the initial Expense Management workflow.
+
+The design defines how governed Expense workflow operations are:
+
+- represented as enterprise commands;
+- mapped to dedicated execution permissions;
+- resolved through the existing enterprise execution authorization architecture;
+- authorized through the existing RBAC and authorization framework;
+- executed through the existing command dispatcher and transaction boundary;
+- delegated to Expense business services;
+- applied through the approved Expense workflow definition; and
+- persisted using the existing repository and transaction architecture.
+
+This decision does not introduce a new authorization engine, approval engine, command-dispatch mechanism, transaction framework, workflow engine, or security architecture.
+
+The Expense workflow must conform to the same enterprise execution pattern already established and verified for Procurement.
+
+---
+
+### 2. Authorization Ownership
+
+Expense workflow authorization follows the established enterprise authorization boundary.
+
+The responsibilities are divided as follows:
+
+| Concern | Authoritative Owner |
+|---|---|
+| Permission definitions | Expense Security Boundary |
+| Command-to-permission mapping | Expense Module |
+| Permission registration | Existing enterprise startup/module lifecycle |
+| Permission registry | Existing enterprise Permission Registry |
+| Authorization decision | Existing enterprise Authorization Service / Authorization Engine |
+| Command authorization orchestration | Existing execution authorization architecture |
+| Command dispatch | Existing enterprise Command Dispatcher |
+| Transaction boundary | Existing enterprise Execution Transaction Boundary |
+| Expense business operation | Expense Service |
+| Workflow state transition | Expense Workflow |
+| Persistence | Existing Expense Repository / CRUD infrastructure |
+| Audit and execution governance | Existing enterprise execution governance |
+| Event handling | Existing enterprise event architecture |
+
+No Expense-specific authorization engine is permitted.
+
+No handler or service may bypass the enterprise authorization boundary by directly invoking authorization infrastructure.
+
+---
+
+### 3. Workflow Operations Requiring Authorization
+
+The approved Expense workflow contains six governed operations:
+
+1. Submit
+2. Approve
+3. Reject
+4. Return
+5. Resubmit
+6. Close
+
+Each operation is represented by an explicit enterprise execution permission.
+
+The workflow operation identity and authorization permission are deliberately separate concepts:
+
+- the **operation identity** describes the business operation;
+- the **permission code** identifies the security capability required to execute that operation.
+
+The workflow definition itself does not evaluate permissions.
+
+---
+
+### 4. Expense Workflow Permission Definitions
+
+The initial Expense workflow requires exactly six workflow execution permissions.
+
+| Operation | Permission Code | Permission Name | Resource | Action |
+|---|---|---|---|---|
+| Submit | `EXPENSE.EXPENSE.SUBMIT` | `expense.submit` | `expense` | `submit` |
+| Approve | `EXPENSE.EXPENSE.APPROVE` | `expense.approve` | `expense` | `approve` |
+| Reject | `EXPENSE.EXPENSE.REJECT` | `expense.reject` | `expense` | `reject` |
+| Return | `EXPENSE.EXPENSE.RETURN` | `expense.return` | `expense` | `return` |
+| Resubmit | `EXPENSE.EXPENSE.RESUBMIT` | `expense.resubmit` | `expense` | `resubmit` |
+| Close | `EXPENSE.EXPENSE.CLOSE` | `expense.close` | `expense` | `close` |
+
+The permission definitions are owned by the Expense security boundary and must follow the existing enterprise `Permission` structure.
+
+The corresponding descriptions are:
+
+- `EXPENSE.EXPENSE.SUBMIT` — Submit Expense records for operational review.
+- `EXPENSE.EXPENSE.APPROVE` — Approve Expense records at the operational workflow level.
+- `EXPENSE.EXPENSE.REJECT` — Reject Expense records at the operational workflow level.
+- `EXPENSE.EXPENSE.RETURN` — Return Expense records for correction or additional information.
+- `EXPENSE.EXPENSE.RESUBMIT` — Resubmit returned Expense records for operational review.
+- `EXPENSE.EXPENSE.CLOSE` — Close approved Expense records at the operational workflow level.
+
+These permissions do not represent:
+
+- payment authority;
+- reimbursement authority;
+- invoice authority;
+- accounting authority;
+- journal-entry authority;
+- financial settlement authority; or
+- General Ledger authority.
+
+---
+
+### 5. Separation from Expense CRUD Permissions
+
+Workflow execution permissions remain separate from the existing Expense CRUD permissions.
+
+Existing operational permissions include:
+
+- `EXPENSE_CREATE`
+- `EXPENSE_READ`
+- `EXPENSE_UPDATE`
+- `EXPENSE_DELETE`
+
+Workflow permissions govern business state transitions and do not replace CRUD permissions.
+
+For example:
+
+- creating an Expense requires the applicable create capability;
+- editing an Expense remains an operational CRUD concern;
+- submitting an Expense requires `EXPENSE.EXPENSE.SUBMIT`;
+- approving an Expense requires `EXPENSE.EXPENSE.APPROVE`;
+- closing an Expense requires `EXPENSE.EXPENSE.CLOSE`.
+
+Possession of `EXPENSE_UPDATE` does not automatically grant workflow-transition authority.
+
+Likewise, possession of a workflow permission does not automatically grant unrestricted CRUD authority.
+
+This separation preserves the distinction between ordinary data management and governed business operations.
+
+---
+
+### 6. Command Design
+
+Each Expense workflow operation is represented by a dedicated enterprise command.
+
+The required commands are:
+
+| Business Operation | Command |
+|---|---|
+| Submit | `SubmitExpenseCommand` |
+| Approve | `ApproveExpenseCommand` |
+| Reject | `RejectExpenseCommand` |
+| Return | `ReturnExpenseCommand` |
+| Resubmit | `ResubmitExpenseCommand` |
+| Close | `CloseExpenseCommand` |
+
+Each command must follow the existing `BaseCommand` architecture.
+
+The canonical command names are:
+
+```text
+expense.submit
+expense.approve
+expense.reject
+expense.return
+expense.resubmit
+expense.close
+```
+
+Each command uses enterprise `CommandMetadata` with:
+
+- module name: `EXPENSE`;
+- operation matching the approved workflow operation;
+- category: `workflow`;
+- version: `1.0`; and
+- a descriptive command name and description.
+
+The command metadata does not contain the permission code.
+
+Permission resolution remains the responsibility of the enterprise execution-permission policy.
+
+---
+
+### 7. Command Validation
+
+Each command must validate its own command contract through the existing `BaseCommand.validate()` mechanism.
+
+The initial Expense workflow commands require the target Expense identifier.
+
+The command validation responsibility is limited to command-level validity, including:
+
+- valid command structure;
+- valid command name/type;
+- valid command metadata;
+- valid Expense identifier; and
+- valid command payload structure.
+
+Command validation does not determine whether the Expense is in a valid workflow state.
+
+Workflow-state validity remains the responsibility of the Expense workflow transition.
+
+Authorization remains the responsibility of the enterprise authorization architecture.
+
+These concerns must not be merged.
+
+---
+
+### 8. Command-to-Permission Mapping
+
+The Expense module owns the explicit mapping between workflow commands and execution permissions.
+
+The approved mapping is:
+
+```text
+expense.submit      → EXPENSE.EXPENSE.SUBMIT
+expense.approve     → EXPENSE.EXPENSE.APPROVE
+expense.reject      → EXPENSE.EXPENSE.REJECT
+expense.return      → EXPENSE.EXPENSE.RETURN
+expense.resubmit    → EXPENSE.EXPENSE.RESUBMIT
+expense.close       → EXPENSE.EXPENSE.CLOSE
+```
+
+This mapping is exposed through the Expense module's existing execution-permission contract.
+
+The mapping does not create or own the permissions themselves.
+
+Permission definitions remain owned by the Expense security boundary.
+
+This follows the established Procurement architecture in which a module declares its command-to-permission requirements while the enterprise startup lifecycle assembles the execution authorization policy.
+
+---
+
+### 9. Enterprise Permission Registration
+
+Expense execution-permission mappings must be registered through the existing enterprise application startup/module lifecycle.
+
+The existing architecture performs the following responsibilities:
+
+1. loads the enabled modules;
+2. obtains each module's execution-permission mappings;
+3. registers each command-to-permission mapping with the enterprise execution permission policy;
+4. validates the registered permissions against the enterprise security permission registry;
+5. constructs the production execution authorizer; and
+6. makes the resulting authorization mechanism available to command execution.
+
+Expense therefore does not require changes to the enterprise authorization framework.
+
+The six Expense permission codes must exist in the enterprise permission registry before the execution-permission configuration is considered valid.
+
+Invalid or missing permission registrations must continue to fail through the existing enterprise permission-validation mechanism rather than being silently ignored.
+
+---
+
+### 10. Enterprise Authorization Flow
+
+Expense workflow authorization follows the existing production execution architecture.
+
+The approved logical sequence is:
+
+```text
+Expense Command
+      │
+      ▼
+Command Dispatcher
+      │
+      ▼
+Execution Authorization
+      │
+      ▼
+Execution Permission Policy
+      │
+      ▼
+Permission Registry
+      │
+      ▼
+Authorization Service / Authorization Engine
+      │
+      ▼
+Authorization Decision
+      │
+      ├── Denied → Execution Failure
+      │
+      ▼
+Transaction Boundary
+      │
+      ▼
+Expense Handler
+      │
+      ▼
+Expense Service
+      │
+      ▼
+Expense Workflow Transition
+      │
+      ▼
+Persistence
+      │
+      ▼
+Execution Result
+```
+
+Where the enterprise governance-aware execution architecture is active, authorization continues to be governed through that existing execution architecture.
+
+No Expense-specific alternative execution sequence is permitted.
+
+---
+
+### 11. Authorization Decision Responsibility
+
+The authorization decision is made by the existing enterprise authorization architecture.
+
+The Expense module must not:
+
+- inspect the current user directly;
+- call `current_user.has_permission()` to authorize workflow commands;
+- call `AuthorizationEngine` directly from a command handler;
+- implement its own role lookup;
+- implement its own permission lookup;
+- implement its own approval engine; or
+- bypass the execution dispatcher.
+
+The established authorization chain remains authoritative.
+
+The enterprise authorization architecture evaluates the required permission against the executing subject and applicable authorization policies.
+
+Permission evaluation therefore remains centralized and consistent with the rest of CDCS-EMP.
+
+---
+
+### 12. Authorization Before Transaction and Handler Execution
+
+Authorization must occur before transaction-bound business execution.
+
+The required behavior is:
+
+```text
+Command
+   ↓
+Authorization
+   ↓
+Transaction
+   ↓
+Handler
+   ↓
+Business Service
+```
+
+If authorization is denied:
+
+- the transaction-bound business operation must not proceed;
+- the Expense handler must not execute;
+- the Expense service transition method must not execute; and
+- no Expense workflow state change may occur.
+
+This preserves the enterprise security boundary and prevents unauthorized business operations from reaching the transaction layer.
+
+---
+
+### 13. Handler Design
+
+Each workflow command has a corresponding thin command handler.
+
+The required handlers are:
+
+| Command | Handler |
+|---|---|
+| `SubmitExpenseCommand` | `SubmitExpenseHandler` |
+| `ApproveExpenseCommand` | `ApproveExpenseHandler` |
+| `RejectExpenseCommand` | `RejectExpenseHandler` |
+| `ReturnExpenseCommand` | `ReturnExpenseHandler` |
+| `ResubmitExpenseCommand` | `ResubmitExpenseHandler` |
+| `CloseExpenseCommand` | `CloseExpenseHandler` |
+
+Handlers follow the established Procurement pattern.
+
+A handler is responsible for:
+
+1. receiving the validated command;
+2. loading the target Expense through the Expense service;
+3. capturing the previous workflow status where required;
+4. invoking the corresponding Expense service operation;
+5. handling an invalid workflow transition through the established execution-result pattern; and
+6. returning an `ExecutionResult`.
+
+Handlers must remain thin orchestration components.
+
+Handlers must not contain:
+
+- permission checks;
+- role checks;
+- workflow transition matrices;
+- database transaction management;
+- direct repository persistence;
+- HTTP routing logic;
+- form validation;
+- audit-engine implementation;
+- event-engine implementation;
+- Finance integration;
+- Procurement integration;
+- Inventory integration; or
+- approval-routing logic.
+
+---
+
+### 14. Handler Error Semantics
+
+An Expense workflow operation may fail because the Expense is not currently in a state from which the requested transition is valid.
+
+This is a workflow/business-state failure, not an authorization failure.
+
+For example:
+
+- attempting `submit` when the Expense is not `DRAFT`;
+- attempting `approve` when the Expense is not `SUBMITTED`;
+- attempting `resubmit` when the Expense is not `RETURNED`; or
+- attempting `close` when the Expense is not `APPROVED`.
+
+The handler may translate the resulting workflow/service `ValueError` into an enterprise `ExecutionResult.failure_result()` using an Expense workflow-state error such as:
+
+```text
+INVALID_EXPENSE_STATE
+```
+
+The exact implementation message may identify the operation and expected state.
+
+Authorization denial and workflow-state failure must remain distinguishable:
+
+```text
+Authorization failure
+    ≠
+Invalid workflow state
+```
+
+---
+
+### 15. Expense Service Responsibility
+
+The Expense service is responsible for executing the approved workflow transition at the business-service layer.
+
+The service operations are:
+
+```text
+submit()
+approve()
+reject()
+return_expense()
+resubmit()
+close()
+```
+
+Each service operation follows the established Procurement pattern:
+
+1. obtain the appropriate Expense workflow state;
+2. request the corresponding workflow transition;
+3. apply the resulting workflow state's name to `Expense.status`;
+4. persist the updated Expense through the existing CRUD/repository service mechanism; and
+5. return the updated Expense.
+
+The service does not maintain a second transition matrix.
+
+The workflow definition remains the single source of truth for transition validity.
+
+---
+
+### 16. Workflow and Service Separation
+
+The responsibilities remain explicitly separated.
+
+**Expense Workflow owns:**
+
+- workflow states;
+- workflow transitions;
+- operation identities;
+- terminal-state semantics;
+- transition metadata; and
+- transition validity.
+
+**Expense Service owns:**
+
+- invoking the workflow transition;
+- applying the resulting state to `Expense.status`;
+- persisting the changed Expense; and
+- exposing business operations to execution handlers.
+
+**Enterprise Authorization owns:**
+
+- permission resolution;
+- permission evaluation;
+- policy evaluation;
+- authorization decisions; and
+- authorization failure behavior.
+
+No layer may duplicate another layer's responsibility.
+
+---
+
+### 17. Approved Expense Workflow Transition Contract
+
+The authorization/execution design operates on the locked workflow from Phase 2.2.5.2.
+
+The transition contract is:
+
+| Current State | Operation | Required Permission | Target State | Terminal |
+|---|---|---|---|---|
+| DRAFT | `expense.submit` | `EXPENSE.EXPENSE.SUBMIT` | SUBMITTED | No |
+| SUBMITTED | `expense.approve` | `EXPENSE.EXPENSE.APPROVE` | APPROVED | No |
+| SUBMITTED | `expense.reject` | `EXPENSE.EXPENSE.REJECT` | REJECTED | Yes |
+| SUBMITTED | `expense.return` | `EXPENSE.EXPENSE.RETURN` | RETURNED | No |
+| RETURNED | `expense.resubmit` | `EXPENSE.EXPENSE.RESUBMIT` | SUBMITTED | No |
+| APPROVED | `expense.close` | `EXPENSE.EXPENSE.CLOSE` | CLOSED | Yes |
+
+The permission requirement controls who may request execution of the operation.
+
+The workflow state controls whether the operation is valid for the target Expense.
+
+Both conditions must be satisfied.
+
+---
+
+### 18. Authorization Does Not Override Workflow State
+
+Possession of a workflow permission does not make every workflow transition valid.
+
+For example, a subject possessing:
+
+```text
+EXPENSE.EXPENSE.APPROVE
+```
+
+may be authorized to perform the approval operation, but an Expense in `DRAFT`, `RETURNED`, `APPROVED`, `REJECTED`, or `CLOSED` cannot be approved because the workflow does not define an `APPROVE` transition from those states.
+
+The architecture therefore evaluates two separate concerns:
+
+```text
+Authorization:
+"Is this subject permitted to execute this operation?"
+
+Workflow:
+"Is this operation valid for the current Expense state?"
+```
+
+Neither mechanism replaces the other.
+
+---
+
+### 19. Role and Approval Authority Model
+
+The workflow does not hard-code a specific organizational role as the approver.
+
+The `EXPENSE.EXPENSE.APPROVE` permission represents authorization to execute the operational approval command.
+
+Which organizational users or roles receive that permission remains governed through the existing enterprise RBAC administration and authorization policy architecture.
+
+No Expense-specific role is introduced by this decision.
+
+No role name is hard-coded into:
+
+- commands;
+- handlers;
+- services;
+- workflows;
+- routes;
+- forms; or
+- models.
+
+This preserves reuse of the Expense Management capability across different organizations and deployments.
+
+---
+
+### 20. Separation of Duties
+
+Expense workflow execution must remain compatible with the enterprise authorization and policy architecture.
+
+No new Expense-specific separation-of-duties engine is introduced.
+
+Where organizational separation-of-duties requirements apply, they are to be expressed through the established authorization/policy architecture rather than embedded directly into the Expense workflow.
+
+The Expense workflow therefore does not hard-code assumptions such as:
+
+- requester and approver must always be different users;
+- a particular job title must approve every Expense;
+- a particular department must own every Expense; or
+- approval must follow a fixed organizational hierarchy.
+
+Such rules, where required, belong to authorization policy/governance configuration.
+
+---
+
+### 21. Transaction Boundary
+
+Expense workflow commands execute within the existing enterprise transaction architecture.
+
+The transaction boundary remains outside the Expense handler and Expense workflow.
+
+The approved sequence is:
+
+```text
+Authorization
+      ↓
+Transaction Boundary
+      ↓
+Expense Handler
+      ↓
+Expense Service
+      ↓
+Workflow Transition
+      ↓
+Persistence
+```
+
+The Expense handler must not independently:
+
+- begin a transaction;
+- commit a transaction;
+- rollback a transaction; or
+- create a second transaction abstraction.
+
+The existing execution transaction boundary remains authoritative.
+
+If the workflow operation succeeds, the Expense status change is persisted as part of the surrounding transaction.
+
+If execution fails within the transaction boundary, the established enterprise transaction behavior remains responsible for rollback/finalization.
+
+---
+
+### 22. Persistence Responsibility
+
+Workflow state persistence remains part of the existing Expense persistence architecture.
+
+The workflow itself does not perform database writes.
+
+The service applies:
+
+```text
+workflow state → Expense.status
+```
+
+and delegates persistence through the existing Expense CRUD/repository architecture.
+
+The workflow therefore remains independent of:
+
+- SQLAlchemy sessions;
+- database transactions;
+- repository implementations;
+- HTTP requests;
+- forms; and
+- database-specific persistence behavior.
+
+---
+
+### 23. Audit and Execution Governance
+
+Expense workflow execution remains subject to the existing enterprise execution governance architecture.
+
+The Expense module does not introduce a separate audit mechanism.
+
+The execution architecture remains responsible for governing command execution and its associated execution results.
+
+Where enterprise execution or event architecture records workflow operations, Expense-specific implementation must conform to the established contracts.
+
+No new custom audit engine or event engine is introduced by this decision.
+
+Exact Expense workflow audit payloads and event contracts may be refined during the implementation/verification stage if required by existing enterprise contracts.
+
+---
+
+### 24. HTTP and UI Boundary
+
+HTTP routes and forms remain outside the authorization/execution architecture.
+
+Browser controls must invoke the established application execution path rather than implementing authorization logic independently.
+
+Routes and UI components must not:
+
+- perform their own workflow permission evaluation;
+- duplicate transition rules;
+- directly modify `Expense.status` for workflow actions; or
+- bypass command execution for governed workflow operations.
+
+Ordinary CRUD routes remain responsible for ordinary CRUD operations.
+
+Workflow actions are governed business operations and must use the enterprise execution path.
+
+---
+
+### 25. Expense Status Integrity
+
+The `Expense.status` field remains the persisted representation of the current workflow state.
+
+The approved field convention is:
+
+```python
+status = db.Column(
+    db.String(20),
+    nullable=False,
+    default="DRAFT",
+)
+```
+
+Workflow execution must not permit arbitrary status mutation through ordinary CRUD update behavior.
+
+The workflow service operations are the authoritative mechanism for changing workflow state.
+
+This protects the integrity of the approved transition model.
+
+---
+
+### 26. No Independent Approval Entity
+
+This authorization design does not introduce an `ExpenseApproval` entity.
+
+Approval remains a workflow operation on the existing `Expense` entity.
+
+The following are therefore not introduced:
+
+- ExpenseApproval;
+- ExpenseApprovalStep;
+- ExpenseApprover;
+- ApprovalRequest;
+- ApprovalRoute;
+- ApprovalHistory as a new workflow entity; or
+- any parallel approval domain.
+
+The existing enterprise workflow and execution architecture provide the required structural mechanism.
+
+---
+
+### 27. Finance Boundary
+
+Authorization to approve or close an Expense does not create a financial transaction.
+
+The following distinction remains locked:
+
+```text
+Approved Expense
+      ≠
+Financial Transaction
+```
+
+Expense workflow execution does not create:
+
+- financial transactions;
+- invoices;
+- payments;
+- reimbursements;
+- journal entries;
+- General Ledger entries;
+- accounting postings;
+- settlement records; or
+- other Finance-owned financial artifacts.
+
+Finance integration remains a future explicit architectural decision.
+
+---
+
+### 28. Cross-Module Independence
+
+Expense workflow authorization and execution introduce no direct persistence dependency on:
+
+- Procurement;
+- Catering;
+- Inventory; or
+- Finance.
+
+Expense workflow commands operate on the Expense entity owned by Expense Management.
+
+Any future cross-module relationship must be introduced through an explicit architecture/integration decision and must not be embedded into the initial Expense workflow.
+
+---
+
+### 29. Deferred Authorization and Governance Details
+
+The following remain outside the locked implementation contract of this stage unless separately approved:
+
+- organization-specific role assignment;
+- exact organizational approval hierarchy;
+- organization-specific approval routing;
+- advanced separation-of-duties policies;
+- dynamic approval thresholds;
+- amount-based approval routing;
+- departmental approval rules;
+- delegation/substitution rules;
+- escalation rules;
+- Finance approval;
+- payment authorization;
+- reimbursement authorization;
+- Procurement approval integration;
+- Inventory approval integration;
+- cross-module workflow orchestration; and
+- workflow reopening after terminal states.
+
+These concerns must not be introduced implicitly during implementation.
+
+---
+
+### 30. Explicit Architectural Exclusions
+
+The following are explicitly excluded from Phase 2.2.5.3:
+
+- new authorization engine;
+- new permission engine;
+- new approval engine;
+- new command-dispatch framework;
+- new transaction framework;
+- new workflow engine;
+- new workflow-instance entity;
+- ExpenseApproval entity;
+- ExpensePayment entity;
+- ExpenseInvoice entity;
+- ExpenseReimbursement entity;
+- ExpenseAllocation entity;
+- ExpenseBudget entity;
+- FinancialTransaction entity;
+- JournalEntry entity;
+- GLAccount entity;
+- payment workflow;
+- reimbursement workflow;
+- invoice workflow;
+- accounting workflow;
+- settlement workflow;
+- Finance workflow integration;
+- Procurement workflow integration;
+- Inventory workflow integration;
+- direct role logic inside Expense handlers;
+- direct AuthorizationEngine calls from Expense handlers;
+- direct database transaction management inside Expense handlers; and
+- duplicate enterprise security or execution infrastructure.
+
+---
+
+### 31. Architecture Conformance
+
+The Expense workflow authorization and execution design conforms to the established CDCS-EMP architecture by reusing:
+
+- enterprise workflow definitions and transitions;
+- `BaseWorkflow`;
+- `WorkflowState`;
+- `WorkflowTransition`;
+- enterprise `BaseCommand`;
+- enterprise `CommandMetadata`;
+- enterprise command dispatcher;
+- enterprise execution authorization;
+- `PermissionExecutionPolicy`;
+- `RegistryBackedPermissionExecutionPolicy`;
+- enterprise Permission Registry;
+- enterprise Authorization Service / Authorization Engine;
+- governance-aware execution enforcement;
+- enterprise transaction boundaries;
+- Expense service/repository infrastructure;
+- enterprise execution results;
+- enterprise audit/governance architecture; and
+- enterprise event architecture.
+
+No parallel implementation is permitted.
+
+The Expense module remains a consumer of the enterprise platform capabilities rather than an owner of duplicated infrastructure.
+
+---
+
+### 32. Approved Authorization and Execution Model
+
+The complete approved model is:
+
+```text
+                    ┌──────────────────────────┐
+                    │    Expense Workflow      │
+                    │ States / Transitions     │
+                    └────────────┬─────────────┘
+                                 │
+                                 │ Operation
+                                 ▼
+                    ┌──────────────────────────┐
+                    │   Expense Command        │
+                    │ expense.<operation>      │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │   Command Dispatcher     │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │ Execution Authorization  │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │ Execution Permission     │
+                    │ Policy / Permission      │
+                    │ Registry                 │
+                    └────────────┬─────────────┘
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │ Authorization Service /  │
+                    │ Authorization Engine     │
+                    └────────────┬─────────────┘
+                                 │
+                         Authorized?
+                         /          \
+                       No            Yes
+                       │              │
+                       ▼              ▼
+                 Execution       Transaction
+                   Failure         Boundary
+                                      │
+                                      ▼
+                              Expense Handler
+                                      │
+                                      ▼
+                               Expense Service
+                                      │
+                                      ▼
+                              Expense Workflow
+                                      │
+                                      ▼
+                               Expense.status
+                                      │
+                                      ▼
+                                  Persistence
+                                      │
+                                      ▼
+                              Execution Result
+```
+
+The architecture preserves a strict separation between:
+
+```text
+Permission
+    ↓
+Authorization
+    ↓
+Execution
+    ↓
+Workflow Validity
+    ↓
+Persistence
+```
+
+---
+
+### 33. Decision Outcome
+
+Phase 2.2.5.3 — Expense Workflow Authorization & Execution Design is **APPROVED / LOCKED**.
+
+The initial Expense workflow will use exactly six execution permissions, six enterprise commands, and six corresponding thin handlers.
+
+The Expense module will own the command-to-permission mapping while the Expense security boundary will own the permission definitions.
+
+Authorization will remain centralized in the existing enterprise execution and RBAC architecture.
+
+Workflow state validity will remain owned by the Expense workflow.
+
+Business transition execution will remain owned by the Expense service.
+
+Transaction management, authorization orchestration, execution governance, persistence, audit, and event infrastructure will remain owned by existing enterprise platform capabilities.
+
+No new authorization, approval, workflow, transaction, or execution infrastructure is introduced.
+
+No new Expense workflow entities are introduced.
+
+No Finance, Procurement, Inventory, or Catering workflow integration is introduced.
+
+The next designated stage is **Expense Workflow Implementation and Verification**, where the approved design will be translated into the Expense workflow definitions, status persistence, commands, handlers, execution-permission mapping, service transitions, tests, and browser verification in controlled implementation steps.
+
 ---
 
 ## 11. Phase 2.2 Implementation Direction
@@ -3752,7 +4731,10 @@ Expense Workflow Scope & Lifecycle Ownership [COMPLETED]
 Expense Workflow Detailed Transition Design [COMPLETED]
        │
        ▼
-Expense Workflow Authorization & Execution Design [NEXT STAGE]
+Expense Workflow Authorization & Execution Design [COMPLETED]
+       │
+       ▼
+Expense Workflow Implementation and Verification [NEXT STAGE]
        │
        ▼
 Procurement ↔ Finance
@@ -3768,9 +4750,11 @@ The Expense Foundation and Expense Operational Surface implementation stages hav
 
 Phase 2.2.5.1 — Expense Workflow Scope & Lifecycle Ownership has been approved and locked. It establishes `Expense` as the sole workflow-bearing Expense Management entity and defines the initial operational lifecycle while preserving the existing Finance, Procurement, Catering, and Inventory boundaries.
 
-Phase 2.2.5.2 — Expense Workflow Detailed Transition Design has now been approved and locked. It establishes the precise Expense workflow states, transition matrix, operation identities, terminal-state semantics, persisted workflow-state convention, and service-level transition responsibilities required for subsequent implementation.
+Phase 2.2.5.2 — Expense Workflow Detailed Transition Design has been approved and locked. It establishes the precise Expense workflow states, transition matrix, operation identities, terminal-state semantics, persisted workflow-state convention, and service-level transition responsibilities required for implementation.
 
-The next designated Expense Management stage is **Phase 2.2.5.3 — Expense Workflow Authorization & Execution Design**. That stage shall define the authorization, command, handler, execution, permission, transaction, audit, and governance contracts required before workflow implementation.
+Phase 2.2.5.3 — Expense Workflow Authorization & Execution Design has now been approved and locked. It establishes the authorization, command, handler, execution, permission, transaction, audit, and governance contracts required for governed Expense workflow implementation while preserving the existing enterprise execution architecture and module boundaries.
+
+The next designated Expense Management stage is **Expense Workflow Implementation and Verification**. That stage shall implement and verify the approved Expense workflow design without introducing new workflow, authorization, approval, transaction, or execution infrastructure.
 
 This sequence remains an implementation direction rather than a license to predefine entities, workflow details, integration contracts, or financial responsibilities before the corresponding design stage.
 
