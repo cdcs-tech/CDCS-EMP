@@ -2782,6 +2782,328 @@ Security, authorization, audit, workflow, execution, and transaction governance 
 
 Physical stock effects, procurement transactions, operational expenses, and financial treatment shall remain distinct concerns.
 
+## Phase 2.2.5.1 — Expense Workflow Scope & Lifecycle Ownership
+
+**Status:** APPROVED / LOCKED
+**Approved By:** Project Architecture Review
+**Approval Status:** Approved / Locked
+**Effective Phase:** Phase 2.2
+**Decision Date:** 23 September 2026
+**Related Decisions:**
+
+- Phase 2.2 — Purchasing & Expense Management
+- Phase 2.2 Expense Foundation & Operational Surface
+- Phase 2.2.4.1 — Procurement Workflow Scope & Lifecycle Ownership
+- Phase 2.2.4.4 — Procurement Workflow Authorization & Execution Design
+
+### Decision
+
+The `Expense` entity is established as the sole workflow-bearing entity within the initial Expense Management capability.
+
+`ExpenseClassification` remains Expense Management-owned master data and shall not have a formal workflow lifecycle.
+
+Expense Workflow shall govern the operational lifecycle of an Expense record while remaining strictly within the approved Expense Management ownership boundary.
+
+The Expense Workflow shall reuse the existing enterprise workflow and execution architecture. No parallel Expense-specific workflow engine, authorization architecture, command-dispatch architecture, transaction architecture, or workflow-execution architecture shall be introduced.
+
+The initial approved Expense lifecycle consists of the following states:
+
+- `DRAFT`
+- `SUBMITTED`
+- `RETURNED`
+- `APPROVED`
+- `REJECTED`
+- `CLOSED`
+
+The initial approved lifecycle transitions are:
+
+| Workflow Action | Source State | Target State |
+| --------------- | ------------ | ------------ |
+| `SUBMIT`        | `DRAFT`      | `SUBMITTED`  |
+| `APPROVE`       | `SUBMITTED`  | `APPROVED`   |
+| `REJECT`        | `SUBMITTED`  | `REJECTED`   |
+| `RETURN`        | `SUBMITTED`  | `RETURNED`   |
+| `RESUBMIT`      | `RETURNED`   | `SUBMITTED`  |
+| `CLOSE`         | `APPROVED`   | `CLOSED`     |
+
+The detailed transition authorization, command, handler, persistence, field-editability, audit, event, and execution behavior shall be defined in subsequent Expense Workflow design stages.
+
+### 1. Workflow Subject and Ownership
+
+The workflow subject is the Expense Management `Expense` operational record.
+
+Expense Management owns:
+
+- the operational Expense record;
+- Expense lifecycle rules;
+- Expense workflow state;
+- valid Expense workflow transitions;
+- Expense-related operational business rules.
+
+`ExpenseClassification` remains master data owned by Expense Management.
+
+Classification activation and deactivation remain ordinary master-data operations and are not workflow transitions.
+
+No additional workflow entity is introduced by this decision.
+
+### 2. Expense Lifecycle States
+
+#### `DRAFT`
+
+The Expense record is being prepared or corrected and has not yet entered governed review.
+
+#### `SUBMITTED`
+
+The Expense record has been submitted for governed review and is awaiting an authorized lifecycle decision.
+
+#### `RETURNED`
+
+The Expense record requires correction or additional information and has been returned for further preparation.
+
+A returned Expense may subsequently be resubmitted through the approved workflow transition.
+
+#### `APPROVED`
+
+The Expense record has passed the required Expense Management operational approval step.
+
+`APPROVED` does not represent payment, reimbursement, accounting recognition, financial settlement, invoice approval, or any other Finance-owned financial effect.
+
+#### `REJECTED`
+
+The Expense record has been rejected within the Expense Management operational lifecycle.
+
+The detailed policy governing whether and how a rejected Expense may subsequently be reopened shall be determined only through a future approved workflow design decision.
+
+#### `CLOSED`
+
+The Expense operational lifecycle has been completed within Expense Management.
+
+`CLOSED` does not represent financial settlement, payment completion, accounting completion, or general-ledger posting.
+
+### 3. Approved Lifecycle Structure
+
+The initial lifecycle shall be represented as:
+
+```text
+DRAFT
+  |
+  | SUBMIT
+  v
+SUBMITTED
+  | \
+  |  \
+  |   +-----------------> REJECTED
+  |
+  +---------------------> APPROVED
+  |
+  +---------------------> RETURNED
+  |                            |
+  |                            | RESUBMIT
+  |                            v
+  |                         SUBMITTED
+APPROVED
+   |
+   | CLOSE
+   v
+ CLOSED
+```
+
+The workflow definition shall remain the authoritative source for determining whether a requested transition is structurally valid.
+No handler or route shall implement a second workflow state machine.
+
+### 4. Workflow Definition Responsibility
+
+The Expense Workflow definition shall be responsible only for:
+- defining lifecycle states;
+- defining valid state transitions;
+- defining transition actions;
+- providing transition metadata where required.
+
+The workflow definition shall not perform:
+- authorization;
+- permission evaluation;
+- user or role inspection;
+- database queries;
+- database persistence;
+- transaction commit or rollback;
+- HTTP request handling;
+- route dispatch;
+- audit recording;
+- event publication;
+- Procurement integration;
+- Inventory integration;
+- Finance integration;
+- payment processing; or
+- financial settlement.
+
+### 5. Enterprise Execution Boundary
+
+Expense workflow operations shall reuse the established enterprise execution architecture.
+The approved architectural execution sequence is:
+
+Expense Command
+      |
+      v
+Command Dispatcher
+      |
+      v
+Authorization
+      |
+      v
+Transaction Boundary
+      |
+      v
+Expense Handler
+      |
+      v
+Workflow Transition
+      |
+      v
+Persistence
+      |
+      v
+Execution Result
+
+The workflow definition shall not directly invoke authorization, transaction, persistence, or execution services.
+
+The Expense handler shall not implement a second workflow state machine.
+Detailed command names, command payloads, permission codes, handler contracts, authorization rules, and governance requirements shall be defined in the subsequent detailed Expense Workflow authorization and execution design stage.
+
+### 6. CRUD and Workflow Boundary
+
+Ordinary Expense CRUD remains part of the Expense operational surface.
+Workflow actions are governed business operations and shall not be treated as ordinary CRUD operations.
+
+The detailed rules governing which Expense fields may be created or edited in each lifecycle state shall be defined during subsequent Expense Workflow design.
+This decision therefore does not silently introduce state-dependent edit restrictions into the existing operational surface.
+
+### 7. Approval Boundary
+
+The APPROVE transition represents approval of the operational Expense record within Expense Management.
+
+It shall not create or imply an ExpenseApproval entity.
+No approval-specific persistence entity is introduced by this decision.
+
+Future requirements for multi-level approval, delegated approval, approval history as a first-class business object, or other approval-specific persistence shall require a separate architectural decision rather than being introduced implicitly through Expense Workflow implementation.
+
+### 8. Finance Boundary
+
+Expense Workflow shall not assume ownership of financial processing.
+In particular:
+
+Expense APPROVED
+        !=
+Financial Transaction
+
+An approved Expense does not automatically create:
+- a financial transaction;
+- an invoice;
+- a payment;
+- a reimbursement;
+- a journal entry;
+- a general-ledger entry;
+- an accounting record;
+- a financial settlement.
+
+Finance remains responsible for financial transactions, accounting treatment, invoices, payments, general-ledger responsibilities, and other financial concerns established by the Phase 2.2 architecture.
+
+Any future Expense-to-Finance interaction shall be introduced only through an explicitly approved integration design.
+
+### 9. Cross-Module Boundary
+
+Expense Workflow shall not introduce direct persistence dependencies on:
+- Procurement;
+- Catering;
+- Inventory; or
+- Finance.
+
+No cross-module foreign keys, hidden persistence coupling, or module-ownership transfers are introduced by this decision.
+
+Future cross-module interactions shall use explicitly approved integration contracts.
+In particular:
+- Procurement continues to own procurement transactions.
+- Inventory continues to own physical stock effects.
+- Catering continues to own catering operational requirements.
+- Expense Management continues to own operational Expense lifecycle.
+- Finance continues to own financial treatment.
+
+### 10. Explicitly Excluded Constructs
+
+The following constructs are not introduced by Phase 2.2.5.1:
+- ExpenseApproval
+- ExpensePayment
+- ExpenseInvoice
+- ExpenseReimbursement
+- ExpenseAllocation
+- ExpenseBudget
+- FinancialTransaction
+- JournalEntry
+- GLAccount
+- payment workflow
+- reimbursement workflow
+- invoice workflow
+- accounting workflow
+- financial settlement workflow
+- Procurement workflow integration
+- Inventory workflow integration
+- Finance workflow integration
+- parallel workflow engine
+
+Their future introduction, if required, shall be subject to the appropriate separate architecture and design stage.
+
+### 11. Deferred Detailed Decisions
+
+The following matters remain intentionally deferred:
+- exact workflow command names;
+- exact workflow permission codes;
+- role and permission assignment;
+- approval authority;
+- separation-of-duties rules;
+- detailed transition guards;
+- field editability by state;
+- audit requirements for individual transitions;
+- workflow event publication;
+- rejected Expense reopening policy;
+- closed Expense reopening policy;
+- command and handler implementation;
+- browser/UI workflow controls;
+- workflow-specific reporting;
+- Expense ↔ Finance integration;
+- Procurement ↔ Expense integration.
+
+These matters shall not be inferred from this scope decision.
+
+### 12. Architecture Conformance
+
+Phase 2.2.5.1 conforms to the established enterprise architecture by:
+- reusing the enterprise workflow framework;
+- reusing the enterprise workflow registry;
+- reusing the enterprise command and execution framework;
+- preserving centralized authorization;
+- preserving centralized transaction management;
+- preserving centralized persistence through existing repositories/services;
+- preserving enterprise audit and event architecture;
+- preserving established business-module ownership boundaries;
+- avoiding duplicate infrastructure;
+- avoiding hidden cross-module dependencies.
+
+The Expense Workflow definition remains deliberately independent of authorization, persistence, transactions, HTTP routing, and financial processing.
+
+### 13. Completion Decision
+
+Phase 2.2.5.1 — Expense Workflow Scope & Lifecycle Ownership is approved and locked.
+The Expense entity is established as the workflow-bearing Expense Management operational record, with the initial six-state lifecycle:
+
+DRAFT → SUBMITTED → APPROVED → CLOSED
+with the additional governed decision paths:
+SUBMITTED → RETURNED → SUBMITTED
+and:
+SUBMITTED → REJECTED.
+
+Expense Classification remains non-workflow master data.
+
+The next designated stage is the detailed Expense Workflow lifecycle and transition design, where the approved states and actions shall be refined into precise transition contracts without changing the ownership boundaries established here unless a new architecture decision is approved.
+
 ---
 
 ## 11. Phase 2.2 Implementation Direction
@@ -2812,7 +3134,10 @@ Expense Foundation                    [COMPLETED]
 Expense Operational Surface           [COMPLETED]
        │
        ▼
-Expense Workflow                      [NEXT STAGE]
+Expense Workflow Scope & Lifecycle Ownership [COMPLETED]
+       │
+       ▼
+Expense Workflow Detailed Transition Design [NEXT STAGE]
        │
        ▼
 Procurement ↔ Finance
@@ -2826,9 +3151,11 @@ Reporting Integration
 
 The Expense Foundation and Expense Operational Surface implementation stages have been completed and verified against the approved Phase 2.2 Expense Management boundary.
 
-The next designated Expense Management stage is **Expense Workflow**. That stage shall be separately designed and validated before implementation.
+Phase 2.2.5.1 — Expense Workflow Scope & Lifecycle Ownership has now been approved and locked. It establishes `Expense` as the sole workflow-bearing Expense Management entity and defines the initial operational lifecycle while preserving the existing Finance, Procurement, Catering, and Inventory boundaries.
 
-This sequence remains an implementation direction rather than a license to predefine entities, workflows, integration contracts, or financial responsibilities before the corresponding design stage.
+The next designated Expense Management stage is **Expense Workflow Detailed Transition Design**. That stage shall refine the approved lifecycle into precise transition, authorization, command, handler, and execution contracts before implementation.
+
+This sequence remains an implementation direction rather than a license to predefine entities, workflow details, integration contracts, or financial responsibilities before the corresponding design stage.
 
 ---
 
