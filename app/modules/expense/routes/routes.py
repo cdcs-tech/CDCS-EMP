@@ -18,15 +18,28 @@ from flask_login import login_required
 from app.core.data.query import QueryOptions
 from app.security.decorators import require_permission
 
-from app.modules.expense.forms import ExpenseClassificationForm
-from app.modules.expense.models import ExpenseClassification
+from app.modules.expense.forms import (
+    ExpenseClassificationForm,
+    ExpenseForm,
+)
+from app.modules.expense.models import (
+    Expense,
+    ExpenseClassification,
+)
 from app.modules.expense.security import (
     EXPENSE_CLASSIFICATION_CREATE,
     EXPENSE_CLASSIFICATION_DELETE,
     EXPENSE_CLASSIFICATION_READ,
     EXPENSE_CLASSIFICATION_UPDATE,
+    EXPENSE_CREATE,
+    EXPENSE_DELETE,
+    EXPENSE_READ,
+    EXPENSE_UPDATE,
 )
-from app.modules.expense.services import ExpenseClassificationService
+from app.modules.expense.services import (
+    ExpenseClassificationService,
+    ExpenseService,
+)
 
 from . import expense_bp
 
@@ -35,6 +48,12 @@ _CLASSIFICATION_SORT_FIELDS = {
     "name",
     "code",
     "is_active",
+}
+
+_EXPENSE_SORT_FIELDS = {
+    "description",
+    "amount",
+    "expense_date",
 }
 
 _PAGE_SIZES = (
@@ -166,6 +185,86 @@ def _build_classification_query_options() -> QueryOptions:
     )
 
 
+def _parse_expense_sort(
+    value: str | None,
+) -> str:
+    """
+    Parse a controlled Expense sort field.
+    """
+    if value in _EXPENSE_SORT_FIELDS:
+        return value
+
+    return "expense_date"
+
+
+def _build_expense_query_options() -> QueryOptions:
+    """
+    Build controlled query options for Expense list operations.
+    """
+    page = _parse_positive_int(
+        request.args.get("page"),
+        1,
+    )
+
+    page_size = _parse_page_size(
+        request.args.get("page_size"),
+    )
+
+    sort_by = _parse_expense_sort(
+        request.args.get("sort"),
+    )
+
+    sort_direction = _parse_sort_direction(
+        request.args.get("direction"),
+    )
+
+    search = request.args.get(
+        "search",
+        type=str,
+    )
+
+    return QueryOptions(
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_direction=sort_direction,
+        search=search,
+    )
+
+
+def _load_expense_classification_choices(
+    form: ExpenseForm,
+) -> None:
+    """
+    Populate Expense Classification choices for Expense forms.
+
+    Only active Expense Classifications are available for new or
+    edited operational Expense records.
+    """
+    service = ExpenseClassificationService()
+
+    result = service.paginate(
+        QueryOptions(
+            page=1,
+            page_size=1000,
+            sort_by="name",
+            sort_direction="asc",
+            filters={
+                "is_active": True,
+            },
+            include_inactive=False,
+        )
+    )
+
+    form.classification_id.choices = [
+        (
+            classification.id,
+            classification.name,
+        )
+        for classification in result.items
+    ]
+
+
 @expense_bp.route(
     "/classifications/",
     methods=["GET"],
@@ -179,6 +278,7 @@ def classifications():
     Render the Expense Classification management list.
     """
     service = ExpenseClassificationService()
+
     query_options = _build_classification_query_options()
 
     result = service.paginate(
@@ -414,12 +514,219 @@ def deactivate_classification(
     )
 
 
+@expense_bp.route(
+    "/expenses/",
+    methods=["GET"],
+)
+@login_required
+@require_permission(
+    EXPENSE_READ.name
+)
+def expenses():
+    """
+    Render the Expense operational-record management list.
+    """
+    service = ExpenseService()
+
+    query_options = _build_expense_query_options()
+
+    result = service.paginate(
+        query_options
+    )
+
+    return render_template(
+        "modules/expense/expenses/index.html",
+        expenses=result,
+        query_options=query_options,
+        search=query_options.search or "",
+        sort_by=query_options.sort_by,
+        sort_direction=query_options.sort_direction,
+        page_size=query_options.page_size,
+        page_sizes=_PAGE_SIZES,
+    )
+
+
+@expense_bp.route(
+    "/expenses/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_CREATE.name
+)
+def create_expense():
+    """
+    Create an Expense operational record.
+    """
+    form = ExpenseForm()
+
+    _load_expense_classification_choices(
+        form
+    )
+
+    if form.validate_on_submit():
+        service = ExpenseService()
+
+        expense = service.create(
+            Expense(
+                classification_id=form.classification_id.data,
+                description=form.description.data,
+                amount=form.amount.data,
+                expense_date=form.expense_date.data,
+            )
+        )
+
+        flash(
+            "Expense created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "expense.expenses"
+            )
+        )
+
+    return render_template(
+        "modules/expense/expenses/create.html",
+        form=form,
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>",
+    methods=["GET"],
+)
+@login_required
+@require_permission(
+    EXPENSE_READ.name
+)
+def view_expense(
+    expense_id: int,
+):
+    """
+    View an Expense operational record.
+    """
+    service = ExpenseService()
+
+    expense = service.get(
+        expense_id
+    )
+
+    return render_template(
+        "modules/expense/expenses/view.html",
+        expense=expense,
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_UPDATE.name
+)
+def edit_expense(
+    expense_id: int,
+):
+    """
+    Edit an Expense operational record.
+    """
+    service = ExpenseService()
+
+    expense = service.get(
+        expense_id
+    )
+
+    form = ExpenseForm(
+        obj=expense
+    )
+
+    _load_expense_classification_choices(
+        form
+    )
+
+    if form.validate_on_submit():
+        expense.classification_id = (
+            form.classification_id.data
+        )
+        expense.description = (
+            form.description.data
+        )
+        expense.amount = (
+            form.amount.data
+        )
+        expense.expense_date = (
+            form.expense_date.data
+        )
+
+        service.update(
+            expense
+        )
+
+        flash(
+            "Expense updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "expense.view_expense",
+                expense_id=expense.id,
+            )
+        )
+
+    return render_template(
+        "modules/expense/expenses/edit.html",
+        form=form,
+        expense=expense,
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>/delete",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_DELETE.name
+)
+def delete_expense(
+    expense_id: int,
+):
+    """
+    Delete an Expense operational record.
+    """
+    service = ExpenseService()
+
+    service.delete(
+        expense_id
+    )
+
+    flash(
+        "Expense deleted successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "expense.expenses"
+        )
+    )
+
+
 __all__ = [
     "activate_classification",
     "classifications",
     "create_classification",
+    "create_expense",
     "deactivate_classification",
     "delete_classification",
+    "delete_expense",
     "edit_classification",
+    "edit_expense",
+    "expenses",
     "view_classification",
+    "view_expense",
 ]

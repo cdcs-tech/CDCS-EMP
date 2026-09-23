@@ -3,19 +3,16 @@ Enterprise Navigation Configuration
 """
 
 MENU_ITEMS = [
-
     {
         "title": "Dashboard",
         "endpoint": "dashboard.index",
         "icon": "bi-speedometer2",
     },
-
     {
         "title": "Catering",
         "endpoint": "catering.index",
         "icon": "bi-cup-hot",
     },
-
     {
         "title": "Procurement",
         "endpoint": None,
@@ -39,29 +36,29 @@ MENU_ITEMS = [
             },
         ],
     },
-
+    {
+        "title": "Expense Management",
+        "endpoint": "expense.expenses",
+        "icon": "bi-receipt",
+    },
     {
         "title": "Human Resources",
         "endpoint": None,
         "icon": "bi-people",
     },
-
     {
         "title": "Finance",
         "endpoint": None,
         "icon": "bi-cash-stack",
     },
-
     {
         "title": "Assets",
         "endpoint": None,
         "icon": "bi-box-seam",
     },
-
     {
         "title": "Membership",
         "endpoint": None,
         "icon": "bi-person-badge",
     },
-
 ]

@@ -1,0 +1,219 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+    {% include "components/page_header.html" with context %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Expenses</h5>
+
+            <a href="{{ url_for('expense.create_expense') }}" class="btn btn-primary">
+                New Expense
+            </a>
+        </div>
+
+        <div class="card-body">
+
+            <form method="get" class="row g-3 mb-4">
+
+                <div class="col-md-4">
+                    <label for="search" class="form-label">
+                        Search
+                    </label>
+                    <input type="text" id="search" name="search" class="form-control" value="{{ search }}"
+                        placeholder="Search description">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="sort" class="form-label">
+                        Sort By
+                    </label>
+                    <select id="sort" name="sort" class="form-select">
+                        <option value="expense_date" {% if sort_by=="expense_date" %}selected{% endif %}>
+                            Expense Date
+                        </option>
+                        <option value="description" {% if sort_by=="description" %}selected{% endif %}>
+                            Description
+                        </option>
+                        <option value="amount" {% if sort_by=="amount" %}selected{% endif %}>
+                            Amount
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="direction" class="form-label">
+                        Direction
+                    </label>
+                    <select id="direction" name="direction" class="form-select">
+                        <option value="asc" {% if sort_direction=="asc" %}selected{% endif %}>
+                            Ascending
+                        </option>
+                        <option value="desc" {% if sort_direction=="desc" %}selected{% endif %}>
+                            Descending
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="page_size" class="form-label">
+                        Page Size
+                    </label>
+                    <select id="page_size" name="page_size" class="form-select">
+                        {% for size in page_sizes %}
+                        <option value="{{ size }}" {% if page_size==size %}selected{% endif %}>
+                            {{ size }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        Apply Filters
+                    </button>
+
+                    <a href="{{ url_for('expense.expenses') }}" class="btn btn-secondary">
+                        Reset
+                    </a>
+                </div>
+
+            </form>
+
+            {% if expenses.items %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Expense Date</th>
+                            <th>Description</th>
+                            <th>Classification</th>
+                            <th>Amount</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for expense in expenses.items %}
+                        <tr>
+                            <td>
+                                {{ expense.expense_date }}
+                            </td>
+
+                            <td>
+                                {{ expense.description }}
+                            </td>
+
+                            <td>
+                                {{ expense.classification.name }}
+                            </td>
+
+                            <td>
+                                {{ "%.2f"|format(expense.amount) }}
+                            </td>
+
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+
+                                    <a href="{{ url_for(
+                                            'expense.view_expense',
+                                            expense_id=expense.id
+                                        ) }}" class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+
+                                    <a href="{{ url_for(
+                                            'expense.edit_expense',
+                                            expense_id=expense.id
+                                        ) }}" class="btn btn-sm btn-outline-secondary">
+                                        Edit
+                                    </a>
+
+                                    <form method="post" action="{{ url_for(
+                                            'expense.delete_expense',
+                                            expense_id=expense.id
+                                        ) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Delete
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% else %}
+            <div class="text-center py-5">
+                <p class="text-muted mb-3">
+                    No expenses found.
+                </p>
+
+                <a href="{{ url_for('expense.create_expense') }}" class="btn btn-primary">
+                    Create Expense
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
+
+        {% if expenses.total_pages > 1 %}
+        <div class="card-footer">
+            <nav aria-label="Expense pagination">
+                <ul class="pagination mb-0">
+
+                    {% if expenses.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for(
+                                'expense.expenses',
+                                page=expenses.page - 1,
+                                page_size=page_size,
+                                search=search,
+                                sort=sort_by,
+                                direction=sort_direction
+                            ) }}">
+                            Previous
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ expenses.page }}
+                            of {{ expenses.total_pages }}
+                        </span>
+                    </li>
+
+                    {% if expenses.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for(
+                                'expense.expenses',
+                                page=expenses.page + 1,
+                                page_size=page_size,
+                                search=search,
+                                sort=sort_by,
+                                direction=sort_direction
+                            ) }}">
+                            Next
+                        </a>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}
