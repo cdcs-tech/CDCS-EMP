@@ -4881,3 +4881,108 @@ The completed implementation therefore satisfies the current Phase 2.2 Procureme
 **Effective Phase:** Phase 2.2 — Purchasing & Expense Management
 
 **Locked Decisions:** Phase 2.2.1 Capability Ownership & Boundaries; Phase 2.2.2.1 Procurement/Purchasing Domain Entities & Relationships; Phase 2.2.4 Procurement Workflow & Lifecycle; Phase 2.2.4 / 2.2.5 Procurement Workflow Authorization & Execution Integration
+
+## Phase 2.2.5 — Expense Workflow Implementation and Verification
+
+**Component:** Expense Workflow Implementation and Verification
+**Status:** IMPLEMENTED / VERIFIED
+
+Phase 2.2.5 implements and verifies the approved Expense Workflow defined by Phase 2.2.5.1, Phase 2.2.5.2, and Phase 2.2.5.3.
+
+### Implementation Scope
+
+The implementation establishes:
+
+- the persisted `Expense.status` workflow state;
+- the approved six-state Expense lifecycle:
+  `DRAFT`, `SUBMITTED`, `RETURNED`, `APPROVED`, `REJECTED`, and `CLOSED`;
+- the approved six workflow transitions;
+- the `ExpenseWorkflow` implementation using the enterprise workflow framework;
+- the six Expense workflow service operations;
+- six enterprise Expense workflow commands;
+- six corresponding thin command handlers;
+- six dedicated Expense workflow execution permissions;
+- Expense module workflow and execution-definition registration;
+- Expense execution-permission mappings through the enterprise execution authorization architecture.
+
+No Expense-specific authorization engine, command dispatcher, transaction framework, workflow engine, or approval entity has been introduced.
+
+### Authorization and Execution Verification
+
+Expense workflow execution has been verified through the existing enterprise execution authorization composition.
+
+The verified architecture is:
+
+`Expense Workflow Operation → Enterprise Command → Command Dispatcher → Execution Authorization → Permission Policy → Permission Registry → Authorization Service → Handler → Expense Service → Expense Workflow → Persistence → Execution Result`
+
+The verification confirms that:
+
+- workflow commands use the approved canonical operation identities;
+- command-to-permission mappings are registered through the Expense module contract;
+- workflow permissions resolve through the enterprise Permission Registry;
+- unauthorized Expense workflow execution is denied before handler invocation;
+- authorized Expense workflow execution reaches the corresponding handler;
+- handlers do not perform direct permission checks;
+- handlers do not bypass the enterprise execution architecture;
+- workflow-state validity remains owned by `ExpenseWorkflow`;
+- transition execution remains owned by `ExpenseService`.
+
+### Transaction Boundary Verification
+
+The Expense implementation does not introduce a module-specific transaction mechanism.
+
+Verification established that:
+
+- the enterprise `CommandDispatcher` supports an `ExecutionTransactionBoundary`;
+- successful transaction-aware command execution follows `begin → commit`;
+- failed transaction-aware command execution follows `begin → rollback`;
+- authorization denial occurs before transaction initiation;
+- Expense is already included in the established application transaction blueprint;
+- the application lifecycle owns the HTTP request transaction boundary through the enterprise `SQLAlchemyTransactionManager`;
+- no production `set_transaction_boundary()` wiring exists for Procurement or Expense;
+- no Procurement route-level transaction-boundary pattern exists that would justify introducing Expense-specific transaction wiring;
+- therefore no Expense-specific transaction manager, commit/rollback logic, or parallel transaction boundary is introduced.
+
+The implementation remains consistent with the approved architecture that transaction management is enterprise-controlled and outside the Expense workflow definition, service transition logic, and command handlers.
+
+### Verification Scope
+
+The implementation has been verified through focused tests covering:
+
+- Expense workflow states and transition matrix;
+- workflow operation identities and terminal-state behavior;
+- Expense workflow service operations;
+- command metadata and command validation;
+- command-handler registration and delegation;
+- invalid workflow-state handling;
+- Expense workflow permission definitions;
+- Expense module workflow and execution registration;
+- application execution-permission composition;
+- authorized and unauthorized Expense workflow execution;
+- enterprise dispatcher transaction-boundary behavior;
+- Expense participation in the application transaction blueprint.
+
+### Architectural Conformance
+
+Phase 2.2.5 conforms to the approved Phase 2.2.5 architecture by:
+
+- reusing the enterprise workflow framework;
+- reusing the enterprise command and execution framework;
+- reusing centralized execution authorization;
+- reusing the enterprise permission registry;
+- preserving centralized transaction management;
+- keeping workflow definitions separate from authorization and transaction management;
+- keeping command handlers thin;
+- keeping Expense lifecycle ownership within Expense Management;
+- avoiding direct persistence dependencies on Procurement, Inventory, Catering, or Finance;
+- avoiding new approval, payment, invoice, reimbursement, accounting, or financial entities.
+
+No parallel workflow, authorization, execution, or transaction architecture has been introduced.
+
+### Stage Decision
+
+**Phase 2.2.5 — Expense Workflow Implementation and Verification is hereby VERIFIED as implemented in accordance with the approved architecture.**
+
+The Expense workflow implementation is ready for the subsequent HTTP/UI workflow integration stage.
+
+**Next designated stage:** Expense Workflow HTTP/UI Integration and Browser Verification.

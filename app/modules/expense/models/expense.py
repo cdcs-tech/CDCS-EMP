@@ -57,6 +57,12 @@ class Expense(
         nullable=False,
     )
 
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="DRAFT",
+    )
+
     classification = db.relationship(
         "ExpenseClassification",
         back_populates="expenses",

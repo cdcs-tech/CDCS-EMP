@@ -4,10 +4,12 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 Expense Management Business Module
 """
 
+from app.core.execution import ExecutionDefinition
 from app.core.modules import (
     BaseModule,
     ModuleMetadata,
 )
+from app.core.workflow import WorkflowDefinition
 
 from app.modules.expense.security import (
     EXPENSE_PERMISSIONS,
@@ -19,7 +21,8 @@ class ExpenseModule(BaseModule):
     CDCS-EMP Expense Management business module.
 
     Provides the enterprise module boundary for reusable
-    operational expense management.
+    operational expense management, including approved
+    Expense workflow and workflow execution registration.
     """
 
     def register_models(self, app):
@@ -78,6 +81,106 @@ class ExpenseModule(BaseModule):
         return list(
             EXPENSE_PERMISSIONS
         )
+
+    def get_workflows(self):
+        """
+        Return Expense Management enterprise workflow definitions.
+
+        Workflow registration is delegated to the enterprise
+        BaseModule lifecycle.
+        """
+
+        from app.modules.expense.workflows import (
+            ExpenseWorkflow,
+        )
+
+        return [
+            WorkflowDefinition(
+                module_name="EXPENSE",
+                workflow_name="expense",
+                workflow=ExpenseWorkflow(),
+            ),
+        ]
+
+    def get_execution_definitions(self):
+        """
+        Return Expense Management workflow execution definitions.
+
+        Workflow command authorization and transaction management
+        remain owned by the enterprise execution dispatcher.
+        """
+
+        from app.modules.expense.commands import (
+            ApproveExpenseCommand,
+            CloseExpenseCommand,
+            RejectExpenseCommand,
+            ResubmitExpenseCommand,
+            ReturnExpenseCommand,
+            SubmitExpenseCommand,
+        )
+
+        from app.modules.expense.handlers import (
+            ApproveExpenseHandler,
+            CloseExpenseHandler,
+            RejectExpenseHandler,
+            ResubmitExpenseHandler,
+            ReturnExpenseHandler,
+            SubmitExpenseHandler,
+        )
+
+        return [
+            ExecutionDefinition(
+                command=SubmitExpenseCommand,
+                handler=SubmitExpenseHandler(),
+            ),
+            ExecutionDefinition(
+                command=ApproveExpenseCommand,
+                handler=ApproveExpenseHandler(),
+            ),
+            ExecutionDefinition(
+                command=RejectExpenseCommand,
+                handler=RejectExpenseHandler(),
+            ),
+            ExecutionDefinition(
+                command=ReturnExpenseCommand,
+                handler=ReturnExpenseHandler(),
+            ),
+            ExecutionDefinition(
+                command=ResubmitExpenseCommand,
+                handler=ResubmitExpenseHandler(),
+            ),
+            ExecutionDefinition(
+                command=CloseExpenseCommand,
+                handler=CloseExpenseHandler(),
+            ),
+        ]
+
+    def get_execution_permissions(self) -> dict[str, str]:
+        """
+        Return Expense Management execution permission mappings.
+
+        Each approved Expense workflow command is explicitly
+        mapped to its corresponding Expense workflow permission.
+
+        Permission definitions remain owned by the Expense
+        security boundary. This mapping only declares which
+        permission is required to execute a command.
+        """
+
+        return {
+            "expense.submit":
+                "EXPENSE.EXPENSE.SUBMIT",
+            "expense.approve":
+                "EXPENSE.EXPENSE.APPROVE",
+            "expense.reject":
+                "EXPENSE.EXPENSE.REJECT",
+            "expense.return":
+                "EXPENSE.EXPENSE.RETURN",
+            "expense.resubmit":
+                "EXPENSE.EXPENSE.RESUBMIT",
+            "expense.close":
+                "EXPENSE.EXPENSE.CLOSE",
+        }
 
     def register_blueprints(self, app):
         """

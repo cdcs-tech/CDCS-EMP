@@ -51,7 +51,7 @@ EXPENSE_CLASSIFICATION_DELETE = Permission(
 
 
 # ---------------------------------------------------------------------------
-# Expense Permissions
+# Expense CRUD Permissions
 # ---------------------------------------------------------------------------
 
 EXPENSE_CREATE = Permission(
@@ -92,6 +92,65 @@ EXPENSE_DELETE = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Expense Workflow Permissions
+# ---------------------------------------------------------------------------
+
+EXPENSE_SUBMIT = Permission(
+    code="EXPENSE.EXPENSE.SUBMIT",
+    name="expense.expense.submit",
+    description="Submit Expense Management expense records for approval.",
+    module="EXPENSE",
+    resource="expense",
+    action="submit",
+)
+
+EXPENSE_APPROVE = Permission(
+    code="EXPENSE.EXPENSE.APPROVE",
+    name="expense.expense.approve",
+    description="Approve submitted Expense Management expense records.",
+    module="EXPENSE",
+    resource="expense",
+    action="approve",
+)
+
+EXPENSE_REJECT = Permission(
+    code="EXPENSE.EXPENSE.REJECT",
+    name="expense.expense.reject",
+    description="Reject submitted Expense Management expense records.",
+    module="EXPENSE",
+    resource="expense",
+    action="reject",
+)
+
+EXPENSE_RETURN = Permission(
+    code="EXPENSE.EXPENSE.RETURN",
+    name="expense.expense.return",
+    description="Return submitted Expense Management expense records for correction.",
+    module="EXPENSE",
+    resource="expense",
+    action="return",
+)
+
+EXPENSE_RESUBMIT = Permission(
+    code="EXPENSE.EXPENSE.RESUBMIT",
+    name="expense.expense.resubmit",
+    description="Resubmit returned Expense Management expense records.",
+    module="EXPENSE",
+    resource="expense",
+    action="resubmit",
+)
+
+EXPENSE_CLOSE = Permission(
+    code="EXPENSE.EXPENSE.CLOSE",
+    name="expense.expense.close",
+    description="Close approved Expense Management expense records.",
+    module="EXPENSE",
+    resource="expense",
+    action="close",
+)
+
+
+# ---------------------------------------------------------------------------
 # Aggregate Expense Permissions
 # ---------------------------------------------------------------------------
 
@@ -104,6 +163,12 @@ EXPENSE_PERMISSIONS = (
     EXPENSE_READ,
     EXPENSE_UPDATE,
     EXPENSE_DELETE,
+    EXPENSE_SUBMIT,
+    EXPENSE_APPROVE,
+    EXPENSE_REJECT,
+    EXPENSE_RETURN,
+    EXPENSE_RESUBMIT,
+    EXPENSE_CLOSE,
 )
 
 
@@ -116,5 +181,11 @@ __all__ = [
     "EXPENSE_READ",
     "EXPENSE_UPDATE",
     "EXPENSE_DELETE",
+    "EXPENSE_SUBMIT",
+    "EXPENSE_APPROVE",
+    "EXPENSE_REJECT",
+    "EXPENSE_RETURN",
+    "EXPENSE_RESUBMIT",
+    "EXPENSE_CLOSE",
     "EXPENSE_PERMISSIONS",
 ]
