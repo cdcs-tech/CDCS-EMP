@@ -38,8 +38,18 @@ MENU_ITEMS = [
     },
     {
         "title": "Expense Management",
-        "endpoint": "expense.expenses",
+        "endpoint": None,
         "icon": "bi-receipt",
+        "children": [
+            {
+                "title": "Expense Classifications",
+                "endpoint": "expense.classifications",
+            },
+            {
+                "title": "Expenses",
+                "endpoint": "expense.expenses",
+            },
+        ],
     },
     {
         "title": "Human Resources",

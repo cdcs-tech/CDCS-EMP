@@ -8,16 +8,26 @@ HTTP routes.
 
 from __future__ import annotations
 
+from flask import current_app
 from flask import flash
 from flask import redirect
 from flask import render_template
 from flask import request
 from flask import url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from app.core.data.query import QueryOptions
+from app.core.execution.context import ExecutionContext
 from app.security.decorators import require_permission
 
+from app.modules.expense.commands import (
+    ApproveExpenseCommand,
+    CloseExpenseCommand,
+    RejectExpenseCommand,
+    ResubmitExpenseCommand,
+    ReturnExpenseCommand,
+    SubmitExpenseCommand,
+)
 from app.modules.expense.forms import (
     ExpenseClassificationForm,
     ExpenseForm,
@@ -27,13 +37,19 @@ from app.modules.expense.models import (
     ExpenseClassification,
 )
 from app.modules.expense.security import (
+    EXPENSE_APPROVE,
     EXPENSE_CLASSIFICATION_CREATE,
     EXPENSE_CLASSIFICATION_DELETE,
     EXPENSE_CLASSIFICATION_READ,
     EXPENSE_CLASSIFICATION_UPDATE,
+    EXPENSE_CLOSE,
     EXPENSE_CREATE,
     EXPENSE_DELETE,
     EXPENSE_READ,
+    EXPENSE_REJECT,
+    EXPENSE_RESUBMIT,
+    EXPENSE_RETURN,
+    EXPENSE_SUBMIT,
     EXPENSE_UPDATE,
 )
 from app.modules.expense.services import (
@@ -716,9 +732,290 @@ def delete_expense(
     )
 
 
+@expense_bp.route(
+    "/expenses/<int:expense_id>/submit",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_SUBMIT.name
+)
+def submit_expense(
+    expense_id: int,
+):
+    """
+    Submit an Expense through the enterprise execution framework.
+    """
+    command = SubmitExpenseCommand(
+        expense_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="EXPENSE",
+        operation="expense.submit",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "expense.view_expense",
+            expense_id=expense_id,
+        )
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>/approve",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_APPROVE.name
+)
+def approve_expense(
+    expense_id: int,
+):
+    """
+    Approve an Expense through the enterprise execution framework.
+    """
+    command = ApproveExpenseCommand(
+        expense_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="EXPENSE",
+        operation="expense.approve",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "expense.view_expense",
+            expense_id=expense_id,
+        )
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>/reject",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_REJECT.name
+)
+def reject_expense(
+    expense_id: int,
+):
+    """
+    Reject an Expense through the enterprise execution framework.
+    """
+    command = RejectExpenseCommand(
+        expense_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="EXPENSE",
+        operation="expense.reject",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "expense.view_expense",
+            expense_id=expense_id,
+        )
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>/return",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_RETURN.name
+)
+def return_expense(
+    expense_id: int,
+):
+    """
+    Return an Expense for correction through the enterprise
+    execution framework.
+    """
+    command = ReturnExpenseCommand(
+        expense_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="EXPENSE",
+        operation="expense.return",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "expense.view_expense",
+            expense_id=expense_id,
+        )
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>/resubmit",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_RESUBMIT.name
+)
+def resubmit_expense(
+    expense_id: int,
+):
+    """
+    Resubmit a returned Expense through the enterprise execution
+    framework.
+    """
+    command = ResubmitExpenseCommand(
+        expense_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="EXPENSE",
+        operation="expense.resubmit",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "expense.view_expense",
+            expense_id=expense_id,
+        )
+    )
+
+
+@expense_bp.route(
+    "/expenses/<int:expense_id>/close",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    EXPENSE_CLOSE.name
+)
+def close_expense(
+    expense_id: int,
+):
+    """
+    Close an approved Expense through the enterprise execution
+    framework.
+    """
+    command = CloseExpenseCommand(
+        expense_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="EXPENSE",
+        operation="expense.close",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "expense.view_expense",
+            expense_id=expense_id,
+        )
+    )
+
+
 __all__ = [
     "activate_classification",
+    "approve_expense",
     "classifications",
+    "close_expense",
     "create_classification",
     "create_expense",
     "deactivate_classification",
@@ -727,6 +1024,10 @@ __all__ = [
     "edit_classification",
     "edit_expense",
     "expenses",
+    "reject_expense",
+    "resubmit_expense",
+    "return_expense",
+    "submit_expense",
     "view_classification",
     "view_expense",
 ]

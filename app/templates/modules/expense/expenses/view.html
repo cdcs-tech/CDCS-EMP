@@ -35,8 +35,94 @@
                     {{ expense.expense_date }}
                 </dd>
 
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    <span class="badge bg-secondary">
+                        {{ expense.status }}
+                    </span>
+                </dd>
+
             </dl>
         </div>
+
+        {% if expense.status == "DRAFT" %}
+        <div class="card-footer d-flex gap-2">
+            <form method="post" action="{{ url_for(
+                    'expense.submit_expense',
+                    expense_id=expense.id
+                ) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-primary">
+                    Submit Expense
+                </button>
+            </form>
+        </div>
+
+        {% elif expense.status == "SUBMITTED" %}
+        <div class="card-footer d-flex gap-2">
+            <form method="post" action="{{ url_for(
+                    'expense.approve_expense',
+                    expense_id=expense.id
+                ) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-success">
+                    Approve Expense
+                </button>
+            </form>
+
+            <form method="post" action="{{ url_for(
+                    'expense.reject_expense',
+                    expense_id=expense.id
+                ) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-danger">
+                    Reject Expense
+                </button>
+            </form>
+
+            <form method="post" action="{{ url_for(
+                    'expense.return_expense',
+                    expense_id=expense.id
+                ) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-warning">
+                    Return Expense
+                </button>
+            </form>
+        </div>
+
+        {% elif expense.status == "RETURNED" %}
+        <div class="card-footer d-flex gap-2">
+            <form method="post" action="{{ url_for(
+                    'expense.resubmit_expense',
+                    expense_id=expense.id
+                ) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-primary">
+                    Resubmit Expense
+                </button>
+            </form>
+        </div>
+
+        {% elif expense.status == "APPROVED" %}
+        <div class="card-footer d-flex gap-2">
+            <form method="post" action="{{ url_for(
+                    'expense.close_expense',
+                    expense_id=expense.id
+                ) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-success">
+                    Close Expense
+                </button>
+            </form>
+        </div>
+        {% endif %}
 
         <div class="card-footer d-flex gap-2">
 

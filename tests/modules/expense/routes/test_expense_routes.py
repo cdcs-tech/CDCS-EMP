@@ -6,6 +6,7 @@ Expense Management Module
 Expense operational route tests.
 """
 
+import pytest
 from datetime import date
 from types import SimpleNamespace
 
@@ -521,3 +522,439 @@ def test_delete_expense_delegates_to_service(
     )
 
     assert captured["entity_id"] == 1
+
+
+def test_submit_expense_dispatches_command(
+    app,
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    captured = {}
+
+    class FakeSubmitExpenseCommand:
+        def __init__(self, expense_id):
+            captured["expense_id"] = expense_id
+
+    class FakeDispatcher:
+        def dispatch(self, command, context):
+            captured["command"] = command
+            captured["context"] = context
+
+            return SimpleNamespace(
+                success=True,
+                message="Expense submitted successfully.",
+            )
+
+    monkeypatch.setattr(
+        expense_routes,
+        "SubmitExpenseCommand",
+        FakeSubmitExpenseCommand,
+    )
+
+    app.extensions["command_dispatcher"] = FakeDispatcher()
+
+    response = authenticated_client.post(
+        "/expense/expenses/1/submit"
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/expense/expenses/1"
+    )
+    assert captured["expense_id"] == 1
+    assert captured["context"].module_name == "EXPENSE"
+    assert captured["context"].operation == "expense.submit"
+
+
+def test_approve_expense_dispatches_command(
+    app,
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    captured = {}
+
+    class FakeApproveExpenseCommand:
+        def __init__(self, expense_id):
+            captured["expense_id"] = expense_id
+
+    class FakeDispatcher:
+        def dispatch(self, command, context):
+            captured["command"] = command
+            captured["context"] = context
+
+            return SimpleNamespace(
+                success=True,
+                message="Expense approved successfully.",
+            )
+
+    monkeypatch.setattr(
+        expense_routes,
+        "ApproveExpenseCommand",
+        FakeApproveExpenseCommand,
+    )
+
+    app.extensions["command_dispatcher"] = FakeDispatcher()
+
+    response = authenticated_client.post(
+        "/expense/expenses/1/approve"
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/expense/expenses/1"
+    )
+    assert captured["expense_id"] == 1
+    assert captured["context"].module_name == "EXPENSE"
+    assert captured["context"].operation == "expense.approve"
+
+
+def test_reject_expense_dispatches_command(
+    app,
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    captured = {}
+
+    class FakeRejectExpenseCommand:
+        def __init__(self, expense_id):
+            captured["expense_id"] = expense_id
+
+    class FakeDispatcher:
+        def dispatch(self, command, context):
+            captured["command"] = command
+            captured["context"] = context
+
+            return SimpleNamespace(
+                success=True,
+                message="Expense rejected successfully.",
+            )
+
+    monkeypatch.setattr(
+        expense_routes,
+        "RejectExpenseCommand",
+        FakeRejectExpenseCommand,
+    )
+
+    app.extensions["command_dispatcher"] = FakeDispatcher()
+
+    response = authenticated_client.post(
+        "/expense/expenses/1/reject"
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/expense/expenses/1"
+    )
+    assert captured["expense_id"] == 1
+    assert captured["context"].module_name == "EXPENSE"
+    assert captured["context"].operation == "expense.reject"
+
+
+def test_return_expense_dispatches_command(
+    app,
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    captured = {}
+
+    class FakeReturnExpenseCommand:
+        def __init__(self, expense_id):
+            captured["expense_id"] = expense_id
+
+    class FakeDispatcher:
+        def dispatch(self, command, context):
+            captured["command"] = command
+            captured["context"] = context
+
+            return SimpleNamespace(
+                success=True,
+                message="Expense returned successfully.",
+            )
+
+    monkeypatch.setattr(
+        expense_routes,
+        "ReturnExpenseCommand",
+        FakeReturnExpenseCommand,
+    )
+
+    app.extensions["command_dispatcher"] = FakeDispatcher()
+
+    response = authenticated_client.post(
+        "/expense/expenses/1/return"
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/expense/expenses/1"
+    )
+    assert captured["expense_id"] == 1
+    assert captured["context"].module_name == "EXPENSE"
+    assert captured["context"].operation == "expense.return"
+
+
+def test_resubmit_expense_dispatches_command(
+    app,
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    captured = {}
+
+    class FakeResubmitExpenseCommand:
+        def __init__(self, expense_id):
+            captured["expense_id"] = expense_id
+
+    class FakeDispatcher:
+        def dispatch(self, command, context):
+            captured["command"] = command
+            captured["context"] = context
+
+            return SimpleNamespace(
+                success=True,
+                message="Expense resubmitted successfully.",
+            )
+
+    monkeypatch.setattr(
+        expense_routes,
+        "ResubmitExpenseCommand",
+        FakeResubmitExpenseCommand,
+    )
+
+    app.extensions["command_dispatcher"] = FakeDispatcher()
+
+    response = authenticated_client.post(
+        "/expense/expenses/1/resubmit"
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/expense/expenses/1"
+    )
+    assert captured["expense_id"] == 1
+    assert captured["context"].module_name == "EXPENSE"
+    assert captured["context"].operation == "expense.resubmit"
+
+
+def test_close_expense_dispatches_command(
+    app,
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    captured = {}
+
+    class FakeCloseExpenseCommand:
+        def __init__(self, expense_id):
+            captured["expense_id"] = expense_id
+
+    class FakeDispatcher:
+        def dispatch(self, command, context):
+            captured["command"] = command
+            captured["context"] = context
+
+            return SimpleNamespace(
+                success=True,
+                message="Expense closed successfully.",
+            )
+
+    monkeypatch.setattr(
+        expense_routes,
+        "CloseExpenseCommand",
+        FakeCloseExpenseCommand,
+    )
+
+    app.extensions["command_dispatcher"] = FakeDispatcher()
+
+    response = authenticated_client.post(
+        "/expense/expenses/1/close"
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/expense/expenses/1"
+    )
+    assert captured["expense_id"] == 1
+    assert captured["context"].module_name == "EXPENSE"
+    assert captured["context"].operation == "expense.close"
+
+
+@pytest.mark.parametrize(
+    (
+        "status",
+        "expected_actions",
+        "unexpected_actions",
+    ),
+    [
+        (
+            "DRAFT",
+            ["Submit Expense"],
+            [
+                "Approve Expense",
+                "Reject Expense",
+                "Return Expense",
+                "Resubmit Expense",
+                "Close Expense",
+            ],
+        ),
+        (
+            "SUBMITTED",
+            [
+                "Approve Expense",
+                "Reject Expense",
+                "Return Expense",
+            ],
+            [
+                "Submit Expense",
+                "Resubmit Expense",
+                "Close Expense",
+            ],
+        ),
+        (
+            "RETURNED",
+            ["Resubmit Expense"],
+            [
+                "Submit Expense",
+                "Approve Expense",
+                "Reject Expense",
+                "Return Expense",
+                "Close Expense",
+            ],
+        ),
+        (
+            "APPROVED",
+            ["Close Expense"],
+            [
+                "Submit Expense",
+                "Approve Expense",
+                "Reject Expense",
+                "Return Expense",
+                "Resubmit Expense",
+            ],
+        ),
+        (
+            "REJECTED",
+            [],
+            [
+                "Submit Expense",
+                "Approve Expense",
+                "Reject Expense",
+                "Return Expense",
+                "Resubmit Expense",
+                "Close Expense",
+            ],
+        ),
+        (
+            "CLOSED",
+            [],
+            [
+                "Submit Expense",
+                "Approve Expense",
+                "Reject Expense",
+                "Return Expense",
+                "Resubmit Expense",
+                "Close Expense",
+            ],
+        ),
+    ],
+)
+def test_view_expense_renders_state_specific_workflow_actions(
+    authenticated_client,
+    monkeypatch,
+    status,
+    expected_actions,
+    unexpected_actions,
+):
+    _allow_permissions(monkeypatch)
+
+    expense = SimpleNamespace(
+        id=1,
+        classification=SimpleNamespace(
+            name="Office Supplies",
+        ),
+        description="Printer paper",
+        amount=125.50,
+        expense_date=date(2026, 9, 20),
+        status=status,
+    )
+
+    class FakeExpenseService:
+        def get(self, entity_id):
+            return expense
+
+    monkeypatch.setattr(
+        expense_routes,
+        "ExpenseService",
+        FakeExpenseService,
+    )
+
+    response = authenticated_client.get(
+        "/expense/expenses/1"
+    )
+
+    assert response.status_code == 200
+
+    for action in expected_actions:
+        assert action in response.text
+
+    for action in unexpected_actions:
+        assert action not in response.text
+
+    assert status in response.text
+
+
+def test_view_expense_preserves_common_controls_and_csrf(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    expense = SimpleNamespace(
+        id=1,
+        classification=SimpleNamespace(
+            name="Office Supplies",
+        ),
+        description="Printer paper",
+        amount=125.50,
+        expense_date=date(2026, 9, 20),
+        status="DRAFT",
+    )
+
+    class FakeExpenseService:
+        def get(self, entity_id):
+            return expense
+
+    monkeypatch.setattr(
+        expense_routes,
+        "ExpenseService",
+        FakeExpenseService,
+    )
+
+    response = authenticated_client.get(
+        "/expense/expenses/1"
+    )
+
+    assert response.status_code == 200
+
+    assert "Edit Expense" in response.text
+    assert "Delete Expense" in response.text
+    assert "Back to Expenses" in response.text
+
+    assert (
+        'name="csrf_token"'
+        in response.text
+    )
+
+    assert (
+        'action="/expense/expenses/1/submit"'
+        in response.text
+    )

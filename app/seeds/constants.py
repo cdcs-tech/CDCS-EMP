@@ -14,7 +14,6 @@ MANAGER = "Manager"
 
 STAFF = "Staff"
 
-
 # ==========================================================
 # Role Definitions
 # ==========================================================
@@ -43,7 +42,6 @@ ROLES = [
     },
 ]
 
-
 # ==========================================================
 # Administrator Account
 # ==========================================================
@@ -58,7 +56,6 @@ ADMIN_LAST_NAME = "Administrator"
 
 ADMIN_DEFAULT_PASSWORD = "Admin@123"
 
-
 # ==========================================================
 # Permission Modules
 # ==========================================================
@@ -72,7 +69,6 @@ MODULE_USER = "User"
 MODULE_ROLE = "Role"
 
 MODULE_EXPENSE = "EXPENSE"
-
 
 # ==========================================================
 # Permissions
@@ -169,8 +165,37 @@ PERMISSIONS = [
         "name": "expense.expense.delete",
         "description": "Delete expenses",
     },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.submit",
+        "description": "Submit expenses for operational review",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.approve",
+        "description": "Approve expenses",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.reject",
+        "description": "Reject expenses",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.return",
+        "description": "Return expenses for correction",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.resubmit",
+        "description": "Resubmit returned expenses",
+    },
+    {
+        "module": MODULE_EXPENSE,
+        "name": "expense.expense.close",
+        "description": "Close approved expenses",
+    },
 ]
-
 
 # ==========================================================
 # Role Permission Mapping
@@ -196,6 +221,12 @@ ROLE_PERMISSIONS = {
         "expense.expense.read",
         "expense.expense.update",
         "expense.expense.delete",
+        "expense.expense.submit",
+        "expense.expense.approve",
+        "expense.expense.reject",
+        "expense.expense.return",
+        "expense.expense.resubmit",
+        "expense.expense.close",
     ],
     MANAGER: [
         "dashboard.view",
