@@ -4725,19 +4725,27 @@ Expense Foundation                    [COMPLETED]
 Expense Operational Surface           [COMPLETED]
        │
        ▼
-Expense Workflow Scope & Lifecycle Ownership [COMPLETED]
+Expense Workflow Scope & Lifecycle Ownership
+                                      [COMPLETED]
        │
        ▼
-Expense Workflow Detailed Transition Design [COMPLETED]
+Expense Workflow Detailed Transition Design
+                                      [COMPLETED]
        │
        ▼
-Expense Workflow Authorization & Execution Design [COMPLETED]
+Expense Workflow Authorization & Execution Design
+                                      [COMPLETED]
        │
        ▼
-Expense Workflow Implementation and Verification [NEXT STAGE]
+Expense Workflow Implementation and Verification
+                                      [COMPLETED]
        │
        ▼
-Procurement ↔ Finance
+Expense Workflow HTTP/UI Integration and
+Browser Verification                  [COMPLETED]
+       │
+       ▼
+Procurement ↔ Finance                 [NEXT STAGE]
        │
        ▼
 Catering Integration
@@ -4748,15 +4756,21 @@ Reporting Integration
 
 The Expense Foundation and Expense Operational Surface implementation stages have been completed and verified against the approved Phase 2.2 Expense Management boundary.
 
-Phase 2.2.5.1 — Expense Workflow Scope & Lifecycle Ownership has been approved and locked. It establishes `Expense` as the sole workflow-bearing Expense Management entity and defines the initial operational lifecycle while preserving the existing Finance, Procurement, Catering, and Inventory boundaries.
+Phase 2.2.5.1 — Expense Workflow Scope & Lifecycle Ownership was approved and locked. It established `Expense` as the sole workflow-bearing Expense Management entity and defined the initial operational lifecycle while preserving the existing Finance, Procurement, Catering, and Inventory boundaries.
 
-Phase 2.2.5.2 — Expense Workflow Detailed Transition Design has been approved and locked. It establishes the precise Expense workflow states, transition matrix, operation identities, terminal-state semantics, persisted workflow-state convention, and service-level transition responsibilities required for implementation.
+Phase 2.2.5.2 — Expense Workflow Detailed Transition Design was approved and locked. It established the precise Expense workflow states, transition matrix, operation identities, terminal-state semantics, persisted workflow-state convention, and service-level transition responsibilities required for implementation.
 
-Phase 2.2.5.3 — Expense Workflow Authorization & Execution Design has now been approved and locked. It establishes the authorization, command, handler, execution, permission, transaction, audit, and governance contracts required for governed Expense workflow implementation while preserving the existing enterprise execution architecture and module boundaries.
+Phase 2.2.5.3 — Expense Workflow Authorization & Execution Design was approved and locked. It established the authorization, command, handler, execution, permission, transaction, audit, and governance contracts required for governed Expense workflow implementation while preserving the existing enterprise execution architecture and module boundaries.
 
-The next designated Expense Management stage is **Expense Workflow Implementation and Verification**. That stage shall implement and verify the approved Expense workflow design without introducing new workflow, authorization, approval, transaction, or execution infrastructure.
+Phase 2.2.5 — Expense Workflow Implementation and Verification has been implemented and verified. The approved Expense workflow was persisted, registered, integrated with the enterprise execution architecture, and verified through focused workflow, service, security, module, execution, transaction, and full-regression testing.
 
-This sequence remains an implementation direction rather than a license to predefine entities, workflow details, integration contracts, or financial responsibilities before the corresponding design stage.
+Phase 2.2.6 — Expense Workflow HTTP/UI Integration and Browser Verification has been implemented and verified. The approved Expense workflow was exposed through governed HTTP execution routes and state-driven UI controls, with authorization and CSRF protection preserved. The complete six-transition Expense lifecycle was verified through browser execution, including both the approval and rejection branches.
+
+The next designated Phase 2.2 stage is **Procurement ↔ Finance**.
+
+That stage shall begin with a dedicated inspection and architectural design exercise covering the existing Procurement and future Finance boundaries. No Procurement-to-Finance entities, financial transactions, invoices, payments, accounting treatment, or integration contracts shall be introduced before that corresponding design stage is inspected and approved.
+
+The implementation direction remains a sequencing guide rather than a license to predefine entities, workflow details, integration contracts, financial responsibilities, or other architectural commitments before the corresponding design stage.
 
 ---
 
@@ -4775,7 +4789,11 @@ Each subsequent Phase 2.2 stage shall:
 
 Phase 2.2.2.1 is the approved detailed Procurement/Purchasing domain-model decision recorded within this architecture document. Subsequent Procurement/Purchasing implementation stages shall refine implementation contracts and lifecycle behavior without silently changing the locked entity ownership or cross-module boundary established here.
 
+The Phase 2.2 architecture shall continue to use the existing enterprise authorization, execution, transaction, security, governance, audit, event, and module-lifecycle infrastructure unless a genuinely new enterprise architectural requirement is identified and separately approved.
+
 No ADR-016 is created by this document.
+
+Any historical reference to an application execution authorization adapter in earlier Procurement implementation records shall not be interpreted as establishing a new authoritative enterprise authorization architecture or as creating a new ADR through this Phase 2.2 document.
 
 A new ADR shall be considered only if a genuinely new enterprise architectural decision arises that cannot reasonably be treated as an elaboration of the approved Phase 2.2 architecture.
 
@@ -4785,19 +4803,29 @@ A new ADR shall be considered only if a genuinely new enterprise architectural d
 
 Before Phase 2.2 is considered complete, verification shall cover, as applicable:
 
-* focused domain unit tests;
-* service/business-rule tests;
-* repository/data tests;
-* workflow tests;
-* authorization/security tests;
-* integration tests;
-* application-surface tests;
-* cross-module integration tests;
-* full regression suite;
-* architecture/documentation reconciliation; and
-* clean Git working tree.
+- focused domain unit tests;
+- service/business-rule tests;
+- repository/data tests;
+- workflow tests;
+- authorization/security tests;
+- integration tests;
+- application-surface tests;
+- cross-module integration tests;
+- full regression suite;
+- architecture/documentation reconciliation; and
+- clean Git working tree.
 
 The exact verification scope shall be refined as the implementation stages are completed.
+
+Each completed stage shall record its applicable focused verification, integration verification, browser verification where relevant, regression result, documentation reconciliation, and Git checkpoint.
+
+The latest completed Expense workflow HTTP/UI stage was verified with:
+
+- Expense route tests: **26 passed**;
+- focused Expense/platform verification: **340 passed**;
+- full CDCS-EMP regression suite: **2,569 passed, 0 failed**;
+- browser verification of the complete Expense workflow lifecycle: **Passed**;
+- final Git working tree: **clean**.
 
 ---
 
@@ -4820,30 +4848,30 @@ Subsequent design and implementation work shall refine contracts, lifecycle beha
 The Procurement workflow scope and lifecycle ownership decisions recorded in the Phase 2.2 architecture establish dedicated workflow lifecycles for Purchase Request and Purchase Order. Purchase Request and Purchase Order workflows are implemented as separate controlled Procurement workflows, while Supplier, Purchase Requirement, Purchase Request Line, and Purchase Order Line remain governed by their respective parent or CRUD-oriented lifecycle boundaries.
 
 Purchase Request supports the approved lifecycle:
-`DRAFT → SUBMITTED → APPROVED / REJECTED`, with controlled return from `SUBMITTED` to `DRAFT`.
+
+`DRAFT → SUBMITTED → APPROVED / REJECTED`
+
+with controlled return from `SUBMITTED` to `DRAFT`.
 
 Purchase Order supports the approved lifecycle:
-`DRAFT → SUBMITTED → APPROVED / REJECTED`, with controlled return from `SUBMITTED` to `DRAFT`, and cancellation from `APPROVED` to `CANCELLED`.
+
+`DRAFT → SUBMITTED → APPROVED / REJECTED`
+
+with controlled return from `SUBMITTED` to `DRAFT`, and cancellation from `APPROVED` to `CANCELLED`.
 
 Workflow operations are represented through enterprise execution commands and handlers rather than direct workflow-status mutation at the application surface.
 
-**Phase 2.2.4 / 2.2.5 — Procurement Workflow Authorization & Execution Integration is implemented and verified.**
+**Procurement Workflow Authorization & Execution Integration is implemented and verified.**
 
-The approved Procurement workflow authorization model uses the existing enterprise execution architecture. Procurement declares workflow execution permissions and command-handler mappings through the established module contract.
+The completed Procurement workflow implementation uses the established enterprise execution and authorization architecture. Procurement declares workflow execution permissions and command-handler mappings through the established module contract.
 
-Application-level execution authorization is integrated through the approved application execution authorization adapter recorded in `ADR-016-APPLICATION-EXECUTION-AUTHORIZATION-ADAPTER.md`.
-
-The adapter resolves the application user through the existing application RBAC model and delegates the final authorization decision to the existing enterprise AuthorizationEngine without introducing a parallel enterprise authorization system or modifying the enterprise core security architecture.
-
-The verified execution path is:
-
-`ExecutionContext.user_id → Application Execution Authorization Adapter → Application User Permission Resolution → Enterprise Authorization Representation → AuthorizationEngine → Enterprise Policy/Audit Evaluation → Execution Decision`
+The authorization implementation shall be understood in terms of the current authoritative enterprise architecture: application execution requests are evaluated through the established permission registry, authorization service, authorization engine, execution policy, dispatcher, and transaction boundary. No separate enterprise authorization framework is established by this Phase 2.2 document.
 
 Unauthorized execution is denied before command-handler invocation, while authorized execution reaches the registered Procurement command handler.
 
-**Verification Status**
+**Historical Procurement Verification**
 
-The completed Procurement workflow and authorization integration has been verified through:
+The Procurement workflow and execution implementation was verified through:
 
 - Purchase Request workflow tests;
 - Purchase Order workflow tests;
@@ -4856,31 +4884,150 @@ The completed Procurement workflow and authorization integration has been verifi
 - startup execution-authorization composition tests; and
 - full CDCS-EMP regression testing.
 
-The final full regression result is:
+The earlier Procurement implementation checkpoint recorded a full regression result of **2,359 passed, 0 failed**. This remains a historical verification result for that implementation point and shall not be treated as the latest platform-wide regression result.
 
-**2,359 passed, 0 failed.**
+**Phase 2.2.5 — Expense Workflow Implementation and Verification is implemented and verified.**
 
-The completed implementation therefore satisfies the current Phase 2.2 Procurement workflow and execution-authorization verification boundary.
+The approved Expense workflow defined by Phase 2.2.5.1, Phase 2.2.5.2, and Phase 2.2.5.3 was implemented and verified.
+
+The implementation established:
+
+- persisted `Expense.status`;
+- the approved six-state Expense lifecycle;
+- `ExpenseWorkflow`;
+- Expense workflow service operations;
+- six workflow commands;
+- six thin workflow handlers;
+- six workflow execution permissions;
+- Expense module workflow registration;
+- command-handler execution registration;
+- command-to-permission mappings;
+- enterprise authorization integration;
+- enterprise transaction-boundary integration; and
+- focused and full regression verification.
+
+The six approved Expense states are:
+
+`DRAFT`, `SUBMITTED`, `RETURNED`, `APPROVED`, `REJECTED`, and `CLOSED`.
+
+The six approved transitions are:
+
+- `DRAFT → SUBMITTED` — SUBMIT;
+- `SUBMITTED → APPROVED` — APPROVE;
+- `SUBMITTED → REJECTED` — REJECT;
+- `SUBMITTED → RETURNED` — RETURN;
+- `RETURNED → SUBMITTED` — RESUBMIT;
+- `APPROVED → CLOSED` — CLOSE.
+
+The implementation preserves the distinction between workflow execution and ordinary CRUD and does not introduce an `ExpenseApproval` entity, financial transaction, invoice, payment, or parallel workflow/execution infrastructure.
+
+**Phase 2.2.6 — Expense Workflow HTTP/UI Integration and Browser Verification is implemented and verified.**
+
+Phase 2.2.6 integrated the approved Expense workflow with the existing HTTP/UI application surface.
+
+The implementation established:
+
+- six governed POST workflow routes;
+- execution through the enterprise `CommandDispatcher`;
+- authenticated `ExecutionContext.user_id`;
+- module and operation identity propagation;
+- permission enforcement through the existing enterprise authorization architecture;
+- CSRF protection on workflow forms;
+- state-driven workflow controls;
+- separation between ordinary CRUD controls and workflow actions;
+- Expense Management navigation with separate Expense Classification and Expense operational surfaces; and
+- browser verification of the complete Expense workflow lifecycle.
+
+Browser verification confirmed the complete approved lifecycle, including:
+
+`DRAFT → SUBMITTED → APPROVED → CLOSED`
+
+and the rejection branch:
+
+`DRAFT → SUBMITTED → REJECTED`.
+
+The return/resubmission branch was also verified:
+
+`SUBMITTED → RETURNED → SUBMITTED`.
+
+The resulting terminal states are `REJECTED` and `CLOSED`, with no workflow action exposed after either terminal state.
+
+**Phase 2.2.6 Verification Status**
+
+The completed Phase 2.2.6 implementation was verified through:
+
+- Expense route tests: **26 passed**;
+- focused Expense/platform verification: **340 passed**;
+- full CDCS-EMP regression suite: **2,569 passed, 0 failed**;
+- browser verification of all six approved Expense transitions: **Passed**;
+- Expense Management navigation verification: **Passed**;
+- Git diff/working-tree verification: **clean**.
+
+The Phase 2.2.6 completion record is:
+
+`PHASE-2.2.6-EXPENSE-WORKFLOW-HTTP-UI-INTEGRATION-AND-BROWSER-VERIFICATION.md`
+
+The corresponding implementation checkpoint is:
+
+`6f5a504 feat(expense): complete workflow HTTP UI integration`
+
+The checkpoint was pushed successfully to the remote `master` branch.
+
+**Current Phase 2.2 Decision**
+
+The Expense Management workflow implementation and application-surface integration are therefore considered **IMPLEMENTED / VERIFIED / CLOSED** through Phase 2.2.6.
+
+The next designated stage is:
+
+**Procurement ↔ Finance**
+
+No implementation of Procurement ↔ Finance shall begin until the existing Procurement boundary and future Finance capability have been inspected and the corresponding integration architecture has been explicitly designed and approved.
 
 ---
 
 ## 15. Related Architecture Documentation
 
+The Phase 2.2 architecture is governed by the following related documentation:
+
 - `ADR-001-phase-2-business-module-architecture.md`
 - `ADR-008-catering-inventory-domain-boundary.md`
 - `ADR-015` — Inventory transaction posting boundary
-- `ADR-016-APPLICATION-EXECUTION-AUTHORIZATION-ADAPTER.md`
 - `PHASE-2-AUTHORITATIVE-ROADMAP.md`
+- `PHASE-2.2-PURCHASING-EXPENSE-MANAGEMENT.md`
+- `PHASE-2.2-PROCUREMENT-INVENTORY-INTEGRATION-CONTRACT.md`
+- `PHASE-2.2.6-EXPENSE-WORKFLOW-HTTP-UI-INTEGRATION-AND-BROWSER-VERIFICATION.md`
+
+No ADR-016 is included as an authoritative Phase 2.2 architecture decision.
+
+Historical implementation records that contain references to an application execution authorization adapter shall be interpreted in the context of the implementation state in which they were written and shall not override the current authoritative enterprise authorization architecture recorded by the Phase 2.2 design and implementation decisions.
 
 ---
 
 ## 16. Approval
 
 **Approved by:** Project Architecture Review
+
 **Approval Status:** Approved / Locked
+
 **Effective Phase:** Phase 2.2 — Purchasing & Expense Management
 
-**Locked Decisions:** Phase 2.2.1 Capability Ownership & Boundaries; Phase 2.2.2.1 Procurement/Purchasing Domain Entities & Relationships; Phase 2.2.4 Procurement Workflow & Lifecycle; Phase 2.2.4 / 2.2.5 Procurement Workflow Authorization & Execution Integration
+**Locked Decisions:**
+
+- Phase 2.2.1 Capability Ownership & Boundaries
+- Phase 2.2.2.1 Procurement/Purchasing Domain Entities & Relationships
+- Phase 2.2.4 Procurement Workflow & Lifecycle
+- Procurement Workflow Authorization & Execution Integration
+- Phase 2.2.5.1 Expense Workflow Scope & Lifecycle Ownership
+- Phase 2.2.5.2 Expense Workflow Detailed Transition Design
+- Phase 2.2.5.3 Expense Workflow Authorization & Execution Design
+- Phase 2.2.5 Expense Workflow Implementation and Verification
+- Phase 2.2.6 Expense Workflow HTTP/UI Integration and Browser Verification
+
+**Current Stage Status:** Phase 2.2.6 IMPLEMENTED / VERIFIED / CLOSED
+
+**Next Design Stage:** Procurement ↔ Finance
+
+The next stage shall begin with architectural inspection and shall establish the Procurement-to-Finance integration boundary before any financial integration implementation is introduced.
 
 ## Phase 2.2.5 — Expense Workflow Implementation and Verification
 
@@ -4985,4 +5132,5 @@ No parallel workflow, authorization, execution, or transaction architecture has 
 
 The Expense workflow implementation is ready for the subsequent HTTP/UI workflow integration stage.
 
-**Next designated stage:** Expense Workflow HTTP/UI Integration and Browser Verification.
+Phase 2.2.5 completion status: IMPLEMENTED / VERIFIED / CLOSED.
+The subsequent Phase 2.2.6 — Expense Workflow HTTP/UI Integration and Browser Verification stage has also been completed and verified. The current next designated Phase 2.2 stage is Procurement ↔ Finance.
