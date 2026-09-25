@@ -36,45 +36,37 @@ class PostCommitAction(ABC):
         raise NotImplementedError
 
 
-class PostCommitExecutor:
+class PostCommitExecutor(ABC):
     """
-    Execute post-commit actions independently of the
-    originating transaction lifecycle.
+    Dispatcher-facing contract for post-commit execution.
 
-    Post-commit action failures are isolated so that an
-    already-committed transaction cannot be rolled back
-    or converted into a command failure.
+    The executor is invoked only after the originating
+    transaction has committed successfully.
+
+    Implementations are responsible for coordinating
+    eligible post-commit actions or integrations.
+
+    The dispatcher does not select individual actions.
     """
 
+    @abstractmethod
     def execute(
         self,
-        action: PostCommitAction,
         command: Any,
         context: Any,
         result: Any,
     ) -> None:
         """
-        Execute a post-commit action.
+        Execute eligible post-commit processing.
 
-        Runtime failures raised by the action are isolated
-        from the committed transaction.
+        The originating transaction has already committed
+        successfully when this method is invoked.
+
+        Implementations must not attempt to roll back,
+        reject, cancel, or otherwise alter the already
+        committed command transaction.
         """
-        if not isinstance(
-            action,
-            PostCommitAction,
-        ):
-            raise TypeError(
-                "action must be a PostCommitAction."
-            )
-
-        try:
-            action.execute(
-                command,
-                context,
-                result,
-            )
-        except Exception:
-            return
+        raise NotImplementedError
 
 
 __all__ = [

@@ -56,6 +56,10 @@ from app.core.execution.handlers.base import (
     BaseCommandHandler,
 )
 
+from app.core.execution.post_commit import (
+    PostCommitExecutor,
+)
+
 from app.core.execution.results import (
     ExecutionResult,
 )
@@ -80,6 +84,13 @@ class CommandDispatcher:
     transaction lifecycle is controlled by the
     dispatcher.
 
+    When a post-commit executor is configured,
+    post-commit processing is invoked only after
+    the originating transaction commits successfully.
+
+    Post-commit failures are isolated from the already
+    committed transaction.
+
     When an event emitter is configured, execution
     lifecycle events are emitted without allowing
     emitter failures to interfere with command
@@ -100,6 +111,10 @@ class CommandDispatcher:
         ) = None,
         event_emitter: (
             ExecutionEventEmitter
+            | None
+        ) = None,
+        post_commit_executor: (
+            PostCommitExecutor
             | None
         ) = None,
     ) -> None:
@@ -152,6 +167,22 @@ class CommandDispatcher:
 
         self.event_emitter = (
             event_emitter
+        )
+
+        if (
+            post_commit_executor is not None
+            and not isinstance(
+                post_commit_executor,
+                PostCommitExecutor,
+            )
+        ):
+            raise ExecutionContractException(
+                "Post-commit executor must "
+                "implement PostCommitExecutor."
+            )
+
+        self.post_commit_executor = (
+            post_commit_executor
         )
 
         self._handlers: dict[
@@ -393,6 +424,74 @@ class CommandDispatcher:
         self.event_emitter = (
             event_emitter
         )
+
+    def set_post_commit_executor(
+        self,
+        post_commit_executor: (
+            PostCommitExecutor
+            | None
+        ),
+    ) -> None:
+        """
+        Configure the optional post-commit
+        executor.
+
+        Passing None disables post-commit
+        execution.
+
+        The executor is invoked only after a
+        successful transaction commit.
+        """
+
+        if (
+            post_commit_executor is not None
+            and not isinstance(
+                post_commit_executor,
+                PostCommitExecutor,
+            )
+        ):
+            raise ExecutionContractException(
+                "Post-commit executor must "
+                "implement PostCommitExecutor."
+            )
+
+        self.post_commit_executor = (
+            post_commit_executor
+        )
+
+    def _execute_post_commit(
+        self,
+        command: BaseCommand,
+        context: ExecutionContext,
+        result: ExecutionResult,
+    ) -> None:
+        """
+        Execute post-commit processing after the
+        originating transaction has committed.
+
+        Post-commit failures are intentionally
+        isolated from the already committed
+        transaction.
+        """
+
+        if self.post_commit_executor is None:
+            return
+
+        try:
+            self.post_commit_executor.execute(
+                command,
+                context,
+                result,
+            )
+
+        except Exception:
+            # Post-commit processing occurs after
+            # the originating transaction commits.
+            #
+            # Its failure must therefore not trigger
+            # rollback or alter the successful command
+            # result.
+            return
 
     def _emit_event(
         self,
@@ -664,6 +763,9 @@ class CommandDispatcher:
         """
         Execute a command inside the configured
         transaction boundary.
+
+        Post-commit execution occurs only after
+        successful transaction commit.
         """
 
         transaction = self.transaction_boundary
@@ -710,6 +812,12 @@ class CommandDispatcher:
 
             if result.is_success():
                 transaction.commit()
+
+                self._execute_post_commit(
+                    command,
+                    context,
+                    result,
+                )
 
                 self._emit_completed_event(
                     command,

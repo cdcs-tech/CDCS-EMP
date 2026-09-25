@@ -16,6 +16,11 @@ from app.core.execution import (
     ExecutionResult,
     ExecutionTransactionBoundary,
     ExecutionContractException,
+    PostCommitExecutor,
+)
+
+from app.core.execution.handlers.base import (
+    BaseCommandHandler,
 )
 
 
@@ -40,21 +45,6 @@ class TransactionTestCommand(BaseCommand):
         """
 
         return self.command_name
-
-
-class TransactionTestHandler:
-    """
-    Test handler implementation.
-
-    The dispatcher requires BaseCommandHandler,
-    so this class is defined below through the
-    framework base class.
-    """
-
-
-from app.core.execution.handlers.base import (
-    BaseCommandHandler,
-)
 
 
 class ValidTransactionTestHandler(
@@ -129,6 +119,49 @@ class TestTransactionBoundary(
         self.events.append("rollback")
 
 
+class TestPostCommitExecutor(
+    PostCommitExecutor
+):
+    """
+    Test post-commit executor recording
+    invocation and execution inputs.
+    """
+
+    def __init__(
+        self,
+        should_fail=False,
+        boundary=None,
+    ):
+        self.should_fail = should_fail
+        self.boundary = boundary
+        self.calls = []
+        self.events_at_execution = []
+
+    def execute(
+        self,
+        command,
+        context,
+        result,
+    ) -> None:
+        if self.boundary is not None:
+            self.events_at_execution = list(
+                self.boundary.events
+            )
+
+        self.calls.append(
+            (
+                command,
+                context,
+                result,
+            )
+        )
+
+        if self.should_fail:
+            raise RuntimeError(
+                "post-commit execution failed"
+            )
+
+
 class DenyingAuthorizer:
     """
     Test authorizer that denies execution.
@@ -169,6 +202,7 @@ def build_dispatcher(
     handler,
     transaction_boundary=None,
     authorizer=None,
+    post_commit_executor=None,
 ):
     """
     Build a dispatcher configured for the tests.
@@ -185,6 +219,9 @@ def build_dispatcher(
         authorizer=authorizer,
         transaction_boundary=(
             transaction_boundary
+        ),
+        post_commit_executor=(
+            post_commit_executor
         ),
     )
 
@@ -348,4 +385,203 @@ def test_dispatcher_rejects_invalid_transaction_boundary():
     ):
         CommandDispatcher(
             transaction_boundary=object()
+        )
+
+
+def test_dispatch_executes_post_commit_executor_after_transaction_commit():
+    """
+    Post-commit execution occurs only after
+    the originating transaction commits.
+    """
+
+    boundary = TestTransactionBoundary()
+
+    executor = TestPostCommitExecutor(
+        boundary=boundary
+    )
+
+    handler = ValidTransactionTestHandler()
+
+    dispatcher = build_dispatcher(
+        handler,
+        transaction_boundary=boundary,
+        post_commit_executor=executor,
+    )
+
+    result = dispatcher.dispatch(
+        TransactionTestCommand(),
+        build_context(),
+    )
+
+    assert result.is_success() is True
+
+    assert boundary.events == [
+        "begin",
+        "commit",
+    ]
+
+    assert executor.events_at_execution == [
+        "begin",
+        "commit",
+    ]
+
+    assert len(executor.calls) == 1
+
+    command, context, received_result = (
+        executor.calls[0]
+    )
+
+    assert isinstance(
+        command,
+        TransactionTestCommand,
+    )
+
+    assert context.user_id == "user-001"
+
+    assert received_result is result
+
+
+def test_post_commit_failure_does_not_rollback_or_fail_command():
+    """
+    A post-commit failure cannot roll back
+    an already-committed transaction or change
+    the successful command result.
+    """
+
+    boundary = TestTransactionBoundary()
+
+    executor = TestPostCommitExecutor(
+        should_fail=True
+    )
+
+    handler = ValidTransactionTestHandler()
+
+    dispatcher = build_dispatcher(
+        handler,
+        transaction_boundary=boundary,
+        post_commit_executor=executor,
+    )
+
+    result = dispatcher.dispatch(
+        TransactionTestCommand(),
+        build_context(),
+    )
+
+    assert result.is_success() is True
+
+    assert boundary.events == [
+        "begin",
+        "commit",
+    ]
+
+    assert len(executor.calls) == 1
+
+
+def test_post_commit_executor_is_not_called_when_handler_fails():
+    """
+    Post-commit execution does not occur when
+    the originating transaction fails.
+    """
+
+    boundary = TestTransactionBoundary()
+
+    executor = TestPostCommitExecutor()
+
+    handler = FailingTransactionTestHandler()
+
+    dispatcher = build_dispatcher(
+        handler,
+        transaction_boundary=boundary,
+        post_commit_executor=executor,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="transaction execution failed",
+    ):
+        dispatcher.dispatch(
+            TransactionTestCommand(),
+            build_context(),
+        )
+
+    assert boundary.events == [
+        "begin",
+        "rollback",
+    ]
+
+    assert executor.calls == []
+
+
+def test_post_commit_executor_is_not_called_without_transaction_boundary():
+    """
+    Post-commit execution requires a successful
+    originating transaction commit.
+    """
+
+    executor = TestPostCommitExecutor()
+
+    handler = ValidTransactionTestHandler()
+
+    dispatcher = build_dispatcher(
+        handler,
+        post_commit_executor=executor,
+    )
+
+    result = dispatcher.dispatch(
+        TransactionTestCommand(),
+        build_context(),
+    )
+
+    assert result.is_success() is True
+    assert executor.calls == []
+
+
+def test_dispatcher_can_configure_post_commit_executor_after_initialization():
+    """
+    A post-commit executor can be configured
+    after dispatcher initialization.
+    """
+
+    boundary = TestTransactionBoundary()
+
+    executor = TestPostCommitExecutor()
+
+    handler = ValidTransactionTestHandler()
+
+    dispatcher = build_dispatcher(
+        handler,
+        transaction_boundary=boundary,
+    )
+
+    dispatcher.set_post_commit_executor(
+        executor
+    )
+
+    result = dispatcher.dispatch(
+        TransactionTestCommand(),
+        build_context(),
+    )
+
+    assert result.is_success() is True
+
+    assert boundary.events == [
+        "begin",
+        "commit",
+    ]
+
+    assert len(executor.calls) == 1
+
+
+def test_dispatcher_rejects_invalid_post_commit_executor():
+    """
+    Invalid post-commit executor objects are
+    rejected by the dispatcher.
+    """
+
+    with pytest.raises(
+        ExecutionContractException,
+        match="Post-commit executor",
+    ):
+        CommandDispatcher(
+            post_commit_executor=object()
         )
