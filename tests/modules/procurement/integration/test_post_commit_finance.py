@@ -13,8 +13,15 @@ import pytest
 
 from app.core.execution.context import ExecutionContext
 from app.core.execution.results import ExecutionResult
-from app.core.integration.models import IntegrationRequest
+from app.core.integration.audit import IntegrationAuditHook
+from app.core.integration.event_hook import IntegrationEventHook
+from app.core.integration.lifecycle import IntegrationLifecycle
+from app.core.integration.models import (
+    IntegrationRequest,
+    IntegrationResponse,
+)
 from app.core.integration.service import IntegrationService
+
 from app.modules.procurement.commands.purchase_order import (
     ApprovePurchaseOrderCommand,
 )
@@ -42,12 +49,17 @@ from app.modules.procurement.models.supplier import (
 class RecordingIntegrationService(IntegrationService):
     """
     IntegrationService test double that records requests
-    without requiring a registered Finance provider.
+    and returns the configured IntegrationResponse through
+    the normal IntegrationService contract.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        response: IntegrationResponse,
+    ) -> None:
         super().__init__()
         self.requests: list[IntegrationRequest] = []
+        self.response = response
 
     def execute(
         self,
@@ -55,7 +67,107 @@ class RecordingIntegrationService(IntegrationService):
     ):
         self.requests.append(request)
 
-        return None
+        from app.core.integration.models import IntegrationResult
+
+        return IntegrationResult(
+            request=request,
+            response=self.response,
+            duration_ms=1.0,
+            provider=request.provider,
+            operation=request.operation,
+        )
+
+
+class RecordingIntegrationEventHook(IntegrationEventHook):
+    """
+    Integration event hook test double.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.requests = []
+        self.results = []
+        self.failures = []
+
+    def publish_request(
+        self,
+        request: IntegrationRequest,
+        subject: str | None = None,
+    ) -> None:
+        self.requests.append(
+            (request, subject)
+        )
+
+    def publish_result(
+        self,
+        result,
+        subject: str | None = None,
+    ) -> None:
+        self.results.append(
+            (result, subject)
+        )
+
+    def publish_failure(
+        self,
+        request: IntegrationRequest,
+        message: str,
+        subject: str | None = None,
+        metadata=None,
+    ) -> None:
+        self.failures.append(
+            (
+                request,
+                message,
+                subject,
+                metadata,
+            )
+        )
+
+
+class RecordingIntegrationAuditHook(IntegrationAuditHook):
+    """
+    Integration audit hook test double.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.requests = []
+        self.results = []
+        self.failures = []
+
+    def record_request(
+        self,
+        request: IntegrationRequest,
+        subject: str | None = None,
+    ) -> None:
+        self.requests.append(
+            (request, subject)
+        )
+
+    def record_result(
+        self,
+        result,
+        subject: str | None = None,
+    ) -> None:
+        self.results.append(
+            (result, subject)
+        )
+
+    def record_failure(
+        self,
+        request: IntegrationRequest,
+        message: str,
+        subject: str | None = None,
+        metadata=None,
+    ) -> None:
+        self.failures.append(
+            (
+                request,
+                message,
+                subject,
+                metadata,
+            )
+        )
 
 
 def build_purchase_order() -> PurchaseOrder:
@@ -145,15 +257,50 @@ def build_success_result(
     )
 
 
+def build_lifecycle(
+    response: IntegrationResponse,
+):
+    service = RecordingIntegrationService(
+        response=response,
+    )
+    event_hook = RecordingIntegrationEventHook()
+    audit_hook = RecordingIntegrationAuditHook()
+
+    lifecycle = IntegrationLifecycle(
+        service=service,
+        event_hook=event_hook,
+        audit_hook=audit_hook,
+    )
+
+    return (
+        lifecycle,
+        service,
+        event_hook,
+        audit_hook,
+    )
+
+
 def test_executor_submits_finance_commitment_for_approved_purchase_order():
     purchase_order = build_purchase_order()
     context = build_context()
     result = build_success_result(purchase_order)
 
-    integration_service = RecordingIntegrationService()
+    response = IntegrationResponse(
+        success=True,
+        status_code=200,
+        data={"accepted": True},
+        message="Finance commitment accepted.",
+    )
+
+    (
+        lifecycle,
+        integration_service,
+        _event_hook,
+        _audit_hook,
+    ) = build_lifecycle(response)
 
     executor = ProcurementFinancePostCommitExecutor(
-        integration_service=integration_service,
+        integration_lifecycle=lifecycle,
         currency="usd",
     )
 
@@ -232,10 +379,21 @@ def test_executor_sets_procurement_context_metadata_on_integration_request():
     context = build_context()
     result = build_success_result(purchase_order)
 
-    integration_service = RecordingIntegrationService()
+    response = IntegrationResponse(
+        success=True,
+        status_code=200,
+        message="Finance commitment accepted.",
+    )
+
+    (
+        lifecycle,
+        integration_service,
+        _event_hook,
+        _audit_hook,
+    ) = build_lifecycle(response)
 
     executor = ProcurementFinancePostCommitExecutor(
-        integration_service=integration_service,
+        integration_lifecycle=lifecycle,
     )
 
     executor.execute(
@@ -269,10 +427,21 @@ def test_executor_ignores_non_approval_commands():
     context = build_context()
     result = build_success_result(purchase_order)
 
-    integration_service = RecordingIntegrationService()
+    response = IntegrationResponse(
+        success=True,
+        status_code=200,
+        message="Finance commitment accepted.",
+    )
+
+    (
+        lifecycle,
+        integration_service,
+        _event_hook,
+        _audit_hook,
+    ) = build_lifecycle(response)
 
     executor = ProcurementFinancePostCommitExecutor(
-        integration_service=integration_service,
+        integration_lifecycle=lifecycle,
     )
 
     executor.execute(
@@ -291,10 +460,21 @@ def test_executor_ignores_unsuccessful_approval_result():
         message="Purchase Order approval failed.",
     )
 
-    integration_service = RecordingIntegrationService()
+    response = IntegrationResponse(
+        success=True,
+        status_code=200,
+        message="Finance commitment accepted.",
+    )
+
+    (
+        lifecycle,
+        integration_service,
+        _event_hook,
+        _audit_hook,
+    ) = build_lifecycle(response)
 
     executor = ProcurementFinancePostCommitExecutor(
-        integration_service=integration_service,
+        integration_lifecycle=lifecycle,
     )
 
     executor.execute(
@@ -319,10 +499,21 @@ def test_executor_requires_approval_timestamp():
         },
     )
 
-    integration_service = RecordingIntegrationService()
+    response = IntegrationResponse(
+        success=True,
+        status_code=200,
+        message="Finance commitment accepted.",
+    )
+
+    (
+        lifecycle,
+        _integration_service,
+        _event_hook,
+        _audit_hook,
+    ) = build_lifecycle(response)
 
     executor = ProcurementFinancePostCommitExecutor(
-        integration_service=integration_service,
+        integration_lifecycle=lifecycle,
     )
 
     with pytest.raises(
@@ -336,3 +527,148 @@ def test_executor_requires_approval_timestamp():
             build_context(),
             result,
         )
+
+
+def test_executor_handles_provider_declared_finance_failure():
+    purchase_order = build_purchase_order()
+    context = build_context()
+    result = build_success_result(purchase_order)
+
+    response = IntegrationResponse(
+        success=False,
+        status_code=422,
+        message="Finance commitment rejected.",
+        error="Commitment validation failed.",
+    )
+
+    (
+        lifecycle,
+        integration_service,
+        event_hook,
+        audit_hook,
+    ) = build_lifecycle(response)
+
+    executor = ProcurementFinancePostCommitExecutor(
+        integration_lifecycle=lifecycle,
+    )
+
+    executor.execute(
+        ApprovePurchaseOrderCommand(
+            purchase_order_id=purchase_order.id,
+        ),
+        context,
+        result,
+    )
+
+    assert len(integration_service.requests) == 1
+
+    assert len(event_hook.requests) == 1
+    assert len(event_hook.results) == 1
+    assert event_hook.failures == []
+
+    integration_result = event_hook.results[0][0]
+
+    assert integration_result.success is False
+    assert integration_result.failed is True
+
+    assert len(audit_hook.requests) == 1
+    assert len(audit_hook.results) == 1
+    assert audit_hook.failures == []
+
+    audited_result = audit_hook.results[0][0]
+
+    assert audited_result.success is False
+    assert audited_result.failed is True
+
+
+class FailingIntegrationService(IntegrationService):
+    """
+    IntegrationService test double that raises during delivery.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.requests: list[IntegrationRequest] = []
+
+    def execute(
+        self,
+        request: IntegrationRequest,
+    ):
+        self.requests.append(request)
+
+        from app.core.integration.exceptions import (
+            IntegrationDeliveryException,
+        )
+
+        raise IntegrationDeliveryException(
+            "Finance provider unavailable."
+        )
+
+
+def test_executor_propagates_delivery_failure_from_lifecycle():
+    purchase_order = build_purchase_order()
+    context = build_context()
+    result = build_success_result(purchase_order)
+
+    service = FailingIntegrationService()
+    event_hook = RecordingIntegrationEventHook()
+    audit_hook = RecordingIntegrationAuditHook()
+
+    lifecycle = IntegrationLifecycle(
+        service=service,
+        event_hook=event_hook,
+        audit_hook=audit_hook,
+    )
+
+    executor = ProcurementFinancePostCommitExecutor(
+        integration_lifecycle=lifecycle,
+    )
+
+    with pytest.raises(
+        Exception,
+        match="Finance provider unavailable",
+    ):
+        executor.execute(
+            ApprovePurchaseOrderCommand(
+                purchase_order_id=purchase_order.id,
+            ),
+            context,
+            result,
+        )
+
+    assert len(service.requests) == 1
+
+    assert len(event_hook.requests) == 1
+    assert event_hook.results == []
+    assert len(event_hook.failures) == 1
+
+    failure_request, failure_message, subject, metadata = (
+        event_hook.failures[0]
+    )
+
+    assert (
+        failure_request
+        is service.requests[0]
+    )
+    assert "Finance provider unavailable" in failure_message
+    assert subject == context.user_id
+    assert metadata is not None
+
+    assert len(audit_hook.requests) == 1
+    assert audit_hook.results == []
+    assert len(audit_hook.failures) == 1
+
+    (
+        audit_request,
+        audit_message,
+        audit_subject,
+        audit_metadata,
+    ) = audit_hook.failures[0]
+
+    assert (
+        audit_request
+        is service.requests[0]
+    )
+    assert "Finance provider unavailable" in audit_message
+    assert audit_subject == context.user_id
+    assert audit_metadata is not None

@@ -13,8 +13,8 @@ from typing import Any
 from app.core.execution.context import ExecutionContext
 from app.core.execution.post_commit import PostCommitExecutor
 from app.core.execution.results import ExecutionResult
-from app.core.integration.models import IntegrationRequest
-from app.core.integration.service import IntegrationService
+from app.core.integration.lifecycle import IntegrationLifecycle
+from app.core.integration.models import IntegrationRequest, IntegrationResult
 
 from app.modules.procurement.commands.purchase_order import (
     ApprovePurchaseOrderCommand,
@@ -34,22 +34,26 @@ class ProcurementFinancePostCommitExecutor(PostCommitExecutor):
     successful Purchase Order approval commit.
 
     This executor does not own the originating transaction.
-    Finance failures therefore cannot roll back or alter
-    the already-committed Procurement transaction.
+    Finance failures therefore cannot roll back or alter the
+    already-committed Procurement transaction.
+
+    IntegrationLifecycle owns the integration request/result
+    observability boundary, including integration events and
+    audit records.
     """
 
     def __init__(
         self,
-        integration_service: IntegrationService,
+        integration_lifecycle: IntegrationLifecycle,
         currency: str = "USD",
     ) -> None:
         if not isinstance(
-            integration_service,
-            IntegrationService,
+            integration_lifecycle,
+            IntegrationLifecycle,
         ):
             raise TypeError(
-                "integration_service must implement "
-                "IntegrationService."
+                "integration_lifecycle must be an "
+                "IntegrationLifecycle."
             )
 
         if not isinstance(currency, str) or not currency.strip():
@@ -57,7 +61,7 @@ class ProcurementFinancePostCommitExecutor(PostCommitExecutor):
                 "currency must be a non-empty string."
             )
 
-        self.integration_service = integration_service
+        self.integration_lifecycle = integration_lifecycle
         self.currency = currency.strip().upper()
 
     def execute(
@@ -76,6 +80,10 @@ class ProcurementFinancePostCommitExecutor(PostCommitExecutor):
         CommandDispatcher, whose post-commit boundary
         intentionally isolates them from the committed
         Procurement transaction.
+
+        Provider-declared failures are returned by the
+        IntegrationLifecycle as a failed IntegrationResult.
+        They do not raise an exception by themselves.
         """
 
         if not isinstance(
@@ -130,7 +138,19 @@ class ProcurementFinancePostCommitExecutor(PostCommitExecutor):
             },
         )
 
-        self.integration_service.execute(request)
+        integration_result = self.integration_lifecycle.execute(
+            request,
+            subject=context.user_id,
+        )
+
+        if not isinstance(
+            integration_result,
+            IntegrationResult,
+        ):
+            raise TypeError(
+                "IntegrationLifecycle must return an "
+                "IntegrationResult."
+            )
 
     def _approved_at(
         self,

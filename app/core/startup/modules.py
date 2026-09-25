@@ -53,9 +53,7 @@ from app.core.configuration.composition import (
     register_configuration_service,
 )
 
-from app.core.integration import (
-    integration_service,
-)
+from app.core.integration import integration_lifecycle
 
 from app.modules.procurement.integration import (
     ProcurementFinancePostCommitExecutor,
@@ -149,7 +147,7 @@ def initialize_modules(app: Flask) -> ModuleManager:
 
     command_dispatcher.set_post_commit_executor(
         ProcurementFinancePostCommitExecutor(
-            integration_service=integration_service,
+            integration_lifecycle=integration_lifecycle,
         )
     )
 
