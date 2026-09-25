@@ -92,6 +92,11 @@ from app.core.execution.transaction import (
     ExecutionTransactionFailure,
 )
 
+from app.core.execution.post_commit import (
+    PostCommitAction,
+    PostCommitExecutor,
+)
+
 from app.core.execution.lifecycle import (
     ExecutionLifecycleState,
     ExecutionLifecycle,
@@ -116,7 +121,6 @@ from app.core.execution.registration import (
     ExecutionDefinition,
     validate_execution_definition,
 )
-
 
 __all__ = [
     "ExecutionContext",
@@ -169,8 +173,13 @@ __all__ = [
     "ExecutionGovernanceDecision",
     "ExecutionGovernanceContract",
     "GovernanceAwareAuthorizationEnforcement",
+
     "ExecutionTransactionBoundary",
     "ExecutionTransactionFailure",
+
+    "PostCommitAction",
+    "PostCommitExecutor",
+
     "ExecutionEventEmitter",
     "RecordingExecutionEventEmitter",
     "ObservabilityExecutionEventEmitter",
@@ -179,5 +188,4 @@ __all__ = [
 
     "ExecutionDefinition",
     "validate_execution_definition",
-
 ]
