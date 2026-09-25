@@ -1,10 +1,11 @@
-"""
-CDCS Enterprise Management Platform (CDCS-EMP)
+"""Procurement integration contracts.
 
-Procurement ↔ Inventory Integration Contracts
+This module contains explicit, immutable contracts owned by Procurement for
+communication with other enterprise capabilities.
 
-Defines the domain-level contract used when Procurement communicates
-a purchase-order receipt to Inventory.
+The contracts intentionally describe Procurement business facts only.
+Downstream capabilities remain responsible for their own domain semantics,
+persistence, and processing.
 """
 
 from dataclasses import dataclass
@@ -12,95 +13,201 @@ from datetime import datetime
 from decimal import Decimal
 
 
-INVENTORY_INTEGRATION_PROVIDER = "inventory"
+# ---------------------------------------------------------------------------
+# Inventory integration contract identities
+# ---------------------------------------------------------------------------
 
-INVENTORY_RECEIVE_PURCHASE_ORDER_OPERATION = (
-    "receive_purchase_order"
-)
+INVENTORY_INTEGRATION_PROVIDER = "inventory"
+INVENTORY_RECEIVE_PURCHASE_ORDER_OPERATION = "receive_purchase_order"
+
+
+# ---------------------------------------------------------------------------
+# Finance integration contract identities
+# ---------------------------------------------------------------------------
+
+FINANCE_INTEGRATION_PROVIDER = "finance"
+FINANCE_PROCUREMENT_COMMITMENT_OPERATION = "procurement_commitment"
+
+
+# ---------------------------------------------------------------------------
+# Inventory integration payload
+# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
 class PurchaseOrderReceiptRequest:
-    """
-    Domain contract for communicating a received Purchase Order line
-    from Procurement to Inventory.
+    """Procurement-owned request describing an actual purchase-order receipt.
 
-    This contract carries Procurement-owned business context only.
-    Inventory remains authoritative for physical stock effects.
+    Inventory remains authoritative for physical stock effects. This
+    contract communicates the Procurement-side receiving fact through the
+    enterprise Integration Framework.
     """
 
     purchase_order_reference: str
-
     purchase_order_line_reference: str
-
     stock_item_reference: str
-
     inventory_location_reference: str
-
     quantity_received: Decimal
-
     unit: str
-
     received_at: datetime
-
     receiving_reference: str
-
     idempotency_key: str
-
     notes: str | None = None
 
     def __post_init__(self) -> None:
-        """
-        Validate the minimum invariants required by the integration
-        contract.
-        """
+        required_strings = (
+            self.purchase_order_reference,
+            self.purchase_order_line_reference,
+            self.stock_item_reference,
+            self.inventory_location_reference,
+            self.unit,
+            self.receiving_reference,
+            self.idempotency_key,
+        )
 
-        required_values = {
-            "purchase_order_reference": (
-                self.purchase_order_reference
-            ),
-            "purchase_order_line_reference": (
-                self.purchase_order_line_reference
-            ),
-            "stock_item_reference": (
-                self.stock_item_reference
-            ),
-            "inventory_location_reference": (
-                self.inventory_location_reference
-            ),
-            "unit": self.unit,
-            "receiving_reference": (
-                self.receiving_reference
-            ),
-            "idempotency_key": self.idempotency_key,
-        }
-
-        for field_name, value in required_values.items():
-            if not isinstance(value, str) or not value.strip():
-                raise ValueError(
-                    f"{field_name} is required."
-                )
-
-        if not isinstance(
-            self.quantity_received,
-            Decimal,
-        ):
-            raise TypeError(
-                "quantity_received must be a Decimal."
+        if any(not isinstance(value, str) or not value.strip()
+               for value in required_strings):
+            raise ValueError(
+                "Purchase order receipt required string fields "
+                "must be non-empty."
             )
+
+        if not isinstance(self.quantity_received, Decimal):
+            raise TypeError("quantity_received must be a Decimal.")
 
         if self.quantity_received <= Decimal("0"):
-            raise ValueError(
-                "quantity_received must be greater than zero."
-            )
+            raise ValueError("quantity_received must be greater than zero.")
 
         if not isinstance(self.received_at, datetime):
-            raise TypeError(
-                "received_at must be a datetime."
+            raise TypeError("received_at must be a datetime.")
+
+        if self.notes is not None and not isinstance(self.notes, str):
+            raise TypeError("notes must be a string or None.")
+
+
+# ---------------------------------------------------------------------------
+# Finance integration payload
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ProcurementFinancialEffectLine:
+    """Procurement-owned purchase-order line information for Finance.
+
+    The line describes commercial procurement facts. It deliberately does
+    not contain accounting instructions, ledger accounts, journal entries,
+    payment information, tax treatment, or financial posting instructions.
+    """
+
+    purchase_order_line_reference: str
+    description: str
+    quantity: Decimal
+    unit: str
+    unit_price: Decimal
+    line_amount: Decimal
+
+    def __post_init__(self) -> None:
+        required_strings = (
+            self.purchase_order_line_reference,
+            self.description,
+            self.unit,
+        )
+
+        if any(not isinstance(value, str) or not value.strip()
+               for value in required_strings):
+            raise ValueError(
+                "Procurement financial-effect line required string fields "
+                "must be non-empty."
             )
 
-        if self.notes is not None:
-            if not isinstance(self.notes, str):
-                raise TypeError(
-                    "notes must be a string or None."
-                )
+        if not isinstance(self.quantity, Decimal):
+            raise TypeError("quantity must be a Decimal.")
+
+        if self.quantity <= Decimal("0"):
+            raise ValueError("quantity must be greater than zero.")
+
+        if not isinstance(self.unit_price, Decimal):
+            raise TypeError("unit_price must be a Decimal.")
+
+        if self.unit_price < Decimal("0"):
+            raise ValueError("unit_price must not be negative.")
+
+        if not isinstance(self.line_amount, Decimal):
+            raise TypeError("line_amount must be a Decimal.")
+
+        if self.line_amount < Decimal("0"):
+            raise ValueError("line_amount must not be negative.")
+
+
+@dataclass(frozen=True, slots=True)
+class ProcurementFinancialEffectRequest:
+    """Procurement-owned business fact communicated to Finance.
+
+    The successful Procurement transition of a Purchase Order to APPROVED
+    creates the Procurement business fact eligible for Finance communication.
+
+    This contract communicates procurement facts only. Finance determines
+    financial treatment and remains authoritative for accounting records,
+    invoices, payments, settlement, and ledger information.
+    """
+
+    purchase_order_reference: str
+    purchase_request_reference: str
+    supplier_reference: str
+    purchase_order_date: datetime
+    approved_at: datetime
+    currency: str
+    total_procurement_value: Decimal
+    purchase_order_lines: tuple[ProcurementFinancialEffectLine, ...]
+    idempotency_key: str
+
+    def __post_init__(self) -> None:
+        required_strings = (
+            self.purchase_order_reference,
+            self.purchase_request_reference,
+            self.supplier_reference,
+            self.currency,
+            self.idempotency_key,
+        )
+
+        if any(not isinstance(value, str) or not value.strip()
+               for value in required_strings):
+            raise ValueError(
+                "Procurement financial-effect required string fields "
+                "must be non-empty."
+            )
+
+        if not isinstance(self.purchase_order_date, datetime):
+            raise TypeError("purchase_order_date must be a datetime.")
+
+        if not isinstance(self.approved_at, datetime):
+            raise TypeError("approved_at must be a datetime.")
+
+        if not isinstance(self.currency, str):
+            raise TypeError("currency must be a string.")
+
+        if not isinstance(self.total_procurement_value, Decimal):
+            raise TypeError("total_procurement_value must be a Decimal.")
+
+        if self.total_procurement_value < Decimal("0"):
+            raise ValueError(
+                "total_procurement_value must not be negative."
+            )
+
+        if not isinstance(self.purchase_order_lines, tuple):
+            raise TypeError("purchase_order_lines must be a tuple.")
+
+        if not self.purchase_order_lines:
+            raise ValueError("purchase_order_lines must not be empty.")
+
+        if any(
+            not isinstance(line, ProcurementFinancialEffectLine)
+            for line in self.purchase_order_lines
+        ):
+            raise TypeError(
+                "purchase_order_lines must contain only "
+                "ProcurementFinancialEffectLine instances."
+            )
+
+        if not isinstance(self.idempotency_key, str):
+            raise TypeError("idempotency_key must be a string.")
