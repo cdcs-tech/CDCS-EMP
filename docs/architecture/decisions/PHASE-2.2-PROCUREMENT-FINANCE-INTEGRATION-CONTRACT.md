@@ -94,7 +94,7 @@ The Phase 2.2 architecture establishes Procurement, Inventory, Expense Managemen
 The relevant ownership boundaries are:
 
 | Capability | Primary Responsibility |
-|---|---|
+| --- | --- |
 | Procurement | Suppliers, sourcing, purchase requirements, purchase requests, purchase orders, approvals, procurement lifecycle and procurement transactions |
 | Inventory | Physical stock, stock items, locations, balances, movements, transfers and physical stock effects |
 | Expense Management | Expense records, classifications and expense lifecycle |
@@ -1076,63 +1076,83 @@ Similarly, Procurement shall not create Finance-owned accounting line structures
 The following invariants are locked.
 
 ### Invariant 1
+
 Procurement owns Purchase Orders and Procurement lifecycle.
 
 ### Invariant 2
+
 Finance owns financial treatment and accounting records.
 
 ### Invariant 3
+
 Successful transition of a Purchase Order to `APPROVED` creates the Procurement business fact eligible for Finance communication.
 
 ### Invariant 4
+
 Purchase Order approval is not itself accounting recognition.
 
 ### Invariant 5
+
 The existing enterprise Integration Framework is mandatory.
 
 ### Invariant 6
+
 Procurement communicates Procurement facts, not accounting instructions.
 
 ### Invariant 7
+
 Finance determines financial treatment.
 
 ### Invariant 8
+
 Finance integration outcome does not automatically change Procurement Purchase Order state.
 
 ### Invariant 9
+
 Integration failure does not automatically reverse Procurement approval.
 
 ### Invariant 10
+
 Retry preserves the identity of the underlying business operation.
 
 ### Invariant 11
+
 Cancellation is a separate Procurement business fact.
 
 ### Invariant 12
+
 Procurement shall not directly mutate Finance persistence.
 
 ### Invariant 13
+
 Finance shall not directly mutate Procurement persistence.
 
 ### Invariant 14
+
 No direct Procurement ↔ Finance foreign-key coupling shall be introduced.
 
 ### Invariant 15
+
 No distributed transaction shall be introduced.
 
 ### Invariant 16
+
 Enterprise authorization, audit, events, lifecycle, and governance infrastructure shall be reused.
 
 ### Invariant 17
+
 Integration lifecycle records are not financial accounting records.
 
 ### Invariant 18
+
 Inventory remains authoritative for physical stock effects.
 
 ### Invariant 19
+
 Finance-specific implementation shall not be simulated inside Procurement.
 
 ### Invariant 20
+
 Finance workflow and financial lifecycle shall remain separate from Procurement workflow.
 
 ---
@@ -1255,7 +1275,7 @@ unless those capabilities are separately designed and approved.
 
 The implementation should proceed in controlled stages.
 
-## Stage 1 — Integration Contract Foundation
+## Stage 1 — Integration Contract Foundation [COMPLETED]
 
 Establish:
 
@@ -1267,7 +1287,17 @@ Establish:
 
 No Finance accounting persistence.
 
-## Stage 2 — Procurement Approval Integration Boundary
+## Stage 2 — Post-Commit Execution Capability [NEXT]
+
+Establish the generic enterprise capability, not Finance-specific wiring:
+
+- post-commit execution abstraction;
+- commit executor;
+- execution only after successful transaction commit;
+- post-commit failure isolation from the committed transaction;
+- reusable capability for future business integrations.
+
+## Stage 3 — Procurement Approval Integration Boundary [NEXT]
 
 Wire the successful:
 
@@ -1279,7 +1309,7 @@ business transition to the approved Finance integration boundary.
 
 The Procurement transaction must remain authoritative.
 
-## Stage 3 — Response and Failure Handling
+## Stage 4 — Response and Failure Handling
 
 Implement:
 
@@ -1289,7 +1319,7 @@ Implement:
 - error classification;
 - lifecycle handling.
 
-## Stage 4 — Retry and Idempotency
+## Stage 5 — Retry and Idempotency
 
 Implement:
 
@@ -1298,7 +1328,7 @@ Implement:
 - observability;
 - retry handling.
 
-## Stage 5 — Security, Audit and Governance Verification
+## Stage 6 — Security, Audit and Governance Verification
 
 Verify:
 
@@ -1309,7 +1339,7 @@ Verify:
 - transaction boundaries;
 - no cross-module persistence.
 
-## Stage 6 — End-to-End Verification
+## Stage 7 — End-to-End Verification
 
 Verify the real enterprise path:
 
@@ -1429,49 +1459,54 @@ The authoritative decision is:
 
 The resulting architecture is:
 
-```text
 PROCUREMENT
-──────────────────────────────────────
-
-Purchase Order
+│
+└── Purchase Order
       │
       ├── SUBMIT
       ↓
-  SUBMITTED
+   SUBMITTED
       │
       └── APPROVE
             ↓
         APPROVED
             │
             │ Procurement business fact
-            ▼
+            ↓
+     Procurement transaction
+            │
+            └── COMMIT
+                  │
+                  ↓
+          Post-Commit Executor
+                  │
+                  ↓
     Enterprise Integration Framework
-            │
-            ▼
-       Finance Provider
-            │
-            ▼
-          FINANCE
-            │
-            ├── Financial treatment
-            ├── Accounting
-            ├── Invoice
-            ├── Payment
-            ├── Settlement
-            └── Ledger
+                  │
+                  ↓
+          Finance Provider
+                  │
+                  ↓
+               FINANCE
+                  │
+                  ├── Financial treatment
+                  ├── Accounting
+                  ├── Invoice
+                  ├── Payment
+                  ├── Settlement
+                  └── Ledger
 
 Separately:
 
 APPROVED PURCHASE ORDER
             │
-            ▼
+            ↓
      Physical Receipt
             │
-            ▼
+            ↓
         INVENTORY
             │
             └── Stock Effect
-```
 
 The three ownership boundaries remain independent:
 
@@ -1480,6 +1515,8 @@ Procurement → Procurement facts
 Finance     → Financial treatment
 Inventory   → Physical stock effects
 ```
+
+Finance communication occurs only after the successful Procurement transaction containing the SUBMITTED → APPROVED transition has committed. Failure of the post-commit Finance integration does not roll back, reject, cancel, or otherwise alter the already-committed Purchase Order approval.
 
 ---
 
