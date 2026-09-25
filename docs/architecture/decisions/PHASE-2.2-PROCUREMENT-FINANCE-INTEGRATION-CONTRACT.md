@@ -6,7 +6,7 @@
 **Decision Date:** 25 September 2026
 **Documentation Date:** 25 September 2026
 **Decision Type:** Architecture / Integration Boundary / Ownership
-**Implementation Status:** Design Approved — Implementation Pending
+**Implementation Status:** Stage 2 Completed — Stage 3 Pending
 
 ---
 
@@ -1287,15 +1287,34 @@ Establish:
 
 No Finance accounting persistence.
 
-## Stage 2 — Post-Commit Execution Capability [NEXT]
+## Stage 2 — Post-Commit Execution Capability [COMPLETED]
 
-Establish the generic enterprise capability, not Finance-specific wiring:
+The generic enterprise post-commit execution capability has been
+implemented and verified independently of Finance-specific wiring.
 
-- post-commit execution abstraction;
-- commit executor;
-- execution only after successful transaction commit;
-- post-commit failure isolation from the committed transaction;
-- reusable capability for future business integrations.
+Implemented capability:
+
+- `PostCommitAction` reusable post-commit action contract;
+- `PostCommitExecutor` dispatcher-facing post-commit execution contract;
+- post-commit execution invoked only after successful transaction commit;
+- post-commit failure isolation from the already-committed transaction;
+- reusable execution boundary for future business integrations;
+- dispatcher remains responsible for command orchestration and does not
+  select individual post-commit actions.
+
+The implementation is intentionally Finance-agnostic.
+
+Verification completed:
+
+- focused execution transaction tests passed;
+- explicit commit-before-post-commit ordering verification passed;
+- full CDCS-EMP regression suite passed with 2,618 tests;
+- `git diff --check` passed;
+- implementation checkpoint committed as:
+  `84a6628 feat(execution): add post-commit execution boundary`.
+
+No Finance provider, Finance payload, Finance persistence, retry mechanism,
+queue, or Finance-specific integration wiring was introduced in this stage.
 
 ## Stage 3 — Procurement Approval Integration Boundary [NEXT]
 
@@ -1548,7 +1567,7 @@ The user has approved the reconciliation and authorized consolidation into this 
 
 **Approval Status:** APPROVED
 **Architecture Status:** ACTIVE / LOCKED
-**Implementation Status:** PENDING IMPLEMENTATION
+**Implementation Status:** Stage 2 Completed — Stage 3 Pending
 
 The implementation shall follow this decision unless a subsequent approved architecture decision explicitly supersedes or amends it.
 
