@@ -8,6 +8,8 @@ Purchase Order workflow command handlers.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from app.core.execution.context import (
     ExecutionContext,
 )
@@ -135,6 +137,10 @@ class ApprovePurchaseOrderHandler(
             purchase_order.status
         )
 
+        approved_at = datetime.now(
+            timezone.utc
+        )
+
         try:
             self.service.approve(
                 purchase_order
@@ -163,6 +169,7 @@ class ApprovePurchaseOrderHandler(
                 "previous_status": previous_status,
                 "new_status": purchase_order.status,
                 "operation": context.operation,
+                "approved_at": approved_at,
             },
         )
 

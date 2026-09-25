@@ -1,11 +1,11 @@
-"""
-CDCS Enterprise Management Platform (CDCS-EMP)
+"""CDCS Enterprise Management Platform (CDCS-EMP)
 
 Procurement Module
 
 Purchase Order workflow command handler tests.
 """
 
+from datetime import datetime
 from unittest.mock import Mock
 
 import pytest
@@ -138,18 +138,37 @@ def test_purchase_order_handler_returns_success_result(
     assert result.data is purchase_order
     assert result.message == success_message
 
-    assert result.metadata == {
+    expected_metadata = {
         "purchase_order_id": 7,
         "previous_status": source_status,
         "new_status": target_status,
         "operation": operation,
     }
 
+    if handler_class is ApprovePurchaseOrderHandler:
+        assert "approved_at" in result.metadata
+        assert isinstance(
+            result.metadata["approved_at"],
+            datetime,
+        )
+        assert result.metadata["approved_at"].tzinfo is not None
+        assert (
+            result.metadata["approved_at"].utcoffset()
+            is not None
+        )
+        expected_metadata["approved_at"] = (
+            result.metadata["approved_at"]
+        )
+
+    assert result.metadata == expected_metadata
+
     service.get.assert_called_once_with(7)
     getattr(
         service,
         method_name,
     ).assert_called_once_with(purchase_order)
+
+    assert purchase_order.status == target_status
 
 
 @pytest.mark.parametrize(
@@ -199,12 +218,12 @@ def test_purchase_order_handler_returns_success_result(
             CancelPurchaseOrderCommand,
             "cancel",
             "purchase_order.cancel",
-            "SUBMITTED",
+            "DRAFT",
             "Purchase Order must be in APPROVED status before cancellation.",
         ),
     ],
 )
-def test_purchase_order_handler_translates_invalid_state_to_failure_result(
+def test_purchase_order_handler_rejects_invalid_state(
     handler_class,
     command_class,
     method_name,
@@ -223,7 +242,7 @@ def test_purchase_order_handler_translates_invalid_state_to_failure_result(
         service,
         method_name,
     ).side_effect = ValueError(
-        "Invalid workflow transition."
+        failure_message,
     )
 
     handler = handler_class(service=service)
@@ -245,7 +264,6 @@ def test_purchase_order_handler_translates_invalid_state_to_failure_result(
     assert result.error_code == (
         "INVALID_PURCHASE_ORDER_STATE"
     )
-
     assert result.metadata == {}
 
     service.get.assert_called_once_with(7)

@@ -53,6 +53,14 @@ from app.core.configuration.composition import (
     register_configuration_service,
 )
 
+from app.core.integration import (
+    integration_service,
+)
+
+from app.modules.procurement.integration import (
+    ProcurementFinancePostCommitExecutor,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +80,8 @@ def initialize_modules(app: Flask) -> ModuleManager:
         Loading
             ↓
         Initialization
+            ↓
+        Post-Commit Integration Composition
             ↓
         Execution Permission Composition
             ↓
@@ -132,6 +142,16 @@ def initialize_modules(app: Flask) -> ModuleManager:
         )
 
         module.initialize(app)
+
+    # --------------------------------------------------
+    # Post-Commit Integration Composition
+    # --------------------------------------------------
+
+    command_dispatcher.set_post_commit_executor(
+        ProcurementFinancePostCommitExecutor(
+            integration_service=integration_service,
+        )
+    )
 
     # --------------------------------------------------
     # Execution Authorization Composition

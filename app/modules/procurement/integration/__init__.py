@@ -10,6 +10,10 @@ from .contracts import (
     PurchaseOrderReceiptRequest,
 )
 
+from app.modules.procurement.integration.post_commit import (
+    ProcurementFinancePostCommitExecutor,
+)
+
 __all__ = [
     "FINANCE_INTEGRATION_PROVIDER",
     "FINANCE_PROCUREMENT_COMMITMENT_OPERATION",
@@ -18,4 +22,5 @@ __all__ = [
     "ProcurementFinancialEffectLine",
     "ProcurementFinancialEffectRequest",
     "PurchaseOrderReceiptRequest",
+    "ProcurementFinancePostCommitExecutor",
 ]
