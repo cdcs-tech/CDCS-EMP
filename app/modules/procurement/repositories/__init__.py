@@ -6,6 +6,10 @@ Procurement Module
 Repository exports.
 """
 
+from app.modules.procurement.repositories.finance_commitment import (
+    ProcurementFinanceCommitmentRepository,
+)
+
 from app.modules.procurement.repositories.purchase_order import (
     PurchaseOrderRepository,
 )
@@ -38,4 +42,5 @@ __all__ = [
     "PurchaseRequestLineRepository",
     "PurchaseOrderRepository",
     "PurchaseOrderLineRepository",
+    "ProcurementFinanceCommitmentRepository",
 ]

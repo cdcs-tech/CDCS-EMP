@@ -6,6 +6,10 @@ Procurement Module
 Service exports.
 """
 
+from app.modules.procurement.services.finance_commitment import (
+    ProcurementFinanceCommitmentService,
+)
+
 from app.modules.procurement.services.purchase_order import (
     PurchaseOrderService,
 )
@@ -38,4 +42,5 @@ __all__ = [
     "PurchaseRequestLineService",
     "PurchaseOrderService",
     "PurchaseOrderLineService",
+    "ProcurementFinanceCommitmentService",
 ]
