@@ -13,12 +13,14 @@ from app.models.mixins import (
     TimestampMixin,
 )
 
+from .finance_commitment import ProcurementFinanceCommitment
 from .purchase_order import PurchaseOrder
 from .purchase_order_line import PurchaseOrderLine
 from .purchase_request import PurchaseRequest
 from .purchase_request_line import PurchaseRequestLine
 from .purchase_requirement import PurchaseRequirement
 from .supplier import Supplier
+
 
 __all__ = [
     "BaseModel",
@@ -29,6 +31,7 @@ __all__ = [
     "PurchaseRequirement",
     "PurchaseRequest",
     "PurchaseRequestLine",
+    "ProcurementFinanceCommitment",
     "PurchaseOrder",
     "PurchaseOrderLine",
 ]
