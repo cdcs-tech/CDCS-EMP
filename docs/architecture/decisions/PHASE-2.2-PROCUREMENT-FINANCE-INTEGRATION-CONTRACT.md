@@ -6,7 +6,7 @@
 **Decision Date:** 25 September 2026
 **Documentation Date:** 25 September 2026
 **Decision Type:** Architecture / Integration Boundary / Ownership
-**Implementation Status:** Stages 1–4 Completed — Stage 5 Architecture Approved / Implementation Pending
+**Implementation Status:** Stages 1–6 Completed — Stage 7 End-to-End Verification Pending
 
 ---
 
@@ -1877,11 +1877,11 @@ dfd96b8
 feat(procurement): add integration response and failure handling
 ```
 
-### Stage 5 — Retry and Idempotency — CURRENT
+### Stage 5 — Retry and Idempotency — COMPLETED
 
-Architecture approved.
+Architecture approved and implemented.
 
-Stage 5 shall implement:
+Stage 5 implemented:
 
 - Procurement-owned `ProcurementFinanceCommitment`;
 - durable commitment registration;
@@ -1896,33 +1896,92 @@ Stage 5 shall implement:
 - technical retryable failure state;
 - integration with the existing post-commit Finance delivery path.
 
-Stage 5 implementation is pending.
+Stage 5 architectural implementation was completed and committed as:
 
-### Stage 6 — Security, Audit, and Governance Verification
+`f87e83e` — `feat(procurement): implement finance commitment integration stage 5`
 
-Future stage covering final verification that the complete Procurement Finance integration complies with:
+Stage 5 verification included:
+
+- focused Finance commitment service tests: **14 passed**;
+- Procurement-Finance integration contract and Finance integration service tests: **52 passed**;
+- post-commit Finance integration verification: **7 passed**;
+- Purchase Order handler verification: **10 passed**;
+- broader Procurement/unit verification: **462 passed**;
+- full project regression: **2,652 passed** using `pytest -q --import-mode=importlib`.
+
+The Stage 5 implementation preserves the following locked invariants:
+
+- Finance commitment represents the financial intent of an approved Purchase Order;
+- the durable `idempotency_key` identifies the Procurement business operation;
+- each delivery attempt may receive a new enterprise `request_id`;
+- Finance delivery requires an approved Purchase Order;
+- provider-declared business rejection is terminal;
+- technical integration failure is retryable where permitted;
+- the service does not own the surrounding transaction commit or rollback;
+- Procurement Finance commitment state remains Procurement-owned.
+
+### Stage 6 — Security, Audit, and Governance Verification — COMPLETED
+
+Stage 6 final verification confirms that the complete Procurement Finance integration complies with:
 
 - authorization;
-- audit;
+- security audit;
+- integration audit;
 - lifecycle events;
 - governance;
 - identity propagation;
 - module boundaries.
 
+The verification confirmed that Purchase Order approval remains within the enterprise execution boundary:
+
+`Procurement execution definition → BaseModule registration → command dispatcher → authorization → transactional handler execution`
+
+The Procurement module explicitly declares `ApprovePurchaseOrderCommand` and `ApprovePurchaseOrderHandler`, while the execution permission mapping requires:
+
+`PROCUREMENT.PURCHASE_ORDER.APPROVE`
+
+Authorization is enforced by the enterprise execution dispatcher before transactional handler execution.
+
+The verification also confirmed:
+
+- Procurement owns the Purchase Order approval permission;
+- allowed and denied authorization decisions produce governed security audit events;
+- execution identity and tracing metadata propagate through the authorization audit contract;
+- Procurement-Finance integration uses the enterprise `IntegrationLifecycle`;
+- integration audit records are produced for successful and failed delivery paths;
+- provider-declared rejection and technical delivery failure remain distinguishable;
+- the Procurement Finance commitment and its repository remain Procurement-owned;
+- the commitment foreign key references the Procurement-owned Purchase Order;
+- no Finance-owned repository is accessed directly by Procurement;
+- no Finance-owned persistence dependency is introduced into the Procurement commitment repository;
+- no cross-module Finance/Procurement foreign key was introduced;
+- authorization, lifecycle, audit, and governance remain enterprise/platform concerns where architecturally appropriate.
+
+Stage 6 was a verification-only stage. No production-code changes were required.
+
+Focused Stage 6 verification passed:
+
+- enterprise authorization-audit and dispatcher authorization tests: **9 passed**;
+- Procurement-Finance lifecycle, audit, and commitment tests: **21 passed**.
+
+The Stage 6 verification therefore confirms that the implemented Procurement Finance integration remains within the approved enterprise security, audit, governance, identity, and module-boundary architecture.
+
 ### Stage 7 — End-to-End Verification
 
-Future stage covering complete Procurement → Finance integration verification, including:
+Stage 7 remains the final verification stage covering the complete Procurement → Finance integration, including:
 
-- approval;
+- Purchase Order approval;
 - commitment registration;
-- transaction commit;
-- post-commit delivery;
+- Procurement transaction commit;
+- post-commit Finance delivery;
 - response handling;
-- failure handling;
+- technical failure handling;
 - retry;
 - idempotency;
 - terminal states;
-- regression.
+- end-to-end regression.
+
+Stage 7 shall consolidate the completed Stage 1–6 verification evidence and perform the final end-to-end regression against the authoritative Procurement Finance integration contract.
 
 ---
 
@@ -2269,7 +2328,7 @@ shall require an explicit architecture decision before implementation.
 
 **Current Stage:**
 
-- Stage 5 — Retry and Idempotency — Architecture Approved / Implementation Pending
+- Stage 5 — Retry and Idempotency — COMPLETED
 
 **Approved Stage 5 Architecture:**
 
