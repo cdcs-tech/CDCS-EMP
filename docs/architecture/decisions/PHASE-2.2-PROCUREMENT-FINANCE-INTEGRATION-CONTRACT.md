@@ -1,12 +1,12 @@
-# PHASE 2.2 — PROCUREMENT ↔ FINANCE INTEGRATION CONTRACT
+﻿# PHASE 2.2 â€” PROCUREMENT â†” FINANCE INTEGRATION CONTRACT
 
 **Document Status:** APPROVED / ACTIVE / LOCKED
-**Phase:** Phase 2.2 — Purchasing & Expense Management
-**Decision Area:** Procurement ↔ Finance Integration
+**Phase:** Phase 2.2 â€” Purchasing & Expense Management
+**Decision Area:** Procurement â†” Finance Integration
 **Decision Date:** 25 September 2026
 **Documentation Date:** 25 September 2026
 **Decision Type:** Architecture / Integration Boundary / Ownership
-**Implementation Status:** Stages 1–7 Completed — Procurement ↔ Finance Integration Contract Verified
+**Implementation Status:** Stages 1â€“7 Completed â€” Procurement â†” Finance Integration Contract Verified
 
 ---
 
@@ -41,7 +41,7 @@ This decision covers:
 
 1. Procurement ownership of Purchase Orders and procurement lifecycle.
 2. Finance ownership of financial treatment and accounting information.
-3. The Procurement → Finance business trigger.
+3. The Procurement â†’ Finance business trigger.
 4. The enterprise integration boundary between the capabilities.
 5. Procurement-to-Finance business information communication.
 6. Integration success and failure semantics.
@@ -79,7 +79,7 @@ The following are explicitly outside this decision:
 - detailed financial classification;
 - tax accounting;
 - payment execution;
-- additional Procurement → Finance operations not yet separately approved.
+- additional Procurement â†’ Finance operations not yet separately approved.
 
 These require separate Finance architecture decisions.
 
@@ -167,7 +167,7 @@ Finance shall not:
 
 # 5. Procurement Purchase Order Approval as the Finance Integration Trigger
 
-The authoritative Procurement → Finance trigger is:
+The authoritative Procurement â†’ Finance trigger is:
 
 > **The successful Procurement transition of a Purchase Order to `APPROVED` creates the Procurement business fact eligible for Finance communication.**
 
@@ -219,7 +219,7 @@ The Finance capability determines whether and how the approved procurement infor
 
 Therefore:
 
-> `PurchaseOrder.APPROVED` ≠ accounting recognition.
+> `PurchaseOrder.APPROVED` â‰  accounting recognition.
 
 ---
 
@@ -231,18 +231,18 @@ The approved lifecycle is:
 
 ```text
 DRAFT
-  │
-  └── SUBMIT
-        ↓
+  â”‚
+  â””â”€â”€ SUBMIT
+        â†“
      SUBMITTED
-        │
-        ├── APPROVE → APPROVED
-        │
-        └── REJECT → REJECTED
+        â”‚
+        â”œâ”€â”€ APPROVE â†’ APPROVED
+        â”‚
+        â””â”€â”€ REJECT â†’ REJECTED
 
 APPROVED
-  │
-  └── CANCEL → CANCELLED
+  â”‚
+  â””â”€â”€ CANCEL â†’ CANCELLED
 ```
 
 Finance integration does not introduce additional Finance states into this workflow.
@@ -285,33 +285,33 @@ Any subsequent Procurement action requires an explicit Procurement business tran
 
 ## 10. Integration Architecture
 
-The Procurement ↔ Finance integration shall use the existing enterprise Integration Framework and shall remain strictly separated from the Procurement transaction boundary.
+The Procurement â†” Finance integration shall use the existing enterprise Integration Framework and shall remain strictly separated from the Procurement transaction boundary.
 
 The implemented integration path is:
 
 ```text
 Purchase Order APPROVED
-        ↓
+        â†“
 Procurement Transaction
-        ↓
+        â†“
 Transaction COMMIT
-        ↓
+        â†“
 Post-Commit Executor
-        ↓
+        â†“
 Procurement Finance Integration Adapter
-        ↓
+        â†“
 IntegrationLifecycle
-        ↓
+        â†“
 IntegrationService
-        ↓
+        â†“
 IntegrationProviderRegistry
-        ↓
+        â†“
 Finance Integration Provider
-        ↓
+        â†“
 Finance Capability
-        ↓
+        â†“
 IntegrationResponse
-        ↓
+        â†“
 IntegrationResult
 ```
 
@@ -338,7 +338,7 @@ The Procurement Finance integration shall not introduce a private integration me
 
 ## 11. Enterprise Integration Framework
 
-The Procurement ↔ Finance integration shall reuse the existing enterprise Integration Framework.
+The Procurement â†” Finance integration shall reuse the existing enterprise Integration Framework.
 
 The authoritative framework components are:
 
@@ -398,7 +398,7 @@ The Procurement Finance integration shall not create a second integration framew
 
 ## 12. Finance Provider and Operation Contract
 
-The Procurement ↔ Finance integration uses the enterprise Finance provider identity:
+The Procurement â†” Finance integration uses the enterprise Finance provider identity:
 
 ```text
 Provider:
@@ -478,7 +478,7 @@ This key identifies the underlying Procurement financial commitment operation an
 
 ## 14. Information Communicated to Finance
 
-The Procurement ↔ Finance integration may communicate the Procurement information required to establish the financial context of the approved Procurement commitment.
+The Procurement â†” Finance integration may communicate the Procurement information required to establish the financial context of the approved Procurement commitment.
 
 The approved implementation communicates:
 
@@ -555,7 +555,7 @@ The Finance capability may determine, according to Finance-owned rules:
 - settlement treatment;
 - reconciliation requirements.
 
-None of these responsibilities shall be implemented inside Procurement solely to support the Procurement ↔ Finance integration.
+None of these responsibilities shall be implemented inside Procurement solely to support the Procurement â†” Finance integration.
 
 The existence of a successful Procurement commitment integration response shall not be interpreted as Procurement having performed accounting recognition.
 
@@ -584,7 +584,7 @@ The Procurement Finance commitment state introduced for retry and idempotency is
 
 ## 18. No Cross-Module Foreign Keys
 
-The Procurement ↔ Finance integration shall not introduce database foreign keys between Procurement-owned and Finance-owned entities.
+The Procurement â†” Finance integration shall not introduce database foreign keys between Procurement-owned and Finance-owned entities.
 
 Procurement may maintain references necessary to identify its own business objects and its own integration-delivery state.
 
@@ -594,9 +594,9 @@ The integration boundary is therefore:
 
 ```text
 Procurement-owned persistence
-        ↕
+        â†•
 Enterprise Integration Framework
-        ↕
+        â†•
 Finance-owned persistence
 ```
 
@@ -604,7 +604,7 @@ and not:
 
 ```text
 Procurement database
-        ↕
+        â†•
 Finance database
 ```
 
@@ -663,11 +663,11 @@ The following principle is mandatory:
 
 ```text
 Procurement Approval
-        ↓
+        â†“
 PO becomes APPROVED
-        ↓
+        â†“
 Procurement transaction commits
-        ↓
+        â†“
 Finance integration may succeed or fail
 ```
 
@@ -687,7 +687,7 @@ Where Finance explicitly rejects the request as a business outcome, the Procurem
 
 ## 21. Integration Failure Categories
 
-The Procurement ↔ Finance integration recognizes the following broad failure categories:
+The Procurement â†” Finance integration recognizes the following broad failure categories:
 
 ### 21.1 Request or Contract Failure
 
@@ -745,28 +745,28 @@ The architectural sequence is:
 
 ```text
 Purchase Order APPROVED
-        ↓
+        â†“
 Procurement Finance Commitment created
-        ↓
+        â†“
 Procurement transaction COMMIT
-        ↓
+        â†“
 Finance integration attempt
-        ↓
-      ┌───────────────┐
-      │               │
+        â†“
+      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+      â”‚               â”‚
    SUCCESS         TECHNICAL
                    FAILURE
-      │               │
-      ↓               ↓
+      â”‚               â”‚
+      â†“               â†“
   COMMITTED      RETRYABLE_FAILURE
-                      │
-                      ↓
+                      â”‚
+                      â†“
                 Eligible Retry
-                      │
-                      ↓
+                      â”‚
+                      â†“
               New Integration Attempt
-                      │
-                      ↓
+                      â”‚
+                      â†“
               Same Business Identity
 ```
 
@@ -865,17 +865,17 @@ The distinction is:
 
 ```text
 Procurement Lifecycle Fact
-        │
-        │
-        ▼
+        â”‚
+        â”‚
+        â–¼
 Purchase Order becomes APPROVED
-        │
-        │
-        ▼
+        â”‚
+        â”‚
+        â–¼
 Procurement Finance Commitment
-        │
-        │
-        ▼
+        â”‚
+        â”‚
+        â–¼
 Finance Integration Operation
 ```
 
@@ -976,11 +976,11 @@ The following distinction remains mandatory:
 
 ```text
 Purchase Order Approved
-        ≠
+        â‰ 
 Physical Goods Received
-        ≠
+        â‰ 
 Inventory Stock Posted
-        ≠
+        â‰ 
 Finance Payment
 ```
 
@@ -1011,9 +1011,9 @@ The following are distinct:
 
 ```text
 Purchase Order
-        ≠
+        â‰ 
 Expense Record
-        ≠
+        â‰ 
 Finance Transaction
 ```
 
@@ -1070,24 +1070,24 @@ The approved architecture is:
 
 ```text
 Procurement Business Transaction
-        │
-        ├── Purchase Order approval
-        │
-        ├── Procurement Finance Commitment = PENDING
-        │
-        ▼
+        â”‚
+        â”œâ”€â”€ Purchase Order approval
+        â”‚
+        â”œâ”€â”€ Procurement Finance Commitment = PENDING
+        â”‚
+        â–¼
    TRANSACTION COMMIT
-        │
-        ▼
+        â”‚
+        â–¼
 Post-Commit Integration Attempt
-        │
-        ▼
+        â”‚
+        â–¼
 Enterprise Integration Framework
-        │
-        ▼
+        â”‚
+        â–¼
 Finance Provider
-        │
-        ▼
+        â”‚
+        â–¼
 Finance Transaction / Processing
 ```
 
@@ -1108,11 +1108,11 @@ The critical architectural sequence is therefore:
 PO APPROVED
 +
 Finance Commitment PENDING
-        ↓
+        â†“
 single Procurement transaction
-        ↓
+        â†“
 COMMIT
-        ↓
+        â†“
 Finance delivery
 ```
 
@@ -1130,7 +1130,7 @@ The architecture does not introduce:
 
 ## 31. No Distributed Transactions
 
-The Procurement ↔ Finance integration shall not use distributed transactions.
+The Procurement â†” Finance integration shall not use distributed transactions.
 
 Specifically prohibited:
 
@@ -1146,9 +1146,9 @@ The intended failure model is:
 
 ```text
 Procurement Commit
-        ↓
+        â†“
 Finance Integration Attempt
-        ↓
+        â†“
 Success / Failure
 ```
 
@@ -1165,23 +1165,23 @@ This is an eventual integration model rather than a distributed transaction mode
 
 ## 32. Security and Authorization Boundary
 
-The Procurement ↔ Finance integration shall reuse the enterprise security and authorization framework.
+The Procurement â†” Finance integration shall reuse the enterprise security and authorization framework.
 
 The approved execution boundary is:
 
 ```text
 Enterprise Authorization
-        ↓
+        â†“
 Procurement Business Action
-        ↓
+        â†“
 Procurement Finance Commitment Registration
-        ↓
+        â†“
 Procurement Transaction Commit
-        ↓
+        â†“
 Post-Commit Integration
-        ↓
+        â†“
 IntegrationLifecycle
-        ↓
+        â†“
 Finance Provider
 ```
 
@@ -1236,7 +1236,7 @@ The following distinction shall remain explicit:
 
 ```text
 Integration Audit
-        ≠
+        â‰ 
 Finance Accounting Record
 ```
 
@@ -1284,7 +1284,7 @@ Integration observability event
 
 ## 35. Governance and Framework Reuse
 
-The Procurement ↔ Finance integration shall reuse the enterprise governance capabilities already established in CDCS-EMP.
+The Procurement â†” Finance integration shall reuse the enterprise governance capabilities already established in CDCS-EMP.
 
 Required capabilities include:
 
@@ -1299,7 +1299,7 @@ Required capabilities include:
 - integration observability;
 - Procurement-owned commitment state.
 
-No private governance framework shall be introduced for Procurement ↔ Finance communication.
+No private governance framework shall be introduced for Procurement â†” Finance communication.
 
 The integration must remain inside the same architectural governance boundary as other enterprise integrations.
 
@@ -1311,7 +1311,7 @@ The Procurement-specific commitment service owns only the Procurement business r
 
 ## 36. Integration Observability
 
-The Procurement ↔ Finance integration shall maintain sufficient observability to distinguish:
+The Procurement â†” Finance integration shall maintain sufficient observability to distinguish:
 
 1. Procurement business state;
 2. Procurement integration-delivery state;
@@ -1378,21 +1378,21 @@ The approved Stage 5 state model is:
 
 ```text
 PENDING
-   │
-   ├── successful Finance delivery ──────► COMMITTED
-   │
-   ├── provider-declared business
-   │   rejection ────────────────────────► REJECTED
-   │
-   └── technical delivery failure ───────► RETRYABLE_FAILURE
-                                               │
-                                               │ successful retry
-                                               ▼
+   â”‚
+   â”œâ”€â”€ successful Finance delivery â”€â”€â”€â”€â”€â”€â–º COMMITTED
+   â”‚
+   â”œâ”€â”€ provider-declared business
+   â”‚   rejection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º REJECTED
+   â”‚
+   â””â”€â”€ technical delivery failure â”€â”€â”€â”€â”€â”€â”€â–º RETRYABLE_FAILURE
+                                               â”‚
+                                               â”‚ successful retry
+                                               â–¼
                                            COMMITTED
 
 RETRYABLE_FAILURE
-        │
-        └── technical retry failure ─────► RETRYABLE_FAILURE
+        â”‚
+        â””â”€â”€ technical retry failure â”€â”€â”€â”€â”€â–º RETRYABLE_FAILURE
 ```
 
 ### 37.1 PENDING
@@ -1441,9 +1441,9 @@ The following distinctions are mandatory:
 
 ```text
 PurchaseOrder.status
-        ≠
+        â‰ 
 ProcurementFinanceCommitment.status
-        ≠
+        â‰ 
 Finance financial/accounting status
 ```
 
@@ -1492,11 +1492,11 @@ The approved failure model is:
 
 ```text
 Procurement Approval
-        ↓
+        â†“
 Procurement Commit
-        ↓
+        â†“
 Finance Integration Attempt
-        ↓
+        â†“
 Success / Failure
 ```
 
@@ -1537,16 +1537,16 @@ The boundary is:
 
 ```text
 Procurement
-    │
-    │ Approved Procurement Commitment
-    ▼
+    â”‚
+    â”‚ Approved Procurement Commitment
+    â–¼
 Enterprise Integration Boundary
-    │
-    ▼
+    â”‚
+    â–¼
 Finance
-    │
-    │ Financial Treatment
-    ▼
+    â”‚
+    â”‚ Financial Treatment
+    â–¼
 Finance-Owned Financial Effect
 ```
 
@@ -1607,11 +1607,11 @@ The identities remain distinct:
 
 ```text
 Procurement Purchase Order Reference
-        ≠
+        â‰ 
 Enterprise Integration Request ID
-        ≠
+        â‰ 
 Procurement Finance Idempotency Key
-        ≠
+        â‰ 
 Finance-Owned Reference
 ```
 
@@ -1643,7 +1643,7 @@ The Finance integration shall not create a Finance-owned copy of the Procurement
 
 ## 44. Architectural Invariants
 
-The following invariants are mandatory for the Procurement ↔ Finance architecture.
+The following invariants are mandatory for the Procurement â†” Finance architecture.
 
 ### 1. Procurement owns Purchase Orders and Procurement lifecycle.
 
@@ -1653,7 +1653,7 @@ The following invariants are mandatory for the Procurement ↔ Finance architect
 
 ### 4. Purchase Order approval is not equivalent to accounting recognition.
 
-### 5. The enterprise Integration Framework is mandatory for Procurement ↔ Finance communication.
+### 5. The enterprise Integration Framework is mandatory for Procurement â†” Finance communication.
 
 ### 6. Procurement communicates Procurement facts, not accounting instructions.
 
@@ -1755,16 +1755,16 @@ The following decisions remain deferred to future Finance or separately approved
 12. Finance workflow;
 13. Finance UI;
 14. Finance database schema;
-15. additional Procurement → Finance operations;
+15. additional Procurement â†’ Finance operations;
 16. Purchase Order cancellation communication;
 17. Purchase Order amendment communication;
 18. invoice-related integration operations;
-19. Finance → Procurement reverse communication;
+19. Finance â†’ Procurement reverse communication;
 20. Finance reconciliation architecture;
 21. Finance-specific reporting/read models;
 22. future financial-effect operations not covered by the approved Procurement commitment contract.
 
-The following decisions are **no longer deferred** because they were resolved through Stages 3–5:
+The following decisions are **no longer deferred** because they were resolved through Stages 3â€“5:
 
 - Finance provider identity: `finance`;
 - Procurement Finance operation: `procurement_commitment`;
@@ -1811,9 +1811,9 @@ Implementation shall preserve the following constraints:
 
 ## 48. Implementation Sequence
 
-The Procurement ↔ Finance integration has progressed through the following controlled stages.
+The Procurement â†” Finance integration has progressed through the following controlled stages.
 
-### Stage 1 — Integration Contract Foundation — COMPLETED
+### Stage 1 â€” Integration Contract Foundation â€” COMPLETED
 
 Established:
 
@@ -1823,7 +1823,7 @@ Established:
 - enterprise IntegrationRequest/Response/Result usage;
 - Finance provider integration boundary.
 
-### Stage 2 — Post-Commit Execution Capability — COMPLETED
+### Stage 2 â€” Post-Commit Execution Capability â€” COMPLETED
 
 Established:
 
@@ -1838,7 +1838,7 @@ Implementation checkpoint:
 feat(execution): add post-commit execution boundary
 ```
 
-### Stage 3 — Procurement Approval Integration — COMPLETED
+### Stage 3 â€” Procurement Approval Integration â€” COMPLETED
 
 Established:
 
@@ -1858,7 +1858,7 @@ Implementation checkpoint:
 feat(procurement): integrate approved purchase orders with finance
 ```
 
-### Stage 4 — Response and Failure Handling — COMPLETED
+### Stage 4 â€” Response and Failure Handling â€” COMPLETED
 
 Established:
 
@@ -1877,7 +1877,7 @@ dfd96b8
 feat(procurement): add integration response and failure handling
 ```
 
-### Stage 5 — Retry and Idempotency — COMPLETED
+### Stage 5 â€” Retry and Idempotency â€” COMPLETED
 
 Architecture approved and implemented.
 
@@ -1898,7 +1898,7 @@ Stage 5 implemented:
 
 Stage 5 architectural implementation was completed and committed as:
 
-`f87e83e` — `feat(procurement): implement finance commitment integration stage 5`
+`f87e83e` â€” `feat(procurement): implement finance commitment integration stage 5`
 
 Stage 5 verification included:
 
@@ -1920,7 +1920,7 @@ The Stage 5 implementation preserves the following locked invariants:
 - the service does not own the surrounding transaction commit or rollback;
 - Procurement Finance commitment state remains Procurement-owned.
 
-### Stage 6 — Security, Audit, and Governance Verification — COMPLETED
+### Stage 6 â€” Security, Audit, and Governance Verification â€” COMPLETED
 
 Stage 6 final verification confirms that the complete Procurement Finance integration complies with:
 
@@ -1934,7 +1934,7 @@ Stage 6 final verification confirms that the complete Procurement Finance integr
 
 The verification confirmed that Purchase Order approval remains within the enterprise execution boundary:
 
-`Procurement execution definition → BaseModule registration → command dispatcher → authorization → transactional handler execution`
+`Procurement execution definition â†’ BaseModule registration â†’ command dispatcher â†’ authorization â†’ transactional handler execution`
 
 The Procurement module explicitly declares `ApprovePurchaseOrderCommand` and `ApprovePurchaseOrderHandler`, while the execution permission mapping requires:
 
@@ -1966,9 +1966,9 @@ Focused Stage 6 verification passed:
 
 The Stage 6 verification therefore confirms that the implemented Procurement Finance integration remains within the approved enterprise security, audit, governance, identity, and module-boundary architecture.
 
-### Stage 7 — End-to-End Verification — COMPLETED
+### Stage 7 â€” End-to-End Verification â€” COMPLETED
 
-Stage 7 completed the final end-to-end verification of the Procurement → Finance integration against the authoritative Procurement Finance integration contract.
+Stage 7 completed the final end-to-end verification of the Procurement â†’ Finance integration against the authoritative Procurement Finance integration contract.
 
 The verification covered the complete implemented flow:
 
@@ -1986,9 +1986,9 @@ The verification covered the complete implemented flow:
 
 ### Stage 7 Verification Evidence
 
-The final Stage 7 verification evidence consists of the completed Stage 1–6 verification record together with the Stage 7 end-to-end and regression tests.
+The final Stage 7 verification evidence consists of the completed Stage 1â€“6 verification record together with the Stage 7 end-to-end and regression tests.
 
-**End-to-end Procurement → Finance verification**
+**End-to-end Procurement â†’ Finance verification**
 
 - Purchase Order approval was executed through the real Procurement command-dispatch path.
 - The Procurement Finance commitment was registered as part of the approved Purchase Order operation.
@@ -2003,14 +2003,31 @@ The final Stage 7 verification evidence consists of the completed Stage 1–6 ve
 - Purchase Order handler verification: **12 passed**.
 - Procurement Finance commitment lifecycle verification: **14 passed**.
 - Procurement Finance post-commit orchestration verification: **7 passed**.
-- Stage 7 end-to-end Purchase Order → Finance verification: **1 passed**.
+- Stage 7 end-to-end Purchase Order â†’ Finance verification: **1 passed**.
 - Complete Procurement integration test suite: **122 passed, 168 warnings**.
 
-The preceding Stage 1–6 verification also established the required authorization, governance, lifecycle, audit, idempotency, retry, terminal-state, execution-boundary, and module-separation behavior. The Stage 7 evidence therefore consolidates the individual architectural guarantees with the final end-to-end execution path rather than relying on the end-to-end test alone.
+The preceding Stage 1â€“6 verification also established the required authorization, governance, lifecycle, audit, idempotency, retry, terminal-state, execution-boundary, and module-separation behavior. The Stage 7 evidence therefore consolidates the individual architectural guarantees with the final end-to-end execution path rather than relying on the end-to-end test alone.
 
+### Browser Acceptance Verification
+
+The completed browser acceptance verification confirmed the existing Procurement Purchase Order presentation and read surface without introducing any new UI capability.
+
+The browser verification established:
+
+- CDCS-EMP application startup, authentication, and dashboard access completed successfully.
+- Procurement → Purchase Orders loaded successfully without application errors.
+- The Purchase Order list rendered the expected reference, supplier, order date, expected delivery, status, purchase request, and action fields.
+- An existing Purchase Order detail page loaded successfully and displayed the expected Purchase Order information and status.
+- The Purchase Order Lines section rendered successfully; no lines were present on the verified Purchase Order.
+- Existing Purchase Order navigation controls, including Edit Purchase Order and Back to Purchase Orders, were available.
+- The current browser UI does not expose Purchase Order workflow commands such as Submit or Approve.
+
+The absence of browser Submit/Approve controls is recorded as an existing UI boundary and does not alter the completed Stage 7 Procurement → Finance integration verification. Purchase Order workflow execution and the resulting Finance integration remain verified through the Stage 7 automated end-to-end execution path.
+
+No production code, workflow command, Finance UI, or browser workflow capability was added solely for this acceptance verification.
 ### Stage 7 Architectural Verification Conclusion
 
-The completed verification demonstrates that the implemented Procurement → Finance integration conforms to the approved architecture:
+The completed verification demonstrates that the implemented Procurement â†’ Finance integration conforms to the approved architecture:
 
 - Procurement retains ownership of Purchase Order approval and Procurement Finance commitment state.
 - Finance integration occurs only after the Procurement transaction commits successfully.
@@ -2030,7 +2047,7 @@ Stage 7 is therefore **COMPLETED**, subject to the final full-project regression
 
 ## 49. Verification Requirements
 
-The completed Procurement ↔ Finance integration shall verify at minimum:
+The completed Procurement â†” Finance integration shall verify at minimum:
 
 1. Purchase Order approval remains Procurement-owned.
 
@@ -2094,7 +2111,7 @@ The completed Procurement ↔ Finance integration shall verify at minimum:
 
 ---
 
-## 50. Procurement ↔ Inventory Relationship
+## 50. Procurement â†” Inventory Relationship
 
 Procurement and Inventory remain separate bounded capabilities.
 
@@ -2124,7 +2141,7 @@ The established distinction remains:
 
 ```text
 Procurement Commitment
-        ≠
+        â‰ 
 Physical Inventory Receipt
 ```
 
@@ -2149,9 +2166,9 @@ The distinction remains:
 
 ```text
 Procurement Purchase Order
-        ≠
+        â‰ 
 Expense Record
-        ≠
+        â‰ 
 Finance Accounting Record
 ```
 
@@ -2220,41 +2237,41 @@ Integration failure shall not automatically alter the already-approved Procureme
 
 ## 54. Final Locked Architecture
 
-The final locked Procurement ↔ Finance architecture is:
+The final locked Procurement â†” Finance architecture is:
 
 ```text
                   PROCUREMENT
-                       │
-                       ▼
+                       â”‚
+                       â–¼
              Purchase Order APPROVED
-                       │
-                       ▼
+                       â”‚
+                       â–¼
         ProcurementFinanceCommitment
                    PENDING
-                       │
-                       ▼
+                       â”‚
+                       â–¼
              Procurement COMMIT
-                       │
-                       ▼
+                       â”‚
+                       â–¼
               Post-Commit Executor
-                       │
-                       ▼
+                       â”‚
+                       â–¼
        Procurement Finance Integration
                   Service/Adapter
-                       │
-                       ▼
+                       â”‚
+                       â–¼
              IntegrationLifecycle
-                       │
-                       ▼
+                       â”‚
+                       â–¼
              IntegrationService
-                       │
-                       ▼
+                       â”‚
+                       â–¼
           Finance Integration Provider
-                       │
-                       ▼
+                       â”‚
+                       â–¼
                     FINANCE
-                       │
-                       ▼
+                       â”‚
+                       â–¼
           Finance-owned processing
 ```
 
@@ -2262,20 +2279,20 @@ Technical delivery failure follows:
 
 ```text
 Finance Delivery Failure
-        │
-        ▼
+        â”‚
+        â–¼
 RETRYABLE_FAILURE
-        │
-        ▼
+        â”‚
+        â–¼
 Retry Eligibility
-        │
-        ▼
+        â”‚
+        â–¼
 New Integration Attempt
-        │
-        ├── same idempotency key
-        └── new request_id
-        │
-        ▼
+        â”‚
+        â”œâ”€â”€ same idempotency key
+        â””â”€â”€ new request_id
+        â”‚
+        â–¼
 Finance Provider
 ```
 
@@ -2283,11 +2300,11 @@ Provider-declared business rejection follows:
 
 ```text
 Finance Provider
-        │
-        ▼
+        â”‚
+        â–¼
 IntegrationResponse(success=False)
-        │
-        ▼
+        â”‚
+        â–¼
 REJECTED
 ```
 
@@ -2295,11 +2312,11 @@ Successful delivery follows:
 
 ```text
 Finance Provider
-        │
-        ▼
+        â”‚
+        â–¼
 Successful IntegrationResponse
-        │
-        ▼
+        â”‚
+        â–¼
 COMMITTED
 ```
 
@@ -2307,11 +2324,11 @@ The complete architecture therefore separates:
 
 ```text
 Procurement Business State
-        ≠
+        â‰ 
 Procurement Integration-Delivery State
-        ≠
+        â‰ 
 Enterprise Integration Attempt State
-        ≠
+        â‰ 
 Finance Financial State
 ```
 
@@ -2319,9 +2336,9 @@ The final architectural boundary remains:
 
 ```text
 Procurement
-   │
-   │ Enterprise Integration Framework
-   ▼
+   â”‚
+   â”‚ Enterprise Integration Framework
+   â–¼
 Finance
 ```
 
@@ -2360,18 +2377,18 @@ shall require an explicit architecture decision before implementation.
 
 **Decision Status:** APPROVED / ACTIVE / LOCKED
 
-**Architecture Scope:** Procurement ↔ Finance Integration
+**Architecture Scope:** Procurement â†” Finance Integration
 
 **Completed Implementation Stages:**
 
-- Stage 1 — Integration Contract Foundation — COMPLETED
-- Stage 2 — Post-Commit Execution Capability — COMPLETED
-- Stage 3 — Procurement Approval Integration — COMPLETED
-- Stage 4 — Response and Failure Handling — COMPLETED
+- Stage 1 â€” Integration Contract Foundation â€” COMPLETED
+- Stage 2 â€” Post-Commit Execution Capability â€” COMPLETED
+- Stage 3 â€” Procurement Approval Integration â€” COMPLETED
+- Stage 4 â€” Response and Failure Handling â€” COMPLETED
 
 **Current Stage:**
 
-- Stage 5 — Retry and Idempotency — COMPLETED
+- Stage 5 â€” Retry and Idempotency â€” COMPLETED
 
 **Approved Stage 5 Architecture:**
 
@@ -2394,9 +2411,9 @@ The implementation shall remain subject to the controlled CDCS-EMP development w
 
 ## 57. Authoritative Architecture Document
 
-This document remains the authoritative Procurement ↔ Finance integration architecture and contract for Phase 2.2.
+This document remains the authoritative Procurement â†” Finance integration architecture and contract for Phase 2.2.
 
-Implementation changes affecting the Procurement ↔ Finance integration shall be reconciled against this document.
+Implementation changes affecting the Procurement â†” Finance integration shall be reconciled against this document.
 
 The authoritative document location is:
 
@@ -2406,7 +2423,7 @@ docs/architecture/decisions/PHASE-2.2-PROCUREMENT-FINANCE-INTEGRATION-CONTRACT.m
 
 No separate Stage 5 architecture document is required for retry and idempotency unless a future architecture decision explicitly establishes one.
 
-This parent document remains the authoritative record for Stages 1–5 of the Procurement ↔ Finance integration.
+This parent document remains the authoritative record for Stages 1â€“5 of the Procurement â†” Finance integration.
 
 ---
 
@@ -2425,6 +2442,6 @@ This decision shall be read together with the relevant CDCS-EMP architecture dec
 - Reporting;
 - Phase 2.2 Purchasing & Expense Management.
 
-The parent Phase 2.2 Procurement ↔ Finance integration contract takes precedence for Procurement ↔ Finance-specific ownership, integration boundaries, transaction separation, response semantics, retry, and idempotency decisions.
+The parent Phase 2.2 Procurement â†” Finance integration contract takes precedence for Procurement â†” Finance-specific ownership, integration boundaries, transaction separation, response semantics, retry, and idempotency decisions.
 
 Future Finance architecture decisions shall remain Finance-owned and shall not override Procurement ownership established by this contract without an explicit architecture reconciliation.
