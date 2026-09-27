@@ -27,6 +27,7 @@ from app.modules.procurement.commands import (
     SubmitPurchaseOrderCommand,
 )
 from app.modules.procurement.services import (
+    ProcurementFinanceCommitmentService,
     PurchaseOrderService,
 )
 
@@ -105,6 +106,10 @@ class ApprovePurchaseOrderHandler(
 ):
     """
     Handle Purchase Order approval.
+
+    Successful approval also registers the durable Procurement-owned
+    Finance commitment inside the surrounding transaction. Finance
+    delivery itself remains a post-commit operation.
     """
 
     command_type = (
@@ -114,10 +119,17 @@ class ApprovePurchaseOrderHandler(
     def __init__(
         self,
         service: PurchaseOrderService | None = None,
+        commitment_service: (
+            ProcurementFinanceCommitmentService | None
+        ) = None,
     ) -> None:
         self.service = (
             service
             or PurchaseOrderService()
+        )
+        self.commitment_service = (
+            commitment_service
+            or ProcurementFinanceCommitmentService()
         )
 
     def handle(
@@ -126,7 +138,8 @@ class ApprovePurchaseOrderHandler(
         context: ExecutionContext,
     ) -> ExecutionResult:
         """
-        Approve a Purchase Order through its workflow.
+        Approve a Purchase Order and register its durable Finance
+        commitment.
         """
 
         purchase_order = self.service.get(
@@ -156,6 +169,10 @@ class ApprovePurchaseOrderHandler(
                 ),
                 data=purchase_order,
             )
+
+        self.commitment_service.register(
+            purchase_order
+        )
 
         return ExecutionResult.success_result(
             data=purchase_order,
@@ -247,7 +264,7 @@ class ReturnPurchaseOrderHandler(
     BaseCommandHandler,
 ):
     """
-    Handle returning a Purchase Order to draft.
+    Handle Purchase Order return to draft.
     """
 
     command_type = (
@@ -269,8 +286,7 @@ class ReturnPurchaseOrderHandler(
         context: ExecutionContext,
     ) -> ExecutionResult:
         """
-        Return a Purchase Order to draft
-        through its workflow.
+        Return a Purchase Order to draft.
         """
 
         purchase_order = self.service.get(
@@ -300,8 +316,7 @@ class ReturnPurchaseOrderHandler(
         return ExecutionResult.success_result(
             data=purchase_order,
             message=(
-                "Purchase Order returned to draft "
-                "successfully."
+                "Purchase Order returned to draft successfully."
             ),
             metadata={
                 "purchase_order_id": (
@@ -340,8 +355,7 @@ class CancelPurchaseOrderHandler(
         context: ExecutionContext,
     ) -> ExecutionResult:
         """
-        Cancel an approved Purchase Order
-        through its workflow.
+        Cancel a Purchase Order through its workflow.
         """
 
         purchase_order = self.service.get(

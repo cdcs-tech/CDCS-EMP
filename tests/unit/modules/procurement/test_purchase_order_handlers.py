@@ -1,11 +1,12 @@
-"""CDCS Enterprise Management Platform (CDCS-EMP)
+"""
+CDCS Enterprise Management Platform (CDCS-EMP)
 
 Procurement Module
 
 Purchase Order workflow command handler tests.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from unittest.mock import Mock
 
 import pytest
@@ -25,6 +26,10 @@ from app.modules.procurement.handlers import (
     RejectPurchaseOrderHandler,
     ReturnPurchaseOrderHandler,
     SubmitPurchaseOrderHandler,
+)
+from app.modules.procurement.models import PurchaseOrder
+from app.modules.procurement.services import (
+    ProcurementFinanceCommitmentService,
 )
 
 
@@ -104,9 +109,31 @@ def test_purchase_order_handler_returns_success_result(
     success_message,
 ):
     service = Mock()
-    purchase_order = Mock()
-    purchase_order.id = 7
-    purchase_order.status = source_status
+
+    if handler_class is ApprovePurchaseOrderHandler:
+        purchase_order = PurchaseOrder(
+            id=7,
+            supplier_id=501,
+            reference="PO-2026-007",
+            order_date=date(2026, 9, 26),
+            status=source_status,
+            purchase_request_id=601,
+        )
+        commitment_service = Mock(
+            spec=ProcurementFinanceCommitmentService
+        )
+        commitment_service.register.return_value = Mock()
+        handler = handler_class(
+            service=service,
+            commitment_service=commitment_service,
+        )
+    else:
+        purchase_order = Mock()
+        purchase_order.id = 7
+        purchase_order.status = source_status
+        handler = handler_class(
+            service=service
+        )
 
     service.get.return_value = purchase_order
 
@@ -121,7 +148,6 @@ def test_purchase_order_handler_returns_success_result(
         method_name,
     ).side_effect = transition
 
-    handler = handler_class(service=service)
     command = command_class(7)
     context = _context(operation)
 
@@ -158,6 +184,10 @@ def test_purchase_order_handler_returns_success_result(
         )
         expected_metadata["approved_at"] = (
             result.metadata["approved_at"]
+        )
+
+        commitment_service.register.assert_called_once_with(
+            purchase_order
         )
 
     assert result.metadata == expected_metadata
@@ -232,9 +262,30 @@ def test_purchase_order_handler_rejects_invalid_state(
     failure_message,
 ):
     service = Mock()
-    purchase_order = Mock()
-    purchase_order.id = 7
-    purchase_order.status = source_status
+
+    if handler_class is ApprovePurchaseOrderHandler:
+        purchase_order = PurchaseOrder(
+            id=7,
+            supplier_id=501,
+            reference="PO-2026-007",
+            order_date=date(2026, 9, 26),
+            status=source_status,
+            purchase_request_id=601,
+        )
+        commitment_service = Mock(
+            spec=ProcurementFinanceCommitmentService
+        )
+        handler = handler_class(
+            service=service,
+            commitment_service=commitment_service,
+        )
+    else:
+        purchase_order = Mock()
+        purchase_order.id = 7
+        purchase_order.status = source_status
+        handler = handler_class(
+            service=service
+        )
 
     service.get.return_value = purchase_order
 
@@ -245,7 +296,6 @@ def test_purchase_order_handler_rejects_invalid_state(
         failure_message,
     )
 
-    handler = handler_class(service=service)
     command = command_class(7)
     context = _context(operation)
 
@@ -273,3 +323,101 @@ def test_purchase_order_handler_rejects_invalid_state(
     ).assert_called_once_with(purchase_order)
 
     assert purchase_order.status == source_status
+
+    if handler_class is ApprovePurchaseOrderHandler:
+        commitment_service.register.assert_not_called()
+
+
+def test_approve_purchase_order_registers_finance_commitment_after_approval():
+    service = Mock()
+
+    purchase_order = PurchaseOrder(
+        id=7,
+        supplier_id=501,
+        reference="PO-2026-007",
+        order_date=date(2026, 9, 26),
+        status="SUBMITTED",
+        purchase_request_id=601,
+    )
+
+    commitment_service = Mock(
+        spec=ProcurementFinanceCommitmentService
+    )
+    commitment_service.register.return_value = Mock()
+
+    def approve(entity):
+        entity.status = "APPROVED"
+        return entity
+
+    service.get.return_value = purchase_order
+    service.approve.side_effect = approve
+
+    handler = ApprovePurchaseOrderHandler(
+        service=service,
+        commitment_service=commitment_service,
+    )
+
+    result = handler.handle(
+        ApprovePurchaseOrderCommand(7),
+        _context("purchase_order.approve"),
+    )
+
+    assert result.success is True
+    assert result.data is purchase_order
+    assert purchase_order.status == "APPROVED"
+
+    service.approve.assert_called_once_with(
+        purchase_order
+    )
+    commitment_service.register.assert_called_once_with(
+        purchase_order
+    )
+
+
+def test_approve_purchase_order_commitment_failure_propagates():
+    service = Mock()
+
+    purchase_order = PurchaseOrder(
+        id=7,
+        supplier_id=501,
+        reference="PO-2026-007",
+        order_date=date(2026, 9, 26),
+        status="SUBMITTED",
+        purchase_request_id=601,
+    )
+
+    commitment_service = Mock(
+        spec=ProcurementFinanceCommitmentService
+    )
+    commitment_service.register.side_effect = RuntimeError(
+        "Finance commitment registration failed."
+    )
+
+    def approve(entity):
+        entity.status = "APPROVED"
+        return entity
+
+    service.get.return_value = purchase_order
+    service.approve.side_effect = approve
+
+    handler = ApprovePurchaseOrderHandler(
+        service=service,
+        commitment_service=commitment_service,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Finance commitment registration failed.",
+    ):
+        handler.handle(
+            ApprovePurchaseOrderCommand(7),
+            _context("purchase_order.approve"),
+        )
+
+    assert purchase_order.status == "APPROVED"
+    service.approve.assert_called_once_with(
+        purchase_order
+    )
+    commitment_service.register.assert_called_once_with(
+        purchase_order
+    )

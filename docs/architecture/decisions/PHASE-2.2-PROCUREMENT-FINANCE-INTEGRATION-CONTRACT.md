@@ -6,7 +6,7 @@
 **Decision Date:** 25 September 2026
 **Documentation Date:** 25 September 2026
 **Decision Type:** Architecture / Integration Boundary / Ownership
-**Implementation Status:** Stages 1–6 Completed — Stage 7 End-to-End Verification Pending
+**Implementation Status:** Stages 1–7 Completed — Procurement ↔ Finance Integration Contract Verified
 
 ---
 
@@ -1966,22 +1966,65 @@ Focused Stage 6 verification passed:
 
 The Stage 6 verification therefore confirms that the implemented Procurement Finance integration remains within the approved enterprise security, audit, governance, identity, and module-boundary architecture.
 
-### Stage 7 — End-to-End Verification
+### Stage 7 — End-to-End Verification — COMPLETED
 
-Stage 7 remains the final verification stage covering the complete Procurement → Finance integration, including:
+Stage 7 completed the final end-to-end verification of the Procurement → Finance integration against the authoritative Procurement Finance integration contract.
 
-- Purchase Order approval;
-- commitment registration;
-- Procurement transaction commit;
+The verification covered the complete implemented flow:
+
+- Purchase Order submission and approval;
+- transactional Procurement Finance commitment registration;
+- successful Procurement transaction commit;
 - post-commit Finance delivery;
-- response handling;
-- technical failure handling;
-- retry;
-- idempotency;
-- terminal states;
+- Finance response handling;
+- technical delivery failure handling;
+- retry and idempotency behavior;
+- terminal commitment states;
+- enterprise IntegrationLifecycle and audit behavior;
+- Procurement and Finance ownership boundaries;
 - end-to-end regression.
 
-Stage 7 shall consolidate the completed Stage 1–6 verification evidence and perform the final end-to-end regression against the authoritative Procurement Finance integration contract.
+### Stage 7 Verification Evidence
+
+The final Stage 7 verification evidence consists of the completed Stage 1–6 verification record together with the Stage 7 end-to-end and regression tests.
+
+**End-to-end Procurement → Finance verification**
+
+- Purchase Order approval was executed through the real Procurement command-dispatch path.
+- The Procurement Finance commitment was registered as part of the approved Purchase Order operation.
+- The Procurement transaction boundary committed successfully before post-commit Finance delivery was executed.
+- The post-commit executor delivered the registered commitment through the Finance integration service.
+- Successful Finance delivery resulted in the commitment reaching `COMMITTED`.
+- The end-to-end test verified that the Procurement idempotency key was preserved while the Finance integration request received a distinct enterprise `request_id`.
+- The end-to-end test used a deterministic recording Finance provider so that the production Procurement orchestration, transaction boundary, commitment lifecycle, and integration request could be verified without depending on an external Finance system.
+
+**Targeted Stage 7 and preceding lifecycle evidence**
+
+- Purchase Order handler verification: **12 passed**.
+- Procurement Finance commitment lifecycle verification: **14 passed**.
+- Procurement Finance post-commit orchestration verification: **7 passed**.
+- Stage 7 end-to-end Purchase Order → Finance verification: **1 passed**.
+- Complete Procurement integration test suite: **122 passed, 168 warnings**.
+
+The preceding Stage 1–6 verification also established the required authorization, governance, lifecycle, audit, idempotency, retry, terminal-state, execution-boundary, and module-separation behavior. The Stage 7 evidence therefore consolidates the individual architectural guarantees with the final end-to-end execution path rather than relying on the end-to-end test alone.
+
+### Stage 7 Architectural Verification Conclusion
+
+The completed verification demonstrates that the implemented Procurement → Finance integration conforms to the approved architecture:
+
+- Procurement retains ownership of Purchase Order approval and Procurement Finance commitment state.
+- Finance integration occurs only after the Procurement transaction commits successfully.
+- Post-commit Finance delivery is isolated from the already-committed Procurement transaction.
+- Finance delivery failure therefore does not reject or cancel an approved Purchase Order.
+- Idempotency and retry semantics preserve the Procurement business-operation identity while allowing distinct enterprise integration request identities.
+- Provider-declared business rejection remains distinguishable from technical delivery failure.
+- `COMMITTED` and `REJECTED` remain terminal states, while retryable failures follow the defined retry eligibility rules.
+- Enterprise IntegrationLifecycle and integration audit behavior remain integrated with the existing framework.
+- No direct cross-module Finance/Procurement repository dependency, cross-module foreign key, or distributed transaction was introduced.
+- Inventory, Expense Management, and Finance accounting ownership boundaries remain unchanged.
+- Existing enterprise integration, Procurement Purchase Order approval, core execution, authorization, governance, and integration behavior remain regression-safe.
+
+Stage 7 is therefore **COMPLETED**, subject to the final full-project regression checkpoint.
 
 ---
 

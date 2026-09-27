@@ -55,8 +55,20 @@ from app.core.configuration.composition import (
 
 from app.core.integration import integration_lifecycle
 
-from app.modules.procurement.integration import (
+from app.modules.procurement.integration.post_commit import (
     ProcurementFinancePostCommitExecutor,
+)
+
+from app.core.crud.transaction import (
+    SQLAlchemyTransactionManager,
+)
+
+from app.core.execution.transaction import (
+    CRUDTransactionBoundary,
+)
+
+from app.modules.procurement.services import (
+    ProcurementFinanceCommitmentService,
 )
 
 
@@ -93,6 +105,12 @@ def initialize_modules(app: Flask) -> ModuleManager:
     # --------------------------------------------------
 
     command_dispatcher = CommandDispatcher()
+
+    command_dispatcher.set_transaction_boundary(
+        CRUDTransactionBoundary(
+            SQLAlchemyTransactionManager(),
+        )
+    )
 
     app.extensions[
         "command_dispatcher"
@@ -145,9 +163,15 @@ def initialize_modules(app: Flask) -> ModuleManager:
     # Post-Commit Integration Composition
     # --------------------------------------------------
 
+    finance_commitment_service = (
+        ProcurementFinanceCommitmentService(
+            integration_lifecycle=integration_lifecycle,
+        )
+    )
+
     command_dispatcher.set_post_commit_executor(
         ProcurementFinancePostCommitExecutor(
-            integration_lifecycle=integration_lifecycle,
+            commitment_service=finance_commitment_service,
         )
     )
 
