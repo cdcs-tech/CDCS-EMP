@@ -77,6 +77,12 @@ class Customer(
         lazy="select",
     )
 
+    events = db.relationship(
+        "CateringEvent",
+        back_populates="customer",
+        lazy="select",
+    )
+
     __table_args__ = (
         db.CheckConstraint(
             "customer_type IN ('INDIVIDUAL', 'ORGANIZATION')",

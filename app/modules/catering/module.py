@@ -37,6 +37,7 @@ class CateringModule(BaseModule):
         """
 
         from app.modules.catering.models import (
+            CateringEvent,
             CateringRequest,
             Customer,
             InventoryLocation,
@@ -51,6 +52,7 @@ class CateringModule(BaseModule):
         # Keep explicit references so the imports are intentional
         # and remain visible to static analysis.
         _ = (
+            CateringEvent,
             CateringRequest,
             Customer,
             Product,

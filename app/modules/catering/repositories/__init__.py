@@ -7,6 +7,7 @@ Module-local persistence repositories.
 """
 
 from .balance import StockBalanceRepository
+from .catering_event import CateringEventRepository
 from .location import InventoryLocationRepository
 from .movement import StockMovementRepository
 from .product import ProductRepository
@@ -22,4 +23,5 @@ __all__ = [
     "StockBalanceRepository",
     "StockMovementRepository",
     "StockTransferRepository",
+    "CateringEventRepository",
 ]
