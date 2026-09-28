@@ -110,11 +110,23 @@ class CateringModule(BaseModule):
         """
 
         from app.modules.catering.workflows import (
+            CateringEventWorkflow,
+            CateringRequestWorkflow,
             StockMovementWorkflow,
             StockTransferWorkflow,
         )
 
         return [
+            WorkflowDefinition(
+                module_name="CATERING",
+                workflow_name="catering_request",
+                workflow=CateringRequestWorkflow(),
+            ),
+            WorkflowDefinition(
+                module_name="CATERING",
+                workflow_name="catering_event",
+                workflow=CateringEventWorkflow(),
+            ),
             WorkflowDefinition(
                 module_name="CATERING",
                 workflow_name="stock_movement",
