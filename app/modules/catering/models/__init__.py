@@ -13,6 +13,7 @@ from app.models.mixins import (
     TimestampMixin,
 )
 
+from .catering_request import CateringRequest
 from .customer import Customer
 from .location import InventoryLocation
 from .product import Product
@@ -27,6 +28,7 @@ __all__ = [
     "TimestampMixin",
     "AuditMixin",
     "SoftDeleteMixin",
+    "CateringRequest",
     "Customer",
     "ProductCategory",
     "Product",
