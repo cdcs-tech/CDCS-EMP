@@ -8,6 +8,7 @@ Module-local application services.
 
 from .balance import StockBalanceService
 from .catering_event import CateringEventService
+from .catering_request import CateringRequestService
 from .location import InventoryLocationService
 from .movement import StockMovementService
 from .product import ProductService
@@ -24,4 +25,5 @@ __all__ = [
     "StockMovementService",
     "StockTransferService",
     "CateringEventService",
+    "CateringRequestService",
 ]
