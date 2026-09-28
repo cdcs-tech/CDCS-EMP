@@ -104,6 +104,94 @@ EXPECTED_PERMISSION_MATRIX = {
         "stock_transfer",
         "post",
     ),
+    "CATERING.CUSTOMER.CREATE": (
+        "customer",
+        "create",
+    ),
+    "CATERING.CUSTOMER.READ": (
+        "customer",
+        "read",
+    ),
+    "CATERING.CUSTOMER.UPDATE": (
+        "customer",
+        "update",
+    ),
+    "CATERING.CUSTOMER.DELETE": (
+        "customer",
+        "delete",
+    ),
+    "CATERING.CATERING_REQUEST.CREATE": (
+        "catering_request",
+        "create",
+    ),
+    "CATERING.CATERING_REQUEST.READ": (
+        "catering_request",
+        "read",
+    ),
+    "CATERING.CATERING_REQUEST.UPDATE": (
+        "catering_request",
+        "update",
+    ),
+    "CATERING.CATERING_REQUEST.DELETE": (
+        "catering_request",
+        "delete",
+    ),
+    "CATERING.CATERING_REQUEST.SUBMIT": (
+        "catering_request",
+        "submit",
+    ),
+    "CATERING.CATERING_REQUEST.CANCEL": (
+        "catering_request",
+        "cancel",
+    ),
+    "CATERING.CATERING_EVENT.CREATE": (
+        "catering_event",
+        "create",
+    ),
+    "CATERING.CATERING_EVENT.READ": (
+        "catering_event",
+        "read",
+    ),
+    "CATERING.CATERING_EVENT.UPDATE": (
+        "catering_event",
+        "update",
+    ),
+    "CATERING.CATERING_EVENT.DELETE": (
+        "catering_event",
+        "delete",
+    ),
+    "CATERING.CATERING_EVENT.QUOTE": (
+        "catering_event",
+        "quote",
+    ),
+    "CATERING.CATERING_EVENT.CONFIRM": (
+        "catering_event",
+        "confirm",
+    ),
+    "CATERING.CATERING_EVENT.PLAN": (
+        "catering_event",
+        "plan",
+    ),
+    "CATERING.CATERING_EVENT.READY": (
+        "catering_event",
+        "ready",
+    ),
+    "CATERING.CATERING_EVENT.START_PRODUCTION": (
+        "catering_event",
+        "start_production",
+    ),
+    "CATERING.CATERING_EVENT.DELIVER": (
+        "catering_event",
+        "deliver",
+    ),
+    "CATERING.CATERING_EVENT.COMPLETE": (
+        "catering_event",
+        "complete",
+    ),
+    "CATERING.CATERING_EVENT.CANCEL": (
+        "catering_event",
+        "cancel",
+    ),
 }
 
 
@@ -112,7 +200,7 @@ def test_catering_permissions_have_expected_count():
     Catering exposes the complete expected permission set.
     """
 
-    assert len(CATERING_PERMISSIONS) == 23
+    assert len(CATERING_PERMISSIONS) == 45
 
 
 def test_catering_permission_codes_are_unique():
@@ -232,6 +320,34 @@ def test_catering_inventory_permission_names_are_human_readable():
     )
 
 
+def test_catering_business_permission_names_are_human_readable():
+    """
+    B3 Customer, Request, and Event permissions expose
+    non-empty display names.
+    """
+
+    business_resources = {
+        "customer",
+        "catering_request",
+        "catering_event",
+    }
+
+    business_permissions = [
+        permission
+        for permission in CATERING_PERMISSIONS
+        if permission.resource in business_resources
+    ]
+
+    assert len(
+        business_permissions
+    ) == 22
+
+    assert all(
+        permission.name.strip()
+        for permission in business_permissions
+    )
+
+
 def test_catering_module_exposes_same_permission_set():
     """
     CateringModule exposes the canonical Catering permission
@@ -253,25 +369,13 @@ def test_catering_module_exposes_same_permission_set():
     }
 
 
-def test_catering_inventory_permission_codes_follow_enterprise_convention():
+def test_catering_permission_codes_follow_enterprise_convention():
     """
-    Inventory permission codes follow the canonical
+    Catering permission codes follow the canonical
     module.resource.action convention.
     """
 
-    inventory_permissions = [
-        permission
-        for permission in CATERING_PERMISSIONS
-        if permission.resource in {
-            "stock_item",
-            "inventory_location",
-            "stock_balance",
-            "stock_movement",
-            "stock_transfer",
-        }
-    ]
-
-    for permission in inventory_permissions:
+    for permission in CATERING_PERMISSIONS:
 
         expected_code = (
             f"CATERING."

@@ -252,6 +252,219 @@ CATERING_STOCK_TRANSFER_POST = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Customer Permissions
+# ---------------------------------------------------------------------------
+
+CATERING_CUSTOMER_CREATE = Permission(
+    code="CATERING.CUSTOMER.CREATE",
+    name="catering.customer.create",
+    description="Create Catering customers.",
+    module="CATERING",
+    resource="customer",
+    action="create",
+)
+
+CATERING_CUSTOMER_READ = Permission(
+    code="CATERING.CUSTOMER.READ",
+    name="catering.customer.read",
+    description="Read Catering customers.",
+    module="CATERING",
+    resource="customer",
+    action="read",
+)
+
+CATERING_CUSTOMER_UPDATE = Permission(
+    code="CATERING.CUSTOMER.UPDATE",
+    name="catering.customer.update",
+    description="Update Catering customers.",
+    module="CATERING",
+    resource="customer",
+    action="update",
+)
+
+CATERING_CUSTOMER_DELETE = Permission(
+    code="CATERING.CUSTOMER.DELETE",
+    name="catering.customer.delete",
+    description="Delete Catering customers.",
+    module="CATERING",
+    resource="customer",
+    action="delete",
+)
+
+
+# ---------------------------------------------------------------------------
+# Catering Request Permissions
+# ---------------------------------------------------------------------------
+
+CATERING_REQUEST_CREATE = Permission(
+    code="CATERING.CATERING_REQUEST.CREATE",
+    name="catering.catering_request.create",
+    description="Create Catering requests.",
+    module="CATERING",
+    resource="catering_request",
+    action="create",
+)
+
+CATERING_REQUEST_READ = Permission(
+    code="CATERING.CATERING_REQUEST.READ",
+    name="catering.catering_request.read",
+    description="Read Catering requests.",
+    module="CATERING",
+    resource="catering_request",
+    action="read",
+)
+
+CATERING_REQUEST_UPDATE = Permission(
+    code="CATERING.CATERING_REQUEST.UPDATE",
+    name="catering.catering_request.update",
+    description="Update Catering requests.",
+    module="CATERING",
+    resource="catering_request",
+    action="update",
+)
+
+CATERING_REQUEST_DELETE = Permission(
+    code="CATERING.CATERING_REQUEST.DELETE",
+    name="catering.catering_request.delete",
+    description="Delete Catering requests.",
+    module="CATERING",
+    resource="catering_request",
+    action="delete",
+)
+
+CATERING_REQUEST_SUBMIT = Permission(
+    code="CATERING.CATERING_REQUEST.SUBMIT",
+    name="catering.catering_request.submit",
+    description="Submit Catering requests.",
+    module="CATERING",
+    resource="catering_request",
+    action="submit",
+)
+
+CATERING_REQUEST_CANCEL = Permission(
+    code="CATERING.CATERING_REQUEST.CANCEL",
+    name="catering.catering_request.cancel",
+    description="Cancel Catering requests.",
+    module="CATERING",
+    resource="catering_request",
+    action="cancel",
+)
+
+
+# ---------------------------------------------------------------------------
+# Catering Event Permissions
+# ---------------------------------------------------------------------------
+
+CATERING_EVENT_CREATE = Permission(
+    code="CATERING.CATERING_EVENT.CREATE",
+    name="catering.catering_event.create",
+    description="Create Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="create",
+)
+
+CATERING_EVENT_READ = Permission(
+    code="CATERING.CATERING_EVENT.READ",
+    name="catering.catering_event.read",
+    description="Read Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="read",
+)
+
+CATERING_EVENT_UPDATE = Permission(
+    code="CATERING.CATERING_EVENT.UPDATE",
+    name="catering.catering_event.update",
+    description="Update Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="update",
+)
+
+CATERING_EVENT_DELETE = Permission(
+    code="CATERING.CATERING_EVENT.DELETE",
+    name="catering.catering_event.delete",
+    description="Delete Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="delete",
+)
+
+CATERING_EVENT_QUOTE = Permission(
+    code="CATERING.CATERING_EVENT.QUOTE",
+    name="catering.catering_event.quote",
+    description="Quote Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="quote",
+)
+
+CATERING_EVENT_CONFIRM = Permission(
+    code="CATERING.CATERING_EVENT.CONFIRM",
+    name="catering.catering_event.confirm",
+    description="Confirm Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="confirm",
+)
+
+CATERING_EVENT_PLAN = Permission(
+    code="CATERING.CATERING_EVENT.PLAN",
+    name="catering.catering_event.plan",
+    description="Plan Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="plan",
+)
+
+CATERING_EVENT_READY = Permission(
+    code="CATERING.CATERING_EVENT.READY",
+    name="catering.catering_event.ready",
+    description="Mark Catering events ready.",
+    module="CATERING",
+    resource="catering_event",
+    action="ready",
+)
+
+CATERING_EVENT_START_PRODUCTION = Permission(
+    code="CATERING.CATERING_EVENT.START_PRODUCTION",
+    name="catering.catering_event.start_production",
+    description="Start production for Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="start_production",
+)
+
+CATERING_EVENT_DELIVER = Permission(
+    code="CATERING.CATERING_EVENT.DELIVER",
+    name="catering.catering_event.deliver",
+    description="Deliver Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="deliver",
+)
+
+CATERING_EVENT_COMPLETE = Permission(
+    code="CATERING.CATERING_EVENT.COMPLETE",
+    name="catering.catering_event.complete",
+    description="Complete Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="complete",
+)
+
+CATERING_EVENT_CANCEL = Permission(
+    code="CATERING.CATERING_EVENT.CANCEL",
+    name="catering.catering_event.cancel",
+    description="Cancel Catering events.",
+    module="CATERING",
+    resource="catering_event",
+    action="cancel",
+)
+
+
+# ---------------------------------------------------------------------------
 # Aggregate Catering Permissions
 # ---------------------------------------------------------------------------
 
@@ -279,6 +492,28 @@ CATERING_PERMISSIONS = (
     CATERING_STOCK_TRANSFER_CREATE,
     CATERING_STOCK_TRANSFER_READ,
     CATERING_STOCK_TRANSFER_POST,
+    CATERING_CUSTOMER_CREATE,
+    CATERING_CUSTOMER_READ,
+    CATERING_CUSTOMER_UPDATE,
+    CATERING_CUSTOMER_DELETE,
+    CATERING_REQUEST_CREATE,
+    CATERING_REQUEST_READ,
+    CATERING_REQUEST_UPDATE,
+    CATERING_REQUEST_DELETE,
+    CATERING_REQUEST_SUBMIT,
+    CATERING_REQUEST_CANCEL,
+    CATERING_EVENT_CREATE,
+    CATERING_EVENT_READ,
+    CATERING_EVENT_UPDATE,
+    CATERING_EVENT_DELETE,
+    CATERING_EVENT_QUOTE,
+    CATERING_EVENT_CONFIRM,
+    CATERING_EVENT_PLAN,
+    CATERING_EVENT_READY,
+    CATERING_EVENT_START_PRODUCTION,
+    CATERING_EVENT_DELIVER,
+    CATERING_EVENT_COMPLETE,
+    CATERING_EVENT_CANCEL,
 )
 
 
@@ -306,5 +541,27 @@ __all__ = [
     "CATERING_STOCK_TRANSFER_CREATE",
     "CATERING_STOCK_TRANSFER_READ",
     "CATERING_STOCK_TRANSFER_POST",
+    "CATERING_CUSTOMER_CREATE",
+    "CATERING_CUSTOMER_READ",
+    "CATERING_CUSTOMER_UPDATE",
+    "CATERING_CUSTOMER_DELETE",
+    "CATERING_REQUEST_CREATE",
+    "CATERING_REQUEST_READ",
+    "CATERING_REQUEST_UPDATE",
+    "CATERING_REQUEST_DELETE",
+    "CATERING_REQUEST_SUBMIT",
+    "CATERING_REQUEST_CANCEL",
+    "CATERING_EVENT_CREATE",
+    "CATERING_EVENT_READ",
+    "CATERING_EVENT_UPDATE",
+    "CATERING_EVENT_DELETE",
+    "CATERING_EVENT_QUOTE",
+    "CATERING_EVENT_CONFIRM",
+    "CATERING_EVENT_PLAN",
+    "CATERING_EVENT_READY",
+    "CATERING_EVENT_START_PRODUCTION",
+    "CATERING_EVENT_DELIVER",
+    "CATERING_EVENT_COMPLETE",
+    "CATERING_EVENT_CANCEL",
     "CATERING_PERMISSIONS",
 ]
