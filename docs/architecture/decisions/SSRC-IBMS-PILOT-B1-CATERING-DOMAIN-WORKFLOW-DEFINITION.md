@@ -320,7 +320,6 @@ Controlled cancellation is supported from appropriate pre-completion states:
 REQUESTED --------------> CANCELLED
 QUOTED -----------------> CANCELLED
 PENDING_CONFIRMATION ---> CANCELLED
-CONFIRMED --------------> CANCELLED
 ```
 
 Exact transition authorization and service validation are implementation concerns and must be defined from this lifecycle rather than independently invented.
@@ -371,6 +370,225 @@ Quotation approval/acceptance must remain distinct from Procurement approval.
 Quotation acceptance is a Catering/customer business decision.
 
 Procurement approval is a Procurement organizational control.
+
+---
+
+## 8.1 Quotation / Event Coordination Contract
+
+Stage B4.3 establishes the explicit application-service coordination boundary between an accepted Catering Quotation and its associated Catering Event.
+
+### Purpose
+
+B4.3 provides a controlled application-service capability through which an accepted Catering Quotation can enable explicit progression of its associated Catering Event.
+
+The primary coordination operation is:
+
+```text
+progress_event_from_accepted_quotation(
+    quotation_id,
+    *,
+    subject
+)
+```
+
+The operation coordinates existing Catering-owned aggregates without merging their independent lifecycles and without introducing a new domain aggregate.
+
+### Ownership
+
+- Catering Quotation remains owned by Catering.
+- Catering Event remains owned by Catering.
+- Cross-aggregate coordination is an application-service responsibility within Catering.
+- No new aggregate or duplicate ownership is introduced.
+
+### Required Relationship
+
+The coordinator must load and validate both the quotation and its associated event.
+
+The following conditions are required:
+
+1. The quotation exists.
+2. The associated event exists.
+3. The quotation status is `ACCEPTED`.
+4. The quotation references the loaded event.
+5. The quotation and event belong to the same customer.
+6. The event is currently in `REQUESTED` status.
+
+The coordinator must not infer, repair, or silently correct inconsistent quotation/event/customer relationships.
+
+### Event Lifecycle Coordination
+
+B4.3 performs only the following Event lifecycle transition:
+
+```text
+REQUESTED → QUOTED
+```
+
+This transition must be invoked through the existing `CateringEventWorkflow`.
+
+The coordinator must not directly assign an Event status in a manner that bypasses workflow validation.
+
+The established Event lifecycle remains:
+
+```text
+REQUESTED
+    ↓
+QUOTED
+    ↓
+PENDING_CONFIRMATION
+    ↓
+CONFIRMED
+    ↓
+PLANNING
+    ↓
+READY
+    ↓
+IN_PRODUCTION
+    ↓
+DELIVERED
+    ↓
+COMPLETED
+```
+
+B4.3 does not perform or bypass the later Event transitions.
+
+In particular, B4.3 does not:
+
+- confirm the customer;
+- move `QUOTED` to `PENDING_CONFIRMATION`;
+- move `PENDING_CONFIRMATION` to `CONFIRMED`;
+- plan the event;
+- begin production;
+- deliver the event;
+- complete the event.
+
+Quotation acceptance and Event confirmation therefore remain separate and auditable business actions.
+
+### Authorization
+
+B4.3 reuses the existing Catering Event authorization boundary.
+
+The required permission for the coordination operation is:
+
+```text
+CATERING.CATERING_EVENT.QUOTE
+```
+
+No new B4.3-specific permission is introduced.
+
+Authorization must occur before Event workflow execution and before Event persistence.
+
+The coordinator must remain independent of Flask request context and `current_user`.
+
+### Quotation Acceptance Boundary
+
+`CateringQuotationService.accept()` remains the authoritative operation for:
+
+```text
+ISSUED → ACCEPTED
+```
+
+Quotation acceptance remains independent from B4.3 coordination.
+
+B4.3 must not re-accept, modify, or otherwise mutate the quotation.
+
+After successful coordination:
+
+```text
+Quotation.status == ACCEPTED
+```
+
+The quotation's totals, lines, dates, and other commercial information remain unchanged.
+
+Quotation acceptance therefore does not silently trigger Event mutation. Event progression occurs only through the explicit B4.3 coordination capability.
+
+### Persistence
+
+After all coordination preconditions pass:
+
+1. The coordinator invokes `CateringEventWorkflow` for the `REQUESTED → QUOTED` transition.
+2. The Event status is updated from the returned workflow state.
+3. The Event is persisted through the established Event repository boundary.
+4. The updated Event is returned to the caller.
+
+The quotation is not persisted by the coordination operation because its state remains unchanged.
+
+### Failure Atomicity
+
+If authorization, relationship validation, or workflow validation fails:
+
+```text
+Quotation: unchanged
+Event:      unchanged
+Event persistence: not performed
+```
+
+A denied authorization must not invoke the Event workflow or modify the Event.
+
+A failed workflow transition must likewise leave the Event unchanged.
+
+### Service Composition Boundary
+
+The B4.3 coordination service composes existing lower-level Catering boundaries directly:
+
+```text
+CateringQuotationRepository
+CateringEventRepository
+CateringEventWorkflow
+CateringAuthorizationAdapter
+```
+
+It does not depend on `CateringQuotationService` or `CateringEventService`.
+
+This preserves the established CDCS-EMP application-service structure and avoids introducing a new service-to-service composition pattern solely for B4.3.
+
+The coordinator is responsible only for cross-aggregate coordination. Quotation lifecycle rules remain owned by `CateringQuotationService`, while Event lifecycle validity remains owned by `CateringEventWorkflow`.
+
+### Transactional Boundary
+
+Event workflow transition and Event persistence occur within the established service/repository transaction boundary.
+
+The coordination operation does not introduce a distributed transaction or cross-module transactional ownership.
+
+Quotation state remains unchanged.
+
+### Exclusions
+
+B4.3 introduces no side effects in:
+
+- Event Requirements;
+- Catering Purchase Requirements;
+- Procurement Purchase Requests;
+- Purchase Orders;
+- Inventory;
+- Production;
+- Delivery;
+- Revenue;
+- Expenses;
+- Costs;
+- Profitability;
+- Finance;
+- Invoices;
+- Payments;
+- Accounts Receivable;
+- General Ledger; or
+- Reporting.
+
+These capabilities remain subject to their respective later roadmap stages.
+
+### Architectural Decision
+
+1. Quotation acceptance and Event progression remain separate business operations.
+2. An accepted quotation may explicitly enable progression of its associated Event.
+3. `progress_event_from_accepted_quotation()` is the defined B4.3 coordination operation.
+4. B4.3 validates quotation status, quotation/event relationship, customer consistency, and Event lifecycle state before coordination.
+5. B4.3 uses the existing `CATERING.CATERING_EVENT.QUOTE` authorization permission.
+6. Event lifecycle validity remains owned by `CateringEventWorkflow`.
+7. B4.3 performs only the `REQUESTED → QUOTED` Event transition.
+8. Quotation status remains unchanged during coordination.
+9. Cross-aggregate coordination remains an application-service responsibility within Catering.
+10. No new domain aggregate, database entity, migration, or B4.3-specific permission is introduced.
+11. No Procurement, Inventory, Finance, Expense, Production, Delivery, or Reporting side effects are introduced.
+12. The approved independent Quotation and Event lifecycles are preserved.
 
 ---
 
