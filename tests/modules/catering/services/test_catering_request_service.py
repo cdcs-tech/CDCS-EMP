@@ -267,6 +267,106 @@ def test_update_denied_does_not_write_to_repository():
     repository.update.assert_not_called()
 
 
+def test_delete_authorizes_before_repository_write():
+    """Verify delete uses the canonical Request DELETE permission."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+
+    repository.get_by_id.return_value = request
+
+    subject = Mock()
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    service.delete(
+        1,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_REQUEST.DELETE",
+    )
+
+    repository.get_by_id.assert_called_once_with(
+        1,
+    )
+
+    repository.delete.assert_called_once_with(
+        request,
+    )
+
+
+def test_delete_requires_authorization_adapter():
+    """Verify protected delete fails closed without an adapter."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Catering authorization adapter is required",
+    ):
+        service.delete(
+            1,
+            subject=Mock(),
+        )
+
+    repository.get_by_id.assert_not_called()
+    repository.delete.assert_not_called()
+
+
+def test_delete_denied_does_not_write_to_repository():
+    """Verify denied delete does not mutate the repository."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    authorization_adapter.authorize.side_effect = PermissionError(
+        "Denied",
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Denied",
+    ):
+        service.delete(
+            1,
+            subject=Mock(),
+        )
+
+    repository.get_by_id.assert_not_called()
+    repository.delete.assert_not_called()
+
+
 def test_get_delegates_to_repository():
     """Verify retrieval is delegated to the repository."""
 
@@ -321,10 +421,14 @@ def test_get_raises_when_request_does_not_exist():
 
 
 def test_delete_delegates_to_repository():
-    """Verify deletion is delegated to the repository."""
+    """Verify authorized deletion is delegated to the repository."""
 
     repository = Mock(
         spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
     )
 
     request = Mock(
@@ -333,12 +437,21 @@ def test_delete_delegates_to_repository():
 
     repository.get_by_id.return_value = request
 
+    subject = Mock()
+
     service = CateringRequestService(
         repository=repository,
+        authorization_adapter=authorization_adapter,
     )
 
     service.delete(
         1,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_REQUEST.DELETE",
     )
 
     repository.get_by_id.assert_called_once_with(

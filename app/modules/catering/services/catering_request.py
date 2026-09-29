@@ -99,6 +99,23 @@ class CateringRequestService(CRUDService[CateringRequest]):
 
         return super().update(entity)
 
+    def delete(
+        self,
+        entity_id: int,
+        *,
+        subject: Any,
+    ) -> None:
+        """
+        Delete a Catering Request after authorization.
+        """
+
+        self._authorize(
+            subject,
+            "CATERING.CATERING_REQUEST.DELETE",
+        )
+
+        return super().delete(entity_id)
+
 
 __all__ = [
     "CateringRequestService",
