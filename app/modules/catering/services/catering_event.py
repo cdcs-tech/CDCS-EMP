@@ -11,11 +11,13 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.crud import CRUDService
+from app.core.workflow.base import WorkflowState
 from app.modules.catering.models import CateringEvent
 from app.modules.catering.repositories import CateringEventRepository
 from app.modules.catering.security.authorization import (
     CateringAuthorizationAdapter,
 )
+from app.modules.catering.workflows import CateringEventWorkflow
 
 
 class CateringEventService(CRUDService[CateringEvent]):
@@ -34,6 +36,7 @@ class CateringEventService(CRUDService[CateringEvent]):
         self,
         repository: CateringEventRepository | None = None,
         authorization_adapter: CateringAuthorizationAdapter | None = None,
+        workflow: CateringEventWorkflow | None = None,
     ) -> None:
         super().__init__(
             repository or CateringEventRepository(),
@@ -41,6 +44,7 @@ class CateringEventService(CRUDService[CateringEvent]):
         )
 
         self.authorization_adapter = authorization_adapter
+        self.workflow = workflow or CateringEventWorkflow()
 
     def _authorize(
         self,
@@ -64,6 +68,28 @@ class CateringEventService(CRUDService[CateringEvent]):
             subject,
             permission_code,
         )
+
+    def _transition_workflow(
+        self,
+        event: CateringEvent,
+        target_state: str,
+    ) -> WorkflowState:
+        """
+        Validate and apply a Catering Event workflow transition.
+
+        The workflow owns lifecycle transition validity. The service
+        applies the resulting state to the entity; persistence remains
+        the responsibility of the service operation.
+        """
+
+        state = self.workflow.transition(
+            event.status,
+            target_state,
+        )
+
+        event.status = state.name
+
+        return state
 
     def create(
         self,
@@ -115,6 +141,32 @@ class CateringEventService(CRUDService[CateringEvent]):
         )
 
         return super().delete(entity_id)
+
+    def cancel(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Cancel a Catering Event after authorization.
+
+        CANCEL is a distinct lifecycle permission and therefore
+        persists through the base CRUD update path rather than the
+        authorization-protected UPDATE operation.
+        """
+
+        self._authorize(
+            subject,
+            "CATERING.CATERING_EVENT.CANCEL",
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.CANCELLED,
+        )
+
+        return super().update(event)
 
 
 __all__ = [
