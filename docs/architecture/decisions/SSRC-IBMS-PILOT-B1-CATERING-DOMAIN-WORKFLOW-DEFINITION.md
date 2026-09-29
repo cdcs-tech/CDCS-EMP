@@ -787,6 +787,264 @@ ISSUED → ACCEPTED
 
 B4.4 therefore completes confirmation without collapsing quotation acceptance, quotation/event coordination, and Event confirmation into one operation.
 
+### 8.3 B5 — Event Requirements & Procurement Integration
+
+**Status:** Approved
+
+#### Purpose
+
+B5 establishes the Catering-side Event Requirement capability and its explicit integration boundary with the existing Procurement/Purchasing capability.
+
+The purpose is to allow a confirmed Catering Event to identify the goods and services required for fulfilment, distinguish requirements that can be satisfied from existing Inventory from requirements that require procurement, and communicate procurement-required needs into the existing Procurement/Purchasing workflow.
+
+B5 shall not create a second procurement subsystem inside Catering.
+
+#### Ownership
+
+The following ownership boundaries are authoritative:
+
+- Catering owns the operational Event Requirement and its relationship to the Catering Event.
+- Catering owns the identification and classification of the business need.
+- Catering owns the Catering Purchase Requirement as the business expression of a procurement need.
+- Procurement/Purchasing owns the Procurement-side PurchaseRequirement and all subsequent procurement lifecycle activity.
+- Inventory owns physical stock state, stock balances, stock movements, stock transfers, and physical stock effects.
+- Finance remains outside B5 and owns future financial treatment.
+- Reporting consumes approved information and does not own the requirement or procurement transaction.
+
+The integration boundary shall preserve these ownership distinctions.
+
+#### Event Requirement
+
+An **Event Requirement** represents an operational good or service required to fulfil a Catering Event.
+
+An Event Requirement belongs to the Catering business context and shall be associated with a Catering Event.
+
+An Event Requirement may represent:
+
+- a good expected to be fulfilled from existing Inventory;
+- a good requiring procurement;
+- a service requiring procurement or external fulfilment; or
+- another explicitly approved operational requirement necessary for event fulfilment.
+
+The Event Requirement is not a Procurement transaction and is not an Inventory stock transaction.
+
+#### Catering Purchase Requirement
+
+A **Catering Purchase Requirement** represents the subset of an Event Requirement that requires procurement action.
+
+It expresses the Catering business need that must be communicated to Procurement/Purchasing.
+
+The distinction is:
+
+> Event Requirement = what the Catering Event needs.
+
+> Catering Purchase Requirement = which Event Requirement requires procurement.
+
+> Procurement PurchaseRequirement = the Procurement-owned record of the business need entering the Procurement/Purchasing capability.
+
+These concepts shall not be collapsed into a single cross-module entity.
+
+#### Preconditions
+
+B5 requirement planning shall operate only for a Catering Event that has reached:
+
+`CONFIRMED`
+
+The B5 implementation shall not:
+
+- confirm the Event;
+- accept or modify the quotation;
+- perform quotation confirmation;
+- move the Event to `PLANNING`;
+- begin production;
+- perform delivery;
+- complete the Event.
+
+Those lifecycle actions remain governed by their existing B4/B5 and subsequent workflow boundaries.
+
+#### Requirement Classification
+
+Each Event Requirement shall be explicitly classified according to its fulfilment path.
+
+At minimum, the architecture shall distinguish:
+
+1. **Inventory fulfilment** — the requirement can be satisfied from Catering-controlled Inventory.
+2. **Procurement fulfilment** — the requirement requires Procurement/Purchasing action.
+
+The classification shall be explicit rather than inferred from the existence or absence of stock.
+
+B5 shall not duplicate Inventory balances or create a Catering stock ledger.
+
+#### Inventory Boundary
+
+For an Inventory-fulfilment requirement, Catering may identify the required product/item, quantity, unit, and required-by context.
+
+Catering shall not directly mutate:
+
+- StockBalance;
+- StockMovement;
+- StockTransfer; or
+- other Inventory physical-stock state.
+
+Any physical stock effect remains owned by Inventory through its existing services and workflows.
+
+#### Procurement Integration Boundary
+
+For a procurement-fulfilment requirement, Catering shall communicate an explicit procurement requirement to the existing Procurement/Purchasing capability.
+
+The integration shall create or register an existing Procurement `PurchaseRequirement` rather than introduce a new Procurement entity.
+
+The Procurement-side record shall retain explicit source context identifying its Catering origin.
+
+The approved cross-module reference strategy shall use:
+
+- `source_module = CATERING`;
+- `source_type` identifying the Catering requirement source; and
+- `source_reference` identifying the originating Catering requirement.
+
+No direct foreign key from Procurement to a Catering Event, Event Requirement, Customer, or other Catering entity shall be introduced.
+
+#### Procurement Ownership After Handoff
+
+Once a procurement requirement has entered Procurement/Purchasing:
+
+- Procurement owns the Procurement `PurchaseRequirement`;
+- Procurement determines the subsequent Purchase Request, sourcing, approval, purchasing, and procurement lifecycle;
+- Catering does not manage Procurement workflow state;
+- Catering does not create Purchase Requests or Purchase Orders;
+- Catering does not manage suppliers;
+- Catering does not duplicate Procurement approval or sourcing logic.
+
+The Procurement capability remains the authoritative owner of the procurement transaction.
+
+#### Requirement Traceability
+
+The integration shall preserve traceability from:
+
+`Catering Event`
+→ `Event Requirement`
+→ `Catering Purchase Requirement`
+→ `Procurement PurchaseRequirement`
+
+where procurement fulfilment is required.
+
+The traceability mechanism shall use explicit references and integration contracts rather than hidden cross-module persistence coupling.
+
+The originating Catering requirement shall remain identifiable after Procurement handoff.
+
+#### Idempotency and Duplicate Prevention
+
+B5 shall not create duplicate Procurement requirements when the same Catering requirement is submitted more than once.
+
+The integration boundary shall define an explicit idempotency/reference strategy before implementation.
+
+A successful handoff shall be safely repeatable without creating multiple Procurement-side records for the same originating Catering requirement.
+
+The exact persistence mechanism shall be established during B5 implementation without changing the ownership boundary defined here.
+
+#### Failure Atomicity
+
+A failed Procurement handoff shall not silently mark the originating Catering requirement as successfully submitted.
+
+The Catering requirement and its Procurement integration state shall remain internally consistent when:
+
+- the source requirement is invalid;
+- the Procurement-side registration fails;
+- authorization fails; or
+- the integration operation is rejected.
+
+No partial success shall be represented as a completed handoff.
+
+#### Authorization
+
+B5 shall reuse the existing enterprise security and Catering authorization architecture.
+
+Catering-side requirement operations shall use dedicated Catering permissions derived from the approved implementation contract.
+
+Procurement-side operations shall use Procurement permissions.
+
+Catering shall not authorize itself to perform Procurement-owned lifecycle operations.
+
+No new parallel authorization mechanism shall be introduced.
+
+#### Workflow Boundary
+
+B5 shall establish only the Catering requirement lifecycle and the explicit handoff boundary required to enter Procurement.
+
+B5 shall not implement the complete Procurement workflow.
+
+In particular, B5 shall not implement or duplicate:
+
+- Procurement approval;
+- supplier sourcing;
+- Purchase Request approval;
+- Purchase Order approval;
+- supplier fulfilment;
+- procurement receiving;
+- Inventory stock posting;
+- Finance integration; or
+- Expense processing.
+
+Those capabilities remain owned by their respective existing or future stages.
+
+#### No Duplicate Procurement System
+
+Catering shall not introduce:
+
+- a Catering supplier master;
+- a Catering Purchase Request;
+- a Catering Purchase Order;
+- a Catering procurement approval workflow;
+- a Catering procurement ledger; or
+- any other private procurement subsystem.
+
+The existing Procurement/Purchasing capability is the single procurement workflow boundary.
+
+#### Downstream Boundary
+
+B5 shall establish the requirement-to-procurement handoff only.
+
+No automatic side effects shall be introduced into:
+
+- Finance;
+- Expense Management;
+- Reporting;
+- Production;
+- Delivery; or
+- other downstream capabilities.
+
+Inventory integration shall remain limited to the explicitly defined Inventory fulfilment boundary and shall not duplicate Inventory physical-stock ownership.
+
+#### No New Infrastructure Without Need
+
+B5 shall reuse the existing:
+
+- Catering Event domain;
+- Catering repositories and application services;
+- Catering authorization architecture;
+- Inventory domain and services;
+- Procurement `PurchaseRequirement`;
+- Procurement repository/service infrastructure;
+- enterprise transaction infrastructure; and
+- existing cross-module reference strategy.
+
+No new aggregate, Procurement entity, supplier entity, Purchase Request, Purchase Order, Inventory ledger, Finance entity, or parallel integration framework shall be introduced unless a subsequent approved architectural decision establishes a specific need.
+
+#### Acceptance Gate
+
+B5 is complete when:
+
+1. A `CONFIRMED` Catering Event can have explicit Event Requirements.
+2. Event Requirements can be classified by fulfilment path.
+3. Inventory-fulfilment requirements remain within the Inventory ownership boundary without Catering duplicating stock state.
+4. Procurement-required Event Requirements can be represented as Catering Purchase Requirements.
+5. A Catering Purchase Requirement can enter the existing Procurement `PurchaseRequirement` boundary through an explicit integration contract.
+6. Procurement retains ownership of the procurement lifecycle after handoff.
+7. The originating Catering requirement remains traceable to the Procurement-side requirement.
+8. Duplicate Procurement registration is prevented through an explicit idempotency/reference mechanism.
+9. No duplicate Procurement subsystem or hidden cross-module foreign-key coupling is introduced.
+10. No downstream Finance, Expense, Production, Delivery, or Reporting side effects are introduced prematurely.
+
 ### Transactional Boundary
 
 Event workflow transition and Event persistence occur within the established service/repository transaction boundary.
