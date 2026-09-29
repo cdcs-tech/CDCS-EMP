@@ -163,8 +163,49 @@ def test_create_denied_does_not_write_to_repository():
     repository.add.assert_not_called()
 
 
-def test_update_delegates_to_repository():
-    """Verify update is delegated to the repository."""
+def test_update_authorizes_before_repository_write():
+    """Verify update uses the canonical Request UPDATE permission."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+
+    repository.update.return_value = request
+
+    subject = Mock()
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    result = service.update(
+        request,
+        subject=subject,
+    )
+
+    assert result is request
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_REQUEST.UPDATE",
+    )
+
+    repository.update.assert_called_once_with(
+        request,
+    )
+
+
+def test_update_requires_authorization_adapter():
+    """Verify protected update fails closed without an adapter."""
 
     repository = Mock(
         spec=CateringRequestRepository,
@@ -174,21 +215,56 @@ def test_update_delegates_to_repository():
         spec=CateringRequest,
     )
 
-    repository.update.return_value = request
-
     service = CateringRequestService(
         repository=repository,
     )
 
-    result = service.update(
-        request,
+    with pytest.raises(
+        RuntimeError,
+        match="Catering authorization adapter is required",
+    ):
+        service.update(
+            request,
+            subject=Mock(),
+        )
+
+    repository.update.assert_not_called()
+
+
+def test_update_denied_does_not_write_to_repository():
+    """Verify denied update does not mutate the repository."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
     )
 
-    assert result is request
-
-    repository.update.assert_called_once_with(
-        request,
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
     )
+
+    authorization_adapter.authorize.side_effect = PermissionError(
+        "Denied",
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Denied",
+    ):
+        service.update(
+            request,
+            subject=Mock(),
+        )
+
+    repository.update.assert_not_called()
 
 
 def test_get_delegates_to_repository():
