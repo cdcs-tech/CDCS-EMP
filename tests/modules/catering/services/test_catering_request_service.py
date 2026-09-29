@@ -13,6 +13,7 @@ from app.modules.catering.security.authorization import (
     CateringAuthorizationAdapter,
 )
 from app.modules.catering.services import CateringRequestService
+from app.modules.catering.workflows import CateringRequestWorkflow
 
 
 def test_service_uses_default_repository():
@@ -57,6 +58,25 @@ def test_service_accepts_injected_authorization_adapter():
     )
 
     assert service.authorization_adapter is authorization_adapter
+
+
+def test_service_accepts_injected_workflow():
+    """Verify the Request workflow can be injected."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    assert service.workflow is workflow
 
 
 def test_create_requires_authorization_adapter():
@@ -461,3 +481,196 @@ def test_delete_delegates_to_repository():
     repository.delete.assert_called_once_with(
         request,
     )
+
+
+def test_submit_requires_authorization_adapter():
+    """Verify protected submission fails closed without an adapter."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.DRAFT
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Catering authorization adapter is required",
+    ):
+        service.submit(
+            request,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+
+def test_submit_authorizes_before_workflow_transition():
+    """Verify submission uses the canonical Request SUBMIT permission."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.DRAFT
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringRequestWorkflow.SUBMITTED,
+        },
+    )()
+
+    subject = Mock()
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    service.submit(
+        request,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_REQUEST.SUBMIT",
+    )
+
+    workflow.transition.assert_called_once_with(
+        CateringRequestWorkflow.DRAFT,
+        CateringRequestWorkflow.SUBMITTED,
+    )
+
+    assert request.status == CateringRequestWorkflow.SUBMITTED
+
+    repository.update.assert_called_once_with(
+        request,
+    )
+
+
+def test_submit_denied_does_not_transition_or_persist():
+    """Verify denied submission cannot change workflow state or persist."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    authorization_adapter.authorize.side_effect = PermissionError(
+        "Denied",
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.DRAFT
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Denied",
+    ):
+        service.submit(
+            request,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+    assert request.status == CateringRequestWorkflow.DRAFT
+
+
+def test_submit_persists_without_requiring_update_permission():
+    """
+    Verify SUBMIT persists through the base CRUD path rather than
+    invoking the authorization-protected UPDATE method.
+    """
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.DRAFT
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringRequestWorkflow.SUBMITTED,
+        },
+    )()
+
+    subject = Mock()
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    service.submit(
+        request,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_REQUEST.SUBMIT",
+    )
+
+    repository.update.assert_called_once_with(
+        request,
+    )
+
+    assert request.status == CateringRequestWorkflow.SUBMITTED
