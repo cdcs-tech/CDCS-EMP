@@ -9,6 +9,9 @@ import pytest
 from app.core.crud.exceptions import EntityNotFoundException
 from app.modules.catering.models import CateringEvent
 from app.modules.catering.repositories import CateringEventRepository
+from app.modules.catering.security.authorization import (
+    CateringAuthorizationAdapter,
+)
 from app.modules.catering.services import CateringEventService
 
 
@@ -33,29 +36,108 @@ def test_service_accepts_injected_repository():
     assert service.repository is repository
 
 
-def test_create_delegates_to_repository():
+def test_create_requires_authorization_adapter():
+    """Verify protected creation fails closed without an adapter."""
+
     repository = Mock(
-        spec=CateringEventRepository
+        spec=CateringEventRepository,
     )
 
     event = Mock(
-        spec=CateringEvent
+        spec=CateringEvent,
+    )
+
+    service = CateringEventService(
+        repository=repository,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Catering authorization adapter is required",
+    ):
+        service.create(
+            event,
+            subject=Mock(),
+        )
+
+    repository.add.assert_not_called()
+
+
+def test_create_authorizes_before_repository_write():
+    """Verify creation uses the canonical Event CREATE permission."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    event = Mock(
+        spec=CateringEvent,
     )
 
     repository.add.return_value = event
 
+    subject = Mock()
+
     service = CateringEventService(
-        repository=repository
+        repository=repository,
+        authorization_adapter=authorization_adapter,
     )
 
     result = service.create(
-        event
+        event,
+        subject=subject,
     )
 
     assert result is event
-    repository.add.assert_called_once_with(
-        event
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.CREATE",
     )
+
+    repository.add.assert_called_once_with(
+        event,
+    )
+
+
+def test_create_denied_does_not_write_to_repository():
+    """Verify denied creation does not mutate the repository."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    authorization_adapter.authorize.side_effect = PermissionError(
+        "Denied",
+    )
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Denied",
+    ):
+        service.create(
+            event,
+            subject=Mock(),
+        )
+
+    repository.add.assert_not_called()
 
 
 def test_update_delegates_to_repository():
