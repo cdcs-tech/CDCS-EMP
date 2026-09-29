@@ -82,6 +82,23 @@ class CateringEventService(CRUDService[CateringEvent]):
 
         return super().create(entity)
 
+    def update(
+        self,
+        entity: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Update a Catering Event after authorization.
+        """
+
+        self._authorize(
+            subject,
+            "CATERING.CATERING_EVENT.UPDATE",
+        )
+
+        return super().update(entity)
+
 
 __all__ = [
     "CateringEventService",
