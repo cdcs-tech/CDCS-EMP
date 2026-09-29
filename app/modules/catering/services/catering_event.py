@@ -24,13 +24,15 @@ class CateringEventService(CRUDService[CateringEvent]):
     """
     Application service for Catering Event operations.
 
-    Business lifecycle transitions and quotation-confirmation
-    coordination are intentionally outside this service until
-    their corresponding B3/B4 contracts are implemented.
+    Business lifecycle transitions are delegated to CateringEventWorkflow.
+    Quotation/event coordination is handled by its dedicated Catering
+    application-service boundary.
 
     Protected business operations are authorized through the
     Catering authorization adapter at the service boundary.
     """
+
+    CONFIRM_PERMISSION = "CATERING.CATERING_EVENT.CONFIRM"
 
     def __init__(
         self,
@@ -164,6 +166,57 @@ class CateringEventService(CRUDService[CateringEvent]):
         self._transition_workflow(
             event,
             CateringEventWorkflow.CANCELLED,
+        )
+
+        return super().update(event)
+
+    def request_confirmation(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Progress an Event from QUOTED to PENDING_CONFIRMATION.
+
+        B4.4 treats this as a distinct, auditable confirmation-stage
+        operation. Event lifecycle validity remains delegated to
+        CateringEventWorkflow.
+        """
+
+        self._authorize(
+            subject,
+            self.CONFIRM_PERMISSION,
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.PENDING_CONFIRMATION,
+        )
+
+        return super().update(event)
+
+    def confirm(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Confirm an Event from PENDING_CONFIRMATION to CONFIRMED.
+
+        Event lifecycle validity remains delegated to
+        CateringEventWorkflow.
+        """
+
+        self._authorize(
+            subject,
+            self.CONFIRM_PERMISSION,
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.CONFIRMED,
         )
 
         return super().update(event)

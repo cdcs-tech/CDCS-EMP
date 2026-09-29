@@ -547,13 +547,463 @@ def test_cancel_persists_without_requiring_update_permission():
     )
 
 
+def test_request_confirmation_requires_authorization_adapter():
+    """Verify B4.4 confirmation-stage request fails closed without an adapter."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.QUOTED
+
+    service = CateringEventService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Catering authorization adapter is required",
+    ):
+        service.request_confirmation(
+            event,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+    assert event.status == CateringEventWorkflow.QUOTED
+
+
+def test_request_confirmation_authorizes_before_workflow_transition():
+    """Verify B4.4 uses CONFIRM before progressing QUOTED events."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringEventWorkflow.PENDING_CONFIRMATION,
+        },
+    )()
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.QUOTED
+
+    subject = Mock()
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    service.request_confirmation(
+        event,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.CONFIRM",
+    )
+
+    workflow.transition.assert_called_once_with(
+        CateringEventWorkflow.QUOTED,
+        CateringEventWorkflow.PENDING_CONFIRMATION,
+    )
+
+    assert event.status == CateringEventWorkflow.PENDING_CONFIRMATION
+
+    repository.update.assert_called_once_with(
+        event,
+    )
+
+
+def test_request_confirmation_denied_does_not_transition_or_persist():
+    """Verify denied B4.4 request does not change Event state."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    authorization_adapter.authorize.side_effect = PermissionError(
+        "Denied",
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.QUOTED
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Denied",
+    ):
+        service.request_confirmation(
+            event,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+    assert event.status == CateringEventWorkflow.QUOTED
+
+
+def test_request_confirmation_persists_without_requiring_update_permission():
+    """
+    Verify B4.4 request-confirmation persistence uses the base CRUD path
+    rather than invoking the authorization-protected UPDATE operation.
+    """
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringEventWorkflow.PENDING_CONFIRMATION,
+        },
+    )()
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.QUOTED
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    subject = Mock()
+
+    service.request_confirmation(
+        event,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.CONFIRM",
+    )
+
+    assert event.status == CateringEventWorkflow.PENDING_CONFIRMATION
+    repository.update.assert_called_once_with(event)
+
+
+def test_confirm_requires_authorization_adapter():
+    """Verify B4.4 Event confirmation fails closed without an adapter."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.PENDING_CONFIRMATION
+
+    service = CateringEventService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Catering authorization adapter is required",
+    ):
+        service.confirm(
+            event,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+    assert event.status == CateringEventWorkflow.PENDING_CONFIRMATION
+
+
+def test_confirm_authorizes_before_workflow_transition():
+    """Verify B4.4 confirmation uses CONFIRM before progressing the Event."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringEventWorkflow.CONFIRMED,
+        },
+    )()
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.PENDING_CONFIRMATION
+
+    subject = Mock()
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    service.confirm(
+        event,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.CONFIRM",
+    )
+
+    workflow.transition.assert_called_once_with(
+        CateringEventWorkflow.PENDING_CONFIRMATION,
+        CateringEventWorkflow.CONFIRMED,
+    )
+
+    assert event.status == CateringEventWorkflow.CONFIRMED
+
+    repository.update.assert_called_once_with(
+        event,
+    )
+
+
+def test_confirm_denied_does_not_transition_or_persist():
+    """Verify denied B4.4 confirmation does not change Event state."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    authorization_adapter.authorize.side_effect = PermissionError(
+        "Denied",
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.PENDING_CONFIRMATION
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Denied",
+    ):
+        service.confirm(
+            event,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+    assert event.status == CateringEventWorkflow.PENDING_CONFIRMATION
+
+
+def test_confirm_workflow_failure_does_not_persist_or_change_state():
+    """Verify workflow rejection leaves the Event unchanged."""
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    workflow.transition.side_effect = ValueError(
+        "Invalid Event transition",
+    )
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.PENDING_CONFIRMATION
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid Event transition",
+    ):
+        service.confirm(
+            event,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_called_once_with(
+        CateringEventWorkflow.PENDING_CONFIRMATION,
+        CateringEventWorkflow.CONFIRMED,
+    )
+
+    repository.update.assert_not_called()
+
+    assert event.status == CateringEventWorkflow.PENDING_CONFIRMATION
+
+
+def test_confirm_persists_without_requiring_update_permission():
+    """
+    Verify B4.4 confirmation persistence uses the base CRUD path rather
+    than invoking the authorization-protected UPDATE operation.
+    """
+
+    repository = Mock(
+        spec=CateringEventRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    workflow = Mock(
+        spec=CateringEventWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringEventWorkflow.CONFIRMED,
+        },
+    )()
+
+    event = Mock(
+        spec=CateringEvent,
+    )
+
+    event.status = CateringEventWorkflow.PENDING_CONFIRMATION
+
+    subject = Mock()
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    service.confirm(
+        event,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.CONFIRM",
+    )
+
+    workflow.transition.assert_called_once_with(
+        CateringEventWorkflow.PENDING_CONFIRMATION,
+        CateringEventWorkflow.CONFIRMED,
+    )
+
+    assert event.status == CateringEventWorkflow.CONFIRMED
+
+    repository.update.assert_called_once_with(
+        event,
+    )
+
+
 def test_get_delegates_to_repository():
     repository = Mock(
         spec=CateringEventRepository
     )
 
     event = Mock(
-        spec=CateringEvent
+        spec=CateringEvent,
     )
 
     repository.get_by_id.return_value = event
