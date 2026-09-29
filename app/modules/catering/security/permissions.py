@@ -465,6 +465,83 @@ CATERING_EVENT_CANCEL = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Catering Quotation Permissions
+# ---------------------------------------------------------------------------
+
+CATERING_QUOTATION_CREATE = Permission(
+    code="CATERING.CATERING_QUOTATION.CREATE",
+    name="catering.catering_quotation.create",
+    description="Create Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="create",
+)
+
+CATERING_QUOTATION_READ = Permission(
+    code="CATERING.CATERING_QUOTATION.READ",
+    name="catering.catering_quotation.read",
+    description="Read Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="read",
+)
+
+CATERING_QUOTATION_UPDATE = Permission(
+    code="CATERING.CATERING_QUOTATION.UPDATE",
+    name="catering.catering_quotation.update",
+    description="Update Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="update",
+)
+
+CATERING_QUOTATION_DELETE = Permission(
+    code="CATERING.CATERING_QUOTATION.DELETE",
+    name="catering.catering_quotation.delete",
+    description="Delete Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="delete",
+)
+
+CATERING_QUOTATION_ISSUE = Permission(
+    code="CATERING.CATERING_QUOTATION.ISSUE",
+    name="catering.catering_quotation.issue",
+    description="Issue Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="issue",
+)
+
+CATERING_QUOTATION_ACCEPT = Permission(
+    code="CATERING.CATERING_QUOTATION.ACCEPT",
+    name="catering.catering_quotation.accept",
+    description="Accept Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="accept",
+)
+
+CATERING_QUOTATION_DECLINE = Permission(
+    code="CATERING.CATERING_QUOTATION.DECLINE",
+    name="catering.catering_quotation.decline",
+    description="Decline Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="decline",
+)
+
+CATERING_QUOTATION_EXPIRE = Permission(
+    code="CATERING.CATERING_QUOTATION.EXPIRE",
+    name="catering.catering_quotation.expire",
+    description="Expire Catering quotations.",
+    module="CATERING",
+    resource="catering_quotation",
+    action="expire",
+)
+
+
+# ---------------------------------------------------------------------------
 # Aggregate Catering Permissions
 # ---------------------------------------------------------------------------
 
@@ -514,6 +591,14 @@ CATERING_PERMISSIONS = (
     CATERING_EVENT_DELIVER,
     CATERING_EVENT_COMPLETE,
     CATERING_EVENT_CANCEL,
+    CATERING_QUOTATION_CREATE,
+    CATERING_QUOTATION_READ,
+    CATERING_QUOTATION_UPDATE,
+    CATERING_QUOTATION_DELETE,
+    CATERING_QUOTATION_ISSUE,
+    CATERING_QUOTATION_ACCEPT,
+    CATERING_QUOTATION_DECLINE,
+    CATERING_QUOTATION_EXPIRE,
 )
 
 
@@ -563,5 +648,13 @@ __all__ = [
     "CATERING_EVENT_DELIVER",
     "CATERING_EVENT_COMPLETE",
     "CATERING_EVENT_CANCEL",
+    "CATERING_QUOTATION_CREATE",
+    "CATERING_QUOTATION_READ",
+    "CATERING_QUOTATION_UPDATE",
+    "CATERING_QUOTATION_DELETE",
+    "CATERING_QUOTATION_ISSUE",
+    "CATERING_QUOTATION_ACCEPT",
+    "CATERING_QUOTATION_DECLINE",
+    "CATERING_QUOTATION_EXPIRE",
     "CATERING_PERMISSIONS",
 ]

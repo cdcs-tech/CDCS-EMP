@@ -192,6 +192,38 @@ EXPECTED_PERMISSION_MATRIX = {
         "catering_event",
         "cancel",
     ),
+    "CATERING.CATERING_QUOTATION.CREATE": (
+        "catering_quotation",
+        "create",
+    ),
+    "CATERING.CATERING_QUOTATION.READ": (
+        "catering_quotation",
+        "read",
+    ),
+    "CATERING.CATERING_QUOTATION.UPDATE": (
+        "catering_quotation",
+        "update",
+    ),
+    "CATERING.CATERING_QUOTATION.DELETE": (
+        "catering_quotation",
+        "delete",
+    ),
+    "CATERING.CATERING_QUOTATION.ISSUE": (
+        "catering_quotation",
+        "issue",
+    ),
+    "CATERING.CATERING_QUOTATION.ACCEPT": (
+        "catering_quotation",
+        "accept",
+    ),
+    "CATERING.CATERING_QUOTATION.DECLINE": (
+        "catering_quotation",
+        "decline",
+    ),
+    "CATERING.CATERING_QUOTATION.EXPIRE": (
+        "catering_quotation",
+        "expire",
+    ),
 }
 
 
@@ -200,7 +232,7 @@ def test_catering_permissions_have_expected_count():
     Catering exposes the complete expected permission set.
     """
 
-    assert len(CATERING_PERMISSIONS) == 45
+    assert len(CATERING_PERMISSIONS) == 53
 
 
 def test_catering_permission_codes_are_unique():
@@ -330,6 +362,7 @@ def test_catering_business_permission_names_are_human_readable():
         "customer",
         "catering_request",
         "catering_event",
+        "catering_quotation",
     }
 
     business_permissions = [
@@ -340,7 +373,7 @@ def test_catering_business_permission_names_are_human_readable():
 
     assert len(
         business_permissions
-    ) == 22
+    ) == 30
 
     assert all(
         permission.name.strip()
