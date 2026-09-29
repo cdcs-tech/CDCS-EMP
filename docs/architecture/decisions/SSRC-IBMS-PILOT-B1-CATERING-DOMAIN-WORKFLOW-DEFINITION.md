@@ -543,6 +543,250 @@ This preserves the established CDCS-EMP application-service structure and avoids
 
 The coordinator is responsible only for cross-aggregate coordination. Quotation lifecycle rules remain owned by `CateringQuotationService`, while Event lifecycle validity remains owned by `CateringEventWorkflow`.
 
+### 8.2 B4.4 Event Confirmation
+
+#### Purpose
+
+B4.4 establishes the explicit Event confirmation boundary following successful B4.3 quotation-to-event coordination.
+
+B4.4 provides the two remaining Event lifecycle operations required for the B4 quotation and confirmation acceptance gate:
+
+```text
+QUOTED → PENDING_CONFIRMATION
+PENDING_CONFIRMATION → CONFIRMED
+```
+
+These are separate and auditable business actions.
+
+The first operation represents requesting or placing the associated Event into the customer-confirmation stage.
+
+The second operation records confirmation of the Event and allows the Event to proceed to later operational planning.
+
+B4.4 does not combine the two transitions into a single operation.
+
+#### Ownership
+
+Catering remains the sole owner of the Catering Event lifecycle.
+
+`CateringEventService` remains the application-service boundary for the Event confirmation operations.
+
+`CateringEventWorkflow` remains the authoritative owner of Event lifecycle transition validity.
+
+No new aggregate, entity, repository, workflow, or ownership boundary is introduced by B4.4.
+
+Quotation lifecycle ownership remains with `CateringQuotationService`.
+
+B4.4 does not modify quotation state and does not duplicate quotation ownership.
+
+#### Public Operations
+
+B4.4 exposes two explicit application-service operations:
+
+```text
+request_confirmation(event, *, subject)
+confirm(event, *, subject)
+```
+
+`request_confirmation()` performs:
+
+```text
+QUOTED → PENDING_CONFIRMATION
+```
+
+`confirm()` performs:
+
+```text
+PENDING_CONFIRMATION → CONFIRMED
+```
+
+Each operation represents one business action and one Event lifecycle transition.
+
+Neither operation performs the subsequent operational planning transition.
+
+#### Preconditions
+
+For `request_confirmation()`:
+
+1. The Event must exist.
+2. The Event must currently be in `QUOTED` status.
+3. The Event lifecycle transition must be valid according to `CateringEventWorkflow`.
+
+For `confirm()`:
+
+1. The Event must exist.
+2. The Event must currently be in `PENDING_CONFIRMATION` status.
+3. The Event lifecycle transition must be valid according to `CateringEventWorkflow`.
+
+B4.4 does not infer, repair, or silently advance an Event from an invalid lifecycle state.
+
+B4.4 does not independently re-validate quotation acceptance.
+
+Successful B4.3 coordination establishes the Event's `QUOTED` state as the boundary into the confirmation process.
+
+#### Authorization
+
+Both B4.4 operations reuse the existing Catering Event confirmation permission:
+
+```text
+CATERING.CATERING_EVENT.CONFIRM
+```
+
+No new B4.4-specific permission is introduced.
+
+Authorization must occur before Event workflow execution and before Event persistence.
+
+The operations must remain independent of Flask request context and `current_user`.
+
+The existing service-level fail-closed authorization behavior remains applicable when no authorization adapter has been configured.
+
+#### Workflow Boundary
+
+B4.4 must delegate lifecycle transition validity to `CateringEventWorkflow`.
+
+For `request_confirmation()` the service invokes:
+
+```text
+CateringEventWorkflow:
+    QUOTED → PENDING_CONFIRMATION
+```
+
+For `confirm()` the service invokes:
+
+```text
+CateringEventWorkflow:
+    PENDING_CONFIRMATION → CONFIRMED
+```
+
+The service applies the returned `WorkflowState` to the Event.
+
+B4.4 must not bypass the workflow by assigning Event status directly without workflow validation.
+
+The existing Event workflow remains unchanged by B4.4 because both required confirmation transitions are already defined.
+
+#### Persistence
+
+After authorization and successful workflow validation:
+
+1. The Event status is updated from the returned workflow state.
+2. The Event is persisted through the established Event repository boundary.
+3. The updated Event is returned to the caller.
+
+Persistence must use the existing base CRUD update path rather than the authorization-protected `CateringEventService.update()` operation.
+
+This preserves the established pattern used by the Event cancellation operation and ensures that `CATERING.CATERING_EVENT.CONFIRM` remains the lifecycle-specific authorization boundary.
+
+#### Failure Atomicity
+
+If authorization fails:
+
+```text
+Event: unchanged
+Event persistence: not performed
+Workflow transition: not invoked
+```
+
+If workflow validation fails:
+
+```text
+Event: unchanged
+Event persistence: not performed
+```
+
+A failed confirmation operation must not partially advance the Event lifecycle.
+
+No quotation mutation or downstream business-module side effect occurs when B4.4 fails.
+
+#### Quotation Boundary
+
+B4.4 does not accept, decline, expire, modify, or otherwise mutate a Catering Quotation.
+
+`CateringQuotationService.accept()` remains authoritative for:
+
+```text
+ISSUED → ACCEPTED
+```
+
+B4.3 remains authoritative for coordinating an accepted quotation with its associated Event:
+
+```text
+REQUESTED → QUOTED
+```
+
+B4.4 begins from the established `QUOTED` Event boundary and is responsible only for the Event confirmation lifecycle.
+
+This preserves the separation:
+
+```text
+Quotation acceptance
+        ↓
+B4.3 quotation/event coordination
+        ↓
+Event QUOTED
+        ↓
+B4.4 confirmation process
+        ↓
+Event CONFIRMED
+```
+
+#### Downstream Boundary
+
+B4.4 introduces no downstream Procurement, Inventory, Finance, Expense Management, Production, Delivery, or Reporting side effects.
+
+The following transitions remain outside B4.4:
+
+```text
+CONFIRMED → PLANNING
+PLANNING → READY
+READY → IN_PRODUCTION
+IN_PRODUCTION → DELIVERED
+DELIVERED → COMPLETED
+```
+
+Those capabilities remain governed by their corresponding future implementation stages and existing Event workflow definitions.
+
+#### No New Infrastructure
+
+B4.4 introduces:
+
+- no new database table;
+- no new migration;
+- no new aggregate;
+- no new repository;
+- no new workflow;
+- no new permission;
+- no new cross-module integration;
+- no duplicate quotation ownership.
+
+The existing `CateringEventService`, `CateringEventWorkflow`, `CateringEventRepository`, and `CateringAuthorizationAdapter` remain the authoritative implementation boundaries.
+
+#### Acceptance Gate
+
+B4.4 completes the Event confirmation portion of the B4 quotation-management acceptance gate when an Event can progress through:
+
+```text
+REQUESTED
+    ↓
+QUOTED
+    ↓
+PENDING_CONFIRMATION
+    ↓
+CONFIRMED
+```
+
+where:
+
+- B4.3 performs `REQUESTED → QUOTED`;
+- B4.4 performs `QUOTED → PENDING_CONFIRMATION`;
+- B4.4 performs `PENDING_CONFIRMATION → CONFIRMED`.
+
+Quotation acceptance remains separately auditable as:
+
+```text
+ISSUED → ACCEPTED
+```
+
+B4.4 therefore completes confirmation without collapsing quotation acceptance, quotation/event coordination, and Event confirmation into one operation.
+
 ### Transactional Boundary
 
 Event workflow transition and Event persistence occur within the established service/repository transaction boundary.
