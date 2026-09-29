@@ -169,6 +169,32 @@ class CateringRequestService(CRUDService[CateringRequest]):
 
         return super().update(request)
 
+    def cancel(
+        self,
+        request: CateringRequest,
+        *,
+        subject: Any,
+    ) -> CateringRequest:
+        """
+        Cancel a Catering Request after authorization.
+
+        CANCEL is a distinct lifecycle permission and therefore
+        persists through the base CRUD update path rather than the
+        authorization-protected UPDATE operation.
+        """
+
+        self._authorize(
+            subject,
+            "CATERING.CATERING_REQUEST.CANCEL",
+        )
+
+        self._transition_workflow(
+            request,
+            CateringRequestWorkflow.CANCELLED,
+        )
+
+        return super().update(request)
+
 
 __all__ = [
     "CateringRequestService",

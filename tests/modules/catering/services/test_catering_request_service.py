@@ -674,3 +674,201 @@ def test_submit_persists_without_requiring_update_permission():
     )
 
     assert request.status == CateringRequestWorkflow.SUBMITTED
+
+
+def test_cancel_requires_authorization_adapter():
+    """Verify protected cancellation fails closed without an adapter."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.SUBMITTED
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Catering authorization adapter is required",
+    ):
+        service.cancel(
+            request,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+
+def test_cancel_authorizes_before_workflow_transition():
+    """Verify cancellation uses the canonical Request CANCEL permission."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.SUBMITTED
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringRequestWorkflow.CANCELLED,
+        },
+    )()
+
+    subject = Mock()
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    service.cancel(
+        request,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_REQUEST.CANCEL",
+    )
+
+    workflow.transition.assert_called_once_with(
+        CateringRequestWorkflow.SUBMITTED,
+        CateringRequestWorkflow.CANCELLED,
+    )
+
+    assert request.status == CateringRequestWorkflow.CANCELLED
+
+    repository.update.assert_called_once_with(
+        request,
+    )
+
+
+def test_cancel_denied_does_not_transition_or_persist():
+    """Verify denied cancellation cannot change workflow state or persist."""
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    authorization_adapter.authorize.side_effect = PermissionError(
+        "Denied",
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.SUBMITTED
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        PermissionError,
+        match="Denied",
+    ):
+        service.cancel(
+            request,
+            subject=Mock(),
+        )
+
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+
+    assert request.status == CateringRequestWorkflow.SUBMITTED
+
+
+def test_cancel_persists_without_requiring_update_permission():
+    """
+    Verify CANCEL persists through the base CRUD path rather than
+    invoking the authorization-protected UPDATE method.
+    """
+
+    repository = Mock(
+        spec=CateringRequestRepository,
+    )
+
+    authorization_adapter = Mock(
+        spec=CateringAuthorizationAdapter,
+    )
+
+    request = Mock(
+        spec=CateringRequest,
+    )
+    request.status = CateringRequestWorkflow.DRAFT
+
+    workflow = Mock(
+        spec=CateringRequestWorkflow,
+    )
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {
+            "name": CateringRequestWorkflow.CANCELLED,
+        },
+    )()
+
+    subject = Mock()
+
+    service = CateringRequestService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    service.cancel(
+        request,
+        subject=subject,
+    )
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_REQUEST.CANCEL",
+    )
+
+    workflow.transition.assert_called_once_with(
+        CateringRequestWorkflow.DRAFT,
+        CateringRequestWorkflow.CANCELLED,
+    )
+
+    repository.update.assert_called_once_with(
+        request,
+    )
+
+    assert request.status == CateringRequestWorkflow.CANCELLED
