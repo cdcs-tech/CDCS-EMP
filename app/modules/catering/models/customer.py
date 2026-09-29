@@ -83,6 +83,12 @@ class Customer(
         lazy="select",
     )
 
+    quotations = db.relationship(
+        "CateringQuotation",
+        back_populates="customer",
+        lazy="select",
+    )
+
     __table_args__ = (
         db.CheckConstraint(
             "customer_type IN ('INDIVIDUAL', 'ORGANIZATION')",

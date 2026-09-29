@@ -23,6 +23,12 @@ from .stock_balance import StockBalance
 from .stock_item import StockItem
 from .stock_movement import StockMovement
 from .stock_transfer import StockTransfer
+from app.modules.catering.models.catering_quotation import (
+    CateringQuotation,
+)
+from app.modules.catering.models.catering_quotation_line import (
+    CateringQuotationLine,
+)
 
 __all__ = [
     "BaseModel",
@@ -39,4 +45,6 @@ __all__ = [
     "StockBalance",
     "StockMovement",
     "StockTransfer",
+    "CateringQuotation",
+    "CateringQuotationLine",
 ]
