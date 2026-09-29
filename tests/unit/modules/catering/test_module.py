@@ -119,14 +119,14 @@ def test_catering_module_models_remain_outside_global_model_package():
 
 def test_catering_module_exposes_inventory_workflows():
     """
-    Catering must expose the Inventory workflow definitions
+    Catering must expose its registered workflow definitions
     through the existing enterprise module contract.
     """
 
     module = CateringModule()
 
     assert module.has_workflows() is True
-    assert len(module.workflows) == 2
+    assert len(module.workflows) == 4
 
     workflow_names = {
         workflow.workflow_name
@@ -134,6 +134,8 @@ def test_catering_module_exposes_inventory_workflows():
     }
 
     assert workflow_names == {
+        "catering_request",
+        "catering_event",
         "stock_movement",
         "stock_transfer",
     }
