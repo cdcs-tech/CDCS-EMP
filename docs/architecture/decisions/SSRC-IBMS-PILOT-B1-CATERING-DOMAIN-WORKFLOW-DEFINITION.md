@@ -934,13 +934,35 @@ The originating Catering requirement shall remain identifiable after Procurement
 
 #### Idempotency and Duplicate Prevention
 
-B5 shall not create duplicate Procurement requirements when the same Catering requirement is submitted more than once.
+B5 shall prevent duplicate Procurement registration when the same Catering Purchase Requirement is submitted more than once.
 
-The integration boundary shall define an explicit idempotency/reference strategy before implementation.
+The authoritative B5.3.3 idempotency strategy is based on the immutable identity of the originating Catering Purchase Requirement.
 
-A successful handoff shall be safely repeatable without creating multiple Procurement-side records for the same originating Catering requirement.
+The Procurement `PurchaseRequirement.reference` shall be deterministically derived as:
 
-The exact persistence mechanism shall be established during B5 implementation without changing the ownership boundary defined here.
+`CATERING-PR-<CateringPurchaseRequirement.guid>`
+
+The resulting Procurement `reference` shall be unique within the existing Procurement `PurchaseRequirement` model.
+
+The relationship is therefore:
+
+`CateringPurchaseRequirement.guid`
+→ `CATERING-PR-<guid>`
+→ `PurchaseRequirement.reference`
+
+The handoff shall use this deterministic reference to identify an existing Procurement registration before creating a new Procurement `PurchaseRequirement`.
+
+If an existing Procurement `PurchaseRequirement` is found with the expected deterministic reference and matching Catering source metadata, the handoff shall return the existing Procurement record and shall not create a duplicate.
+
+If the deterministic reference exists but its source metadata does not identify the same originating Catering Purchase Requirement, the handoff shall reject the operation rather than silently associate the records.
+
+The originating Catering Purchase Requirement shall store the resulting Procurement `PurchaseRequirement.reference` in its existing `procurement_reference` field.
+
+`procurement_reference` is a plain cross-module reference value and shall not become a foreign key to Procurement.
+
+No additional integration-status fields such as `SUBMITTED`, `REGISTERED`, or `FAILED` shall be introduced as part of B5.3.3.
+
+A successful handoff shall therefore be safely repeatable without creating multiple Procurement-side records for the same originating Catering Purchase Requirement.
 
 #### Failure Atomicity
 
@@ -999,6 +1021,126 @@ Catering shall not introduce:
 - any other private procurement subsystem.
 
 The existing Procurement/Purchasing capability is the single procurement workflow boundary.
+
+#### B5.3.3 — Catering Purchase Requirement → Procurement Handoff Contract
+
+B5.3.3 defines the controlled application-level handoff by which a Catering-owned `CateringPurchaseRequirement` becomes a Procurement-owned `PurchaseRequirement`.
+
+The handoff is an in-process, same-database business operation. It shall not introduce a distributed transaction or a provider-oriented integration workflow.
+
+##### Handoff Application Boundary
+
+The handoff shall be coordinated by a dedicated Catering application service:
+
+`CateringProcurementHandoffService`
+
+The public operation shall be:
+
+`submit_to_procurement(purchase_requirement, *, subject)`
+
+The coordinator shall compose the existing Catering and Procurement persistence and authorization infrastructure required to perform the handoff.
+
+The coordinator shall not become a second Procurement service layer and shall not implement Procurement lifecycle operations.
+
+##### Handoff Preconditions
+
+Before registration, the handoff shall verify:
+
+1. the Catering Purchase Requirement exists;
+2. its associated Event Requirement exists;
+3. the Event Requirement has `fulfilment_type = PROCUREMENT`;
+4. the originating Catering Event remains within the confirmed-event boundary established for B5; and
+5. no conflicting Procurement registration already exists for the originating Catering Purchase Requirement.
+
+Procurement fulfilment shall remain an explicit classification and shall not be inferred from Inventory stock existence.
+
+##### Handoff Authorization
+
+The handoff shall use the existing Catering authorization architecture and fail closed when the required authorization boundary is unavailable.
+
+The dedicated Catering permission for this operation shall be:
+
+`CATERING.CATERING_PURCHASE_REQUIREMENT.SUBMIT_TO_PROCUREMENT`
+
+The Procurement `PurchaseRequirement` shall remain governed by Procurement ownership and its existing Procurement-side authorization architecture.
+
+The Catering handoff operation shall not authorize itself to perform subsequent Procurement lifecycle operations.
+
+##### Procurement Record Construction
+
+The handoff shall reuse the existing Procurement `PurchaseRequirement` model.
+
+The Procurement-side record shall be constructed with:
+
+| Procurement field | Handoff value |
+|---|---|
+| `reference` | `CATERING-PR-<CateringPurchaseRequirement.guid>` |
+| `description` | Catering Purchase Requirement description |
+| `source_module` | `CATERING` |
+| `source_type` | `CATERING_PURCHASE_REQUIREMENT` |
+| `source_reference` | Originating Catering Purchase Requirement identity |
+| `required_by_date` | Catering Purchase Requirement required-by date |
+| `status` | Existing Procurement default (`DRAFT`) |
+
+No new Procurement entity shall be introduced.
+
+No direct foreign key from Procurement to the Catering Purchase Requirement, Event Requirement, Catering Event, Customer, or other Catering entity shall be introduced.
+
+##### Procurement Source Metadata
+
+The Procurement `PurchaseRequirement` shall retain the following source context:
+
+`source_module = CATERING`
+
+`source_type = CATERING_PURCHASE_REQUIREMENT`
+
+`source_reference = <originating Catering Purchase Requirement identity>`
+
+The source metadata provides durable logical traceability without creating cross-module persistence coupling.
+
+##### Successful Handoff
+
+On successful registration:
+
+1. the Procurement `PurchaseRequirement` exists with the deterministic reference and Catering source metadata;
+2. the originating Catering Purchase Requirement has its `procurement_reference` populated with the Procurement `PurchaseRequirement.reference`;
+3. Procurement becomes the authoritative owner of the Procurement `PurchaseRequirement`; and
+4. subsequent Procurement lifecycle activity remains entirely within Procurement.
+
+The handoff shall not change the Catering Event lifecycle, quotation state, or Event Requirement lifecycle.
+
+##### Repeat Submission
+
+If the same Catering Purchase Requirement is submitted again:
+
+1. the deterministic Procurement reference shall be calculated;
+2. an existing Procurement `PurchaseRequirement` shall be located using that reference;
+3. its Catering source metadata shall be validated;
+4. the existing Procurement record shall be returned; and
+5. no duplicate Procurement record shall be created.
+
+If the existing reference conflicts with the originating Catering Purchase Requirement, the operation shall fail rather than silently associate the records.
+
+##### Transactional Atomicity
+
+The complete handoff shall execute within the established enterprise application transaction boundary.
+
+The handoff service and repositories shall not independently commit or roll back the transaction.
+
+Conceptually:
+
+```text
+BEGIN TRANSACTION
+    validate Catering Purchase Requirement
+    authorize handoff
+    determine deterministic Procurement reference
+    locate existing Procurement registration
+    create Procurement PurchaseRequirement when required
+    persist Procurement registration
+    set Catering procurement_reference
+    persist Catering source
+COMMIT
+```
 
 #### Downstream Boundary
 
