@@ -465,6 +465,74 @@ CATERING_EVENT_CANCEL = Permission(
 
 
 # ---------------------------------------------------------------------------
+# Catering Event Requirement Permissions
+# ---------------------------------------------------------------------------
+
+CATERING_EVENT_REQUIREMENT_CREATE = Permission(
+    code="CATERING.EVENT_REQUIREMENT.CREATE",
+    name="catering.event_requirement.create",
+    description="Create Catering event requirements.",
+    module="CATERING",
+    resource="event_requirement",
+    action="create",
+)
+
+CATERING_EVENT_REQUIREMENT_READ = Permission(
+    code="CATERING.EVENT_REQUIREMENT.READ",
+    name="catering.event_requirement.read",
+    description="Read Catering event requirements.",
+    module="CATERING",
+    resource="event_requirement",
+    action="read",
+)
+
+CATERING_EVENT_REQUIREMENT_UPDATE = Permission(
+    code="CATERING.EVENT_REQUIREMENT.UPDATE",
+    name="catering.event_requirement.update",
+    description="Update Catering event requirements.",
+    module="CATERING",
+    resource="event_requirement",
+    action="update",
+)
+
+CATERING_EVENT_REQUIREMENT_DELETE = Permission(
+    code="CATERING.EVENT_REQUIREMENT.DELETE",
+    name="catering.event_requirement.delete",
+    description="Delete Catering event requirements.",
+    module="CATERING",
+    resource="event_requirement",
+    action="delete",
+)
+
+CATERING_EVENT_REQUIREMENT_IDENTIFY = Permission(
+    code="CATERING.EVENT_REQUIREMENT.IDENTIFY",
+    name="catering.event_requirement.identify",
+    description="Identify Catering event requirements.",
+    module="CATERING",
+    resource="event_requirement",
+    action="identify",
+)
+
+CATERING_EVENT_REQUIREMENT_READY = Permission(
+    code="CATERING.EVENT_REQUIREMENT.READY",
+    name="catering.event_requirement.ready",
+    description="Mark Catering event requirements ready.",
+    module="CATERING",
+    resource="event_requirement",
+    action="ready",
+)
+
+CATERING_EVENT_REQUIREMENT_CANCEL = Permission(
+    code="CATERING.EVENT_REQUIREMENT.CANCEL",
+    name="catering.event_requirement.cancel",
+    description="Cancel Catering event requirements.",
+    module="CATERING",
+    resource="event_requirement",
+    action="cancel",
+)
+
+
+# ---------------------------------------------------------------------------
 # Catering Quotation Permissions
 # ---------------------------------------------------------------------------
 
@@ -599,6 +667,13 @@ CATERING_PERMISSIONS = (
     CATERING_QUOTATION_ACCEPT,
     CATERING_QUOTATION_DECLINE,
     CATERING_QUOTATION_EXPIRE,
+    CATERING_EVENT_REQUIREMENT_CREATE,
+    CATERING_EVENT_REQUIREMENT_READ,
+    CATERING_EVENT_REQUIREMENT_UPDATE,
+    CATERING_EVENT_REQUIREMENT_DELETE,
+    CATERING_EVENT_REQUIREMENT_IDENTIFY,
+    CATERING_EVENT_REQUIREMENT_READY,
+    CATERING_EVENT_REQUIREMENT_CANCEL,
 )
 
 
@@ -656,5 +731,12 @@ __all__ = [
     "CATERING_QUOTATION_ACCEPT",
     "CATERING_QUOTATION_DECLINE",
     "CATERING_QUOTATION_EXPIRE",
+    "CATERING_EVENT_REQUIREMENT_CREATE",
+    "CATERING_EVENT_REQUIREMENT_READ",
+    "CATERING_EVENT_REQUIREMENT_UPDATE",
+    "CATERING_EVENT_REQUIREMENT_DELETE",
+    "CATERING_EVENT_REQUIREMENT_IDENTIFY",
+    "CATERING_EVENT_REQUIREMENT_READY",
+    "CATERING_EVENT_REQUIREMENT_CANCEL",
     "CATERING_PERMISSIONS",
 ]

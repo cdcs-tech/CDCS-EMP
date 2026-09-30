@@ -19,6 +19,7 @@ from .product import ProductService
 from .product_category import ProductCategoryService
 from .stock_item import StockItemService
 from .transfer import StockTransferService
+from .event_requirement import EventRequirementService
 
 __all__ = [
     "ProductService",
@@ -32,4 +33,5 @@ __all__ = [
     "CateringRequestService",
     "CateringQuotationService",
     "CateringQuotationEventCoordinationService",
+    "EventRequirementService",
 ]

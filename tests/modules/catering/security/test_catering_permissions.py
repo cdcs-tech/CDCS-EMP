@@ -192,6 +192,34 @@ EXPECTED_PERMISSION_MATRIX = {
         "catering_event",
         "cancel",
     ),
+    "CATERING.EVENT_REQUIREMENT.CREATE": (
+        "event_requirement",
+        "create",
+    ),
+    "CATERING.EVENT_REQUIREMENT.READ": (
+        "event_requirement",
+        "read",
+    ),
+    "CATERING.EVENT_REQUIREMENT.UPDATE": (
+        "event_requirement",
+        "update",
+    ),
+    "CATERING.EVENT_REQUIREMENT.DELETE": (
+        "event_requirement",
+        "delete",
+    ),
+    "CATERING.EVENT_REQUIREMENT.IDENTIFY": (
+        "event_requirement",
+        "identify",
+    ),
+    "CATERING.EVENT_REQUIREMENT.READY": (
+        "event_requirement",
+        "ready",
+    ),
+    "CATERING.EVENT_REQUIREMENT.CANCEL": (
+        "event_requirement",
+        "cancel",
+    ),
     "CATERING.CATERING_QUOTATION.CREATE": (
         "catering_quotation",
         "create",
@@ -232,7 +260,7 @@ def test_catering_permissions_have_expected_count():
     Catering exposes the complete expected permission set.
     """
 
-    assert len(CATERING_PERMISSIONS) == 53
+    assert len(CATERING_PERMISSIONS) == 60
 
 
 def test_catering_permission_codes_are_unique():
@@ -354,8 +382,8 @@ def test_catering_inventory_permission_names_are_human_readable():
 
 def test_catering_business_permission_names_are_human_readable():
     """
-    B3 Customer, Request, and Event permissions expose
-    non-empty display names.
+    Customer, Request, Event, Quotation, and Event Requirement
+    permissions expose non-empty display names.
     """
 
     business_resources = {
@@ -363,6 +391,7 @@ def test_catering_business_permission_names_are_human_readable():
         "catering_request",
         "catering_event",
         "catering_quotation",
+        "event_requirement",
     }
 
     business_permissions = [
@@ -373,7 +402,7 @@ def test_catering_business_permission_names_are_human_readable():
 
     assert len(
         business_permissions
-    ) == 30
+    ) == 37
 
     assert all(
         permission.name.strip()
