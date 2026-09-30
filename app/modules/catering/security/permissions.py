@@ -531,6 +531,15 @@ CATERING_EVENT_REQUIREMENT_CANCEL = Permission(
     action="cancel",
 )
 
+CATERING_PURCHASE_REQUIREMENT_SUBMIT_TO_PROCUREMENT = Permission(
+    code="CATERING.CATERING_PURCHASE_REQUIREMENT.SUBMIT_TO_PROCUREMENT",
+    name="catering.catering_purchase_requirement.submit_to_procurement",
+    description="Submit Catering purchase requirements to Procurement.",
+    module="CATERING",
+    resource="catering_purchase_requirement",
+    action="submit_to_procurement",
+)
+
 
 # ---------------------------------------------------------------------------
 # Catering Quotation Permissions
@@ -674,6 +683,7 @@ CATERING_PERMISSIONS = (
     CATERING_EVENT_REQUIREMENT_IDENTIFY,
     CATERING_EVENT_REQUIREMENT_READY,
     CATERING_EVENT_REQUIREMENT_CANCEL,
+    CATERING_PURCHASE_REQUIREMENT_SUBMIT_TO_PROCUREMENT,
 )
 
 
@@ -738,5 +748,6 @@ __all__ = [
     "CATERING_EVENT_REQUIREMENT_IDENTIFY",
     "CATERING_EVENT_REQUIREMENT_READY",
     "CATERING_EVENT_REQUIREMENT_CANCEL",
+    "CATERING_PURCHASE_REQUIREMENT_SUBMIT_TO_PROCUREMENT",
     "CATERING_PERMISSIONS",
 ]
