@@ -18,6 +18,10 @@ from app.modules.catering.workflows.catering_quotation import (
     CateringQuotationWorkflow,
 )
 
+from app.modules.catering.workflows.event_requirement import (
+    EventRequirementWorkflow,
+)
+
 from app.modules.catering.workflows.movement import (
     StockMovementWorkflow,
 )
@@ -31,6 +35,7 @@ __all__ = [
     "CateringRequestWorkflow",
     "CateringEventWorkflow",
     "CateringQuotationWorkflow",
+    "EventRequirementWorkflow",
     "StockMovementWorkflow",
     "StockTransferWorkflow",
 ]
