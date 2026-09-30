@@ -424,13 +424,30 @@ Implement the business flow:
 
 ### C3 — Procurement / Inventory Receiving Integration
 
-Connect procurement receiving outcomes to Inventory physical stock effects where required.
+Connect approved Purchase Order receiving execution to Inventory physical stock effects through the existing enterprise integration boundary.
+
+The implemented flow is:
+
+**Approved Purchase Order → Receive Purchase Order Command → Receiving Handler → Purchase Order Receipt Contract → Integration Lifecycle → Inventory Receipt Provider → StockMovementService**
+
+Procurement owns the Purchase Order receiving context and initiates the receiving integration. Inventory remains responsible for resolving Inventory references and applying physical stock effects.
+
+The Inventory receiving boundary owns:
+
+- receipt idempotency;
+- Stock Movement creation and posting;
+- Stock Balance effects;
+- atomic receipt posting and duplicate-receipt protection.
+
+Receiving does not constitute a Purchase Order workflow transition. The Purchase Order remains in its existing workflow state after the receiving integration is executed. Partial receipts are supported without requiring the received quantity to equal the ordered quantity.
+
+The integration boundary must prevent Procurement from directly manipulating Inventory persistence. Procurement must communicate receiving outcomes through the established integration contracts and lifecycle, while Inventory owns the authoritative physical inventory mutation.
 
 The ownership boundary remains:
 
 **Procurement owns procurement receiving context; Inventory owns physical inventory state.**
 
-**Acceptance gate:** Stock cannot be changed through an inappropriate Procurement-owned persistence path.
+**Acceptance gate:** Stock cannot be changed through an inappropriate Procurement-owned persistence path, and Purchase Order receiving must delegate physical inventory effects through the established Inventory integration boundary.
 
 ---
 
