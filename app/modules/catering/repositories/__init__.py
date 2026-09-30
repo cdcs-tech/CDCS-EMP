@@ -16,6 +16,7 @@ from .product import ProductRepository
 from .product_category import ProductCategoryRepository
 from .stock_item import StockItemRepository
 from .transfer import StockTransferRepository
+from .event_requirement import EventRequirementRepository
 
 __all__ = [
     "ProductRepository",
@@ -28,4 +29,5 @@ __all__ = [
     "CateringEventRepository",
     "CateringRequestRepository",
     "CateringQuotationRepository",
+    "EventRequirementRepository",
 ]

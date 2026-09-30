@@ -90,6 +90,12 @@ class CateringEvent(
         lazy="select",
     )
 
+    requirements = db.relationship(
+        "EventRequirement",
+        back_populates="event",
+        lazy="select",
+    )
+
     __table_args__ = (
         db.CheckConstraint(
             "attendance > 0",
