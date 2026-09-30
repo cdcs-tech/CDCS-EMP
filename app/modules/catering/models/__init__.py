@@ -30,6 +30,7 @@ from app.modules.catering.models.catering_quotation_line import (
     CateringQuotationLine,
 )
 from .event_requirement import EventRequirement
+from .catering_purchase_requirement import CateringPurchaseRequirement
 
 __all__ = [
     "BaseModel",
@@ -49,4 +50,5 @@ __all__ = [
     "CateringQuotation",
     "CateringQuotationLine",
     "EventRequirement",
+    "CateringPurchaseRequirement",
 ]

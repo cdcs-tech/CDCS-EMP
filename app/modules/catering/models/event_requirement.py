@@ -91,6 +91,13 @@ class EventRequirement(
         lazy="select",
     )
 
+    purchase_requirement = db.relationship(
+        "CateringPurchaseRequirement",
+        back_populates="event_requirement",
+        uselist=False,
+        lazy="select",
+    )
+
     __table_args__ = (
         db.CheckConstraint(
             "quantity > 0",
