@@ -17,7 +17,12 @@ from .product_category import ProductCategoryRepository
 from .stock_item import StockItemRepository
 from .transfer import StockTransferRepository
 from .event_requirement import EventRequirementRepository
-from .catering_purchase_requirement import CateringPurchaseRequirementRepository
+from .catering_purchase_requirement import (
+    CateringPurchaseRequirementRepository,
+)
+from .expense_cost_association import (
+    CateringExpenseCostAssociationRepository,
+)
 
 __all__ = [
     "ProductRepository",
@@ -32,4 +37,5 @@ __all__ = [
     "CateringQuotationRepository",
     "EventRequirementRepository",
     "CateringPurchaseRequirementRepository",
+    "CateringExpenseCostAssociationRepository",
 ]

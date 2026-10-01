@@ -22,6 +22,7 @@ from app.core.workflow import (
 
 from app.core.execution import (
     CommandDispatcher,
+    PostCommitCoordinator,
 )
 
 from app.core.execution.policy import (
@@ -169,10 +170,18 @@ def initialize_modules(app: Flask) -> ModuleManager:
         )
     )
 
-    command_dispatcher.set_post_commit_executor(
-        ProcurementFinancePostCommitExecutor(
-            commitment_service=finance_commitment_service,
+    post_commit_coordinator = (
+        PostCommitCoordinator(
+            executors=[
+                ProcurementFinancePostCommitExecutor(
+                    commitment_service=finance_commitment_service,
+                ),
+            ]
         )
+    )
+
+    command_dispatcher.set_post_commit_executor(
+        post_commit_coordinator
     )
 
     # --------------------------------------------------

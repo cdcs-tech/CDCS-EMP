@@ -26,6 +26,9 @@ from .stock_transfer import StockTransfer
 from app.modules.catering.models.catering_quotation import (
     CateringQuotation,
 )
+from .expense_cost_association import (
+    CateringExpenseCostAssociation,
+)
 from app.modules.catering.models.catering_quotation_line import (
     CateringQuotationLine,
 )
@@ -51,4 +54,5 @@ __all__ = [
     "CateringQuotationLine",
     "EventRequirement",
     "CateringPurchaseRequirement",
+    "CateringExpenseCostAssociation",
 ]

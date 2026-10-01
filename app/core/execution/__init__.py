@@ -122,6 +122,10 @@ from app.core.execution.registration import (
     validate_execution_definition,
 )
 
+from app.core.execution.post_commit_coordinator import (
+    PostCommitCoordinator,
+)
+
 __all__ = [
     "ExecutionContext",
     "ExecutionResult",
@@ -179,6 +183,7 @@ __all__ = [
 
     "PostCommitAction",
     "PostCommitExecutor",
+    "PostCommitCoordinator",
 
     "ExecutionEventEmitter",
     "RecordingExecutionEventEmitter",

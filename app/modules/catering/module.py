@@ -47,6 +47,7 @@ class CateringModule(BaseModule):
             StockItem,
             StockMovement,
             StockTransfer,
+            CateringExpenseCostAssociation,
         )
 
         # Keep explicit references so the imports are intentional
@@ -62,6 +63,7 @@ class CateringModule(BaseModule):
             StockBalance,
             StockMovement,
             StockTransfer,
+            CateringExpenseCostAssociation,
         )
 
     def get_metadata(self) -> ModuleMetadata:

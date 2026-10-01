@@ -256,6 +256,10 @@ EXPECTED_PERMISSION_MATRIX = {
         "catering_quotation",
         "expire",
     ),
+    "CATERING.EXPENSE_COST_ASSOCIATION.CREATE": (
+        "expense_cost_association",
+        "create",
+    ),
 }
 
 
@@ -264,7 +268,7 @@ def test_catering_permissions_have_expected_count():
     Catering exposes the complete expected permission set.
     """
 
-    assert len(CATERING_PERMISSIONS) == 61
+    assert len(CATERING_PERMISSIONS) == 62
 
 
 def test_catering_permission_codes_are_unique():

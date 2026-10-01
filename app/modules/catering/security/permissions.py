@@ -617,6 +617,19 @@ CATERING_QUOTATION_EXPIRE = Permission(
     action="expire",
 )
 
+# ---------------------------------------------------------------------------
+# Catering Expense Cost Association Permissions
+# ---------------------------------------------------------------------------
+
+CATERING_EXPENSE_COST_ASSOCIATION_CREATE = Permission(
+    code="CATERING.EXPENSE_COST_ASSOCIATION.CREATE",
+    name="catering.expense_cost_association.create",
+    description="Create Catering Expense Cost Associations.",
+    module="CATERING",
+    resource="expense_cost_association",
+    action="create",
+)
+
 
 # ---------------------------------------------------------------------------
 # Aggregate Catering Permissions
@@ -684,6 +697,7 @@ CATERING_PERMISSIONS = (
     CATERING_EVENT_REQUIREMENT_READY,
     CATERING_EVENT_REQUIREMENT_CANCEL,
     CATERING_PURCHASE_REQUIREMENT_SUBMIT_TO_PROCUREMENT,
+    CATERING_EXPENSE_COST_ASSOCIATION_CREATE,
 )
 
 
@@ -749,5 +763,6 @@ __all__ = [
     "CATERING_EVENT_REQUIREMENT_READY",
     "CATERING_EVENT_REQUIREMENT_CANCEL",
     "CATERING_PURCHASE_REQUIREMENT_SUBMIT_TO_PROCUREMENT",
+    "CATERING_EXPENSE_COST_ASSOCIATION_CREATE",
     "CATERING_PERMISSIONS",
 ]

@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from flask import Flask
 
-from app.core.execution.dispatcher import (
+from app.core.execution import (
     CommandDispatcher,
+    PostCommitCoordinator,
 )
 from app.core.startup.modules import (
     initialize_modules,
@@ -22,7 +23,8 @@ from app.modules.procurement.integration.post_commit import (
 def test_module_startup_registers_procurement_finance_post_commit_executor():
     """
     Verify that enterprise startup composes the Procurement
-    Finance post-commit executor onto the existing dispatcher.
+    Finance post-commit executor through the enterprise
+    post-commit coordinator.
     """
 
     app = Flask(__name__)
@@ -42,5 +44,17 @@ def test_module_startup_registers_procurement_finance_post_commit_executor():
 
     assert isinstance(
         dispatcher.post_commit_executor,
-        ProcurementFinancePostCommitExecutor,
+        PostCommitCoordinator,
+    )
+
+    executors = (
+        dispatcher.post_commit_executor.executors()
+    )
+
+    assert any(
+        isinstance(
+            executor,
+            ProcurementFinancePostCommitExecutor,
+        )
+        for executor in executors
     )

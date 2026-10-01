@@ -21,6 +21,9 @@ from .stock_item import StockItemService
 from .transfer import StockTransferService
 from .event_requirement import EventRequirementService
 from .procurement_handoff import CateringProcurementHandoffService
+from .expense_cost_association import (
+    CateringExpenseCostAssociationService,
+)
 
 __all__ = [
     "ProductService",
@@ -36,4 +39,5 @@ __all__ = [
     "CateringQuotationEventCoordinationService",
     "EventRequirementService",
     "CateringProcurementHandoffService",
+    "CateringExpenseCostAssociationService",
 ]
