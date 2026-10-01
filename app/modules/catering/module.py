@@ -4,6 +4,12 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 Catering Business Module
 """
 
+from __future__ import annotations
+
+from app.core.integration import (
+    integration_provider_registry,
+)
+
 from app.core.modules import (
     BaseModule,
     ModuleMetadata,
@@ -140,6 +146,44 @@ class CateringModule(BaseModule):
                 workflow=StockTransferWorkflow(),
             ),
         ]
+
+    def register_integrations(self, app) -> None:
+        """
+        Register Catering-owned integration providers.
+
+        The approved Expense provider is registered through the
+        enterprise IntegrationProviderRegistry. Expense remains
+        authoritative for Expense records and lifecycle, while
+        Catering owns the consumption boundary.
+        """
+
+        if integration_provider_registry.has(
+            "catering"
+        ):
+            return None
+
+        from app.modules.catering.integration.providers import (
+            CateringExpenseIntegrationProvider,
+        )
+
+        provider = CateringExpenseIntegrationProvider()
+
+        integration_provider_registry.register(
+            provider
+        )
+
+        return None
+
+    def initialize(self, app) -> None:
+        """
+        Initialize the Catering module using the standard
+        enterprise lifecycle, then register Catering-owned
+        integration providers.
+        """
+
+        super().initialize(app)
+
+        self.register_integrations(app)
 
     def register_blueprints(self, app):
         """

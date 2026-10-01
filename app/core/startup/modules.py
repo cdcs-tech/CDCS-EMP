@@ -60,6 +60,10 @@ from app.modules.procurement.integration.post_commit import (
     ProcurementFinancePostCommitExecutor,
 )
 
+from app.modules.expense.integration.post_commit import (
+    ExpenseCateringPostCommitExecutor,
+)
+
 from app.core.crud.transaction import (
     SQLAlchemyTransactionManager,
 )
@@ -176,6 +180,7 @@ def initialize_modules(app: Flask) -> ModuleManager:
                 ProcurementFinancePostCommitExecutor(
                     commitment_service=finance_commitment_service,
                 ),
+                ExpenseCateringPostCommitExecutor(),
             ]
         )
     )

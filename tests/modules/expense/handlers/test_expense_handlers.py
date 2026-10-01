@@ -137,11 +137,18 @@ def test_submit_handler_delegates_to_service():
 
 def test_approve_handler_delegates_to_service():
     """
-    ApproveExpenseHandler loads the Expense and delegates
-    approval to ExpenseService.
+    ApproveExpenseHandler loads the Expense, delegates approval to
+    ExpenseService, and exposes the authoritative approval timestamp
+    in the execution result metadata.
     """
 
+    from datetime import datetime, timezone
+
+    approved_at = datetime.now(timezone.utc)
+
     expense = _expense("SUBMITTED")
+    expense.approved_at = approved_at
+
     service = Mock()
     service.get.return_value = expense
     service.approve.return_value = expense
@@ -160,6 +167,12 @@ def test_approve_handler_delegates_to_service():
     assert isinstance(result, ExecutionResult)
     assert result.success is True
     assert result.data is expense
+
+    assert result.metadata["expense_id"] == expense.id
+    assert result.metadata["previous_status"] == "SUBMITTED"
+    assert result.metadata["new_status"] == expense.status
+    assert result.metadata["approved_at"] is approved_at
+    assert result.metadata["operation"] == "expense.approve"
 
     service.get.assert_called_once_with(1)
     service.approve.assert_called_once_with(expense)

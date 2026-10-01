@@ -1,7 +1,8 @@
+
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
-Procurement module Finance post-commit registration tests.
+Enterprise post-commit executor registration tests.
 """
 
 from __future__ import annotations
@@ -15,16 +16,19 @@ from app.core.execution import (
 from app.core.startup.modules import (
     initialize_modules,
 )
+from app.modules.expense.integration.post_commit import (
+    ExpenseCateringPostCommitExecutor,
+)
 from app.modules.procurement.integration.post_commit import (
     ProcurementFinancePostCommitExecutor,
 )
 
 
-def test_module_startup_registers_procurement_finance_post_commit_executor():
+def test_module_startup_registers_post_commit_executors():
     """
-    Verify that enterprise startup composes the Procurement
-    Finance post-commit executor through the enterprise
-    post-commit coordinator.
+    Verify that enterprise startup composes both the
+    Procurement Finance and Expense Catering executors
+    through the enterprise post-commit coordinator.
     """
 
     app = Flask(__name__)
@@ -55,6 +59,14 @@ def test_module_startup_registers_procurement_finance_post_commit_executor():
         isinstance(
             executor,
             ProcurementFinancePostCommitExecutor,
+        )
+        for executor in executors
+    )
+
+    assert any(
+        isinstance(
+            executor,
+            ExpenseCateringPostCommitExecutor,
         )
         for executor in executors
     )

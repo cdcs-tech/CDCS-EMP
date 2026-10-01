@@ -148,6 +148,7 @@ class ApproveExpenseHandler(BaseCommandHandler):
                 "expense_id": expense.id,
                 "previous_status": previous_status,
                 "new_status": expense.status,
+                "approved_at": expense.approved_at,
                 "operation": context.operation,
             },
         )

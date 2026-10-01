@@ -257,6 +257,81 @@ def test_expense_service_approve_transitions_and_persists():
     service.update.assert_called_once_with(expense)
 
 
+def test_expense_service_approve_sets_approved_at_after_successful_transition():
+    """
+    Approving an Expense records the approval timestamp only after
+    the workflow confirms the approval transition.
+    """
+
+    expense = Expense(status="SUBMITTED")
+    repository = Mock()
+    workflow = Mock()
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {"name": "APPROVED"},
+    )()
+
+    service = ExpenseService(
+        repository=repository,
+        workflow=workflow,
+    )
+    service.update = Mock(
+        return_value=expense
+    )
+
+    result = service.approve(expense)
+
+    assert result is expense
+    assert expense.status == "APPROVED"
+    assert expense.approved_at is not None
+    assert expense.approved_at.tzinfo is not None
+    assert expense.approved_at.utcoffset() is not None
+
+    workflow.transition.assert_called_once_with(
+        "SUBMITTED",
+        "APPROVED",
+    )
+    service.update.assert_called_once_with(expense)
+
+
+def test_expense_service_approve_does_not_set_approved_at_on_invalid_transition():
+    """
+    An invalid Expense approval transition does not receive an
+    approval timestamp or invoke persistence.
+    """
+
+    expense = Expense(status="DRAFT")
+    repository = Mock()
+    workflow = Mock()
+
+    workflow.transition.side_effect = ValueError(
+        "Invalid workflow transition: DRAFT -> APPROVED"
+    )
+
+    service = ExpenseService(
+        repository=repository,
+        workflow=workflow,
+    )
+    service.update = Mock()
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid workflow transition",
+    ):
+        service.approve(expense)
+
+    assert expense.status == "DRAFT"
+    assert expense.approved_at is None
+
+    workflow.transition.assert_called_once_with(
+        "DRAFT",
+        "APPROVED",
+    )
+    service.update.assert_not_called()
+
+
 def test_expense_service_reject_transitions_and_persists():
     """
     Rejecting an Expense delegates the transition to the workflow

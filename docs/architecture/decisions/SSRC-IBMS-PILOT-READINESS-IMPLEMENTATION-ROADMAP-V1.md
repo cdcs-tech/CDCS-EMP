@@ -453,11 +453,36 @@ The ownership boundary remains:
 
 ### C4 — Expense → Catering Cost Integration
 
-Allow approved Expense records to contribute to Catering costing where appropriate.
+Allow approved Expense records to contribute to Catering costing where an explicit Catering-owned association identifies the Expense as eligible.
 
-Expense Management remains responsible for the expense record and lifecycle.
+Expense Management remains authoritative for the Expense record and its lifecycle. Catering owns the association between an Expense and its Catering business context, including the Catering-side eligibility and consumption state.
 
-**Acceptance gate:** Catering consumes approved expense information without taking ownership of Expense records.
+The C4 integration uses the established enterprise integration boundary:
+
+**Expense Approval → Post-Commit Execution → Catering Integration Provider → Catering Expense Cost Consumption**
+
+The originating Expense approval transaction is not dependent on successful Catering consumption. Catering consumption is therefore performed after the Expense transaction has committed through the enterprise post-commit execution mechanism.
+
+C4 establishes the following boundaries:
+
+- Expense remains the authoritative owner of the Expense record, classification, amount, description, expense date, approval state, and approval timestamp.
+- Approval alone does not make an Expense eligible for Catering costing.
+- Catering eligibility is established only through an explicit Catering Expense Cost Association.
+- The association identifies the originating Expense and the Catering context using external identifiers rather than a direct Expense-to-Catering database foreign key.
+- Catering owns the association lifecycle and consumption state.
+- The integration communicates an immutable approved Expense contribution contract containing only the Expense facts required by the approved C4 boundary together with the Catering context and stable contribution identity.
+- The Catering integration provider consumes the approved contribution through the enterprise IntegrationService.
+- Successful consumption changes the Catering association from `ELIGIBLE` to `CONSUMED`.
+- Failed consumption does not mark the association as consumed, allowing the integration to remain retryable.
+- Multiple eligible Catering associations for the same Expense are processed independently.
+- Catering consumption does not modify the originating Expense record.
+- C4 does not implement Catering costing calculations, cost allocation, profitability calculation, accounting, ledger processing, payments, or other Finance processing.
+
+The implementation reuses the enterprise post-commit execution and integration infrastructure rather than introducing a Catering-specific execution mechanism.
+
+**Acceptance gate:** An approved Expense contributes to Catering only when an explicit Catering association identifies it as eligible. Expense remains authoritative for the Expense record and lifecycle. Catering owns the association and consumption state, while the enterprise integration boundary communicates the approved Expense business fact. No direct Expense-to-Catering database foreign key is introduced, and C4 does not implement Catering costing or allocation logic.
+
+**Verification:** The complete approved Expense → enterprise post-commit → Catering integration provider → Catering consumption path has been verified through the real CommandDispatcher and authorization boundary, with the Expense reaching `APPROVED` and the associated Catering record reaching `CONSUMED`.
 
 ---
 

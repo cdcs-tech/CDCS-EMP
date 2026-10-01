@@ -35,7 +35,8 @@ def test_expense_classification_has_expected_table_and_columns():
 
 def test_expense_has_expected_table_and_columns():
     """
-    Expense exposes only the approved initial operational fields.
+    Expense exposes the approved operational fields, including
+    the approval timestamp used by downstream integrations.
     """
 
     mapper = inspect(Expense)
@@ -47,9 +48,23 @@ def test_expense_has_expected_table_and_columns():
         "description",
         "amount",
         "expense_date",
+        "approved_at",
     }.issubset(
         {column.key for column in mapper.columns}
     )
+
+
+def test_expense_approved_at_is_nullable():
+    """
+    approved_at is nullable so existing Expense records do not
+    require manufactured historical approval timestamps.
+    """
+
+    column = inspect(
+        Expense
+    ).columns.approved_at
+
+    assert column.nullable is True
 
 
 def test_expense_classification_has_one_to_many_relationship():
@@ -116,3 +131,4 @@ def test_expense_can_be_constructed():
     assert expense.description == "Office electricity expense"
     assert expense.amount == Decimal("150.00")
     assert expense.expense_date == date(2026, 9, 22)
+    assert expense.approved_at is None

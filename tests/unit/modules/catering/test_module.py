@@ -3,12 +3,19 @@ Catering module foundation tests.
 """
 
 from app.core.discovery import ModuleManifest
+from app.core.integration import (
+    integration_provider_registry,
+)
 from app.core.modules import BaseModule, ModuleMetadata
 from app.core.workflow import workflow_registry
 
 from app.modules.catering import (
     CateringModule,
     MODULE_MANIFEST,
+)
+
+from app.modules.catering.integration.providers import (
+    CateringExpenseIntegrationProvider,
 )
 
 from app.modules.catering.workflows import (
@@ -203,3 +210,111 @@ def test_catering_inventory_workflow_definitions_are_distinct():
     assert movement is not transfer
     assert type(movement) is StockMovementWorkflow
     assert type(transfer) is StockTransferWorkflow
+
+
+def test_catering_module_exposes_integration_registration():
+    """
+    Verify that Catering exposes its approved integration
+    provider registration boundary.
+    """
+
+    module = CateringModule()
+
+    assert hasattr(
+        module,
+        "register_integrations",
+    )
+
+
+def test_catering_module_registers_expense_provider():
+    """
+    Verify that Catering registers the approved Expense
+    integration provider through the enterprise registry.
+    """
+
+    module = CateringModule()
+
+    original_providers = (
+        integration_provider_registry.all()
+    )
+
+    try:
+        integration_provider_registry.clear()
+
+        module.register_integrations(
+            None
+        )
+
+        provider = (
+            integration_provider_registry.get(
+                "catering"
+            )
+        )
+
+        assert isinstance(
+            provider,
+            CateringExpenseIntegrationProvider,
+        )
+
+        assert provider.provider_name == "catering"
+
+        assert provider.consumption_service is not None
+
+    finally:
+        integration_provider_registry.clear()
+
+        for existing_provider in original_providers:
+            integration_provider_registry.register(
+                existing_provider
+            )
+
+
+def test_catering_module_expense_registration_is_idempotent():
+    """
+    Verify that repeated Catering integration registration
+    does not attempt duplicate Expense provider registration.
+    """
+
+    module = CateringModule()
+
+    original_providers = (
+        integration_provider_registry.all()
+    )
+
+    try:
+        integration_provider_registry.clear()
+
+        module.register_integrations(
+            None
+        )
+
+        first_provider = (
+            integration_provider_registry.get(
+                "catering"
+            )
+        )
+
+        module.register_integrations(
+            None
+        )
+
+        second_provider = (
+            integration_provider_registry.get(
+                "catering"
+            )
+        )
+
+        assert first_provider is second_provider
+
+        assert (
+            integration_provider_registry.count()
+            == 1
+        )
+
+    finally:
+        integration_provider_registry.clear()
+
+        for existing_provider in original_providers:
+            integration_provider_registry.register(
+                existing_provider
+            )

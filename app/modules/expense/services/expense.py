@@ -7,6 +7,7 @@ Expense application services.
 """
 
 from __future__ import annotations
+from datetime import datetime, timezone
 
 from app.core.crud.service import CRUDService
 from app.core.data import (
@@ -36,8 +37,8 @@ class ExpenseService(
     Workflow lifecycle enforcement is performed at the
     service boundary. The Expense workflow owns lifecycle
     transition validity, while this service owns applying
-    the resulting state to the entity and persisting the
-    business change.
+    the resulting state to the entity and persisting
+    the business change.
     """
 
     def __init__(
@@ -102,11 +103,17 @@ class ExpenseService(
     ) -> Expense:
         """
         Approve an Expense.
+
+        The approval timestamp is assigned only after the
+        workflow confirms the SUBMITTED -> APPROVED transition.
         """
         self._transition_workflow(
             expense,
             APPROVED,
         )
+
+        expense.approved_at = datetime.now(timezone.utc)
+
         return self.update(expense)
 
     def reject(

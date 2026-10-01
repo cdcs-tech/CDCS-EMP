@@ -63,6 +63,11 @@ class Expense(
         default="DRAFT",
     )
 
+    approved_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=True,
+    )
+
     classification = db.relationship(
         "ExpenseClassification",
         back_populates="expenses",

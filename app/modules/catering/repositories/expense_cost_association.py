@@ -8,18 +8,26 @@ Catering Expense Cost Association repository.
 
 from __future__ import annotations
 
-from app.core.data.sqlalchemy_repository import SQLAlchemyRepository
-from app.modules.catering.models import CateringExpenseCostAssociation
+from sqlalchemy import select
+
+from app.core.data.sqlalchemy_repository import (
+    SQLAlchemyRepository,
+)
+from app.extensions import db
+from app.modules.catering.models import (
+    CateringExpenseCostAssociation,
+)
 
 
 class CateringExpenseCostAssociationRepository(
     SQLAlchemyRepository[CateringExpenseCostAssociation],
 ):
     """
-    Repository for Catering Expense Cost Association entities.
+    Repository for Catering Expense Cost Associations.
 
-    Provides persistence access without owning Expense lifecycle,
-    integration delivery, or Catering costing rules.
+    Provides persistence access for Catering-owned Expense
+    Cost Associations without owning Expense lifecycle,
+    integration delivery, or costing rules.
     """
 
     def __init__(self) -> None:
@@ -28,8 +36,59 @@ class CateringExpenseCostAssociationRepository(
         """
 
         super().__init__(
-            CateringExpenseCostAssociation,
+            CateringExpenseCostAssociation
         )
+
+    def get_eligible_by_expense_id(
+        self,
+        expense_id: int,
+    ) -> list[CateringExpenseCostAssociation]:
+        """
+        Return all eligible Catering associations for an Expense.
+
+        The lookup is intentionally scoped to Catering-owned
+        association state. It does not access or interpret the
+        Expense entity or its lifecycle.
+        """
+
+        statement = (
+            select(
+                CateringExpenseCostAssociation
+            )
+            .where(
+                CateringExpenseCostAssociation.expense_id
+                == expense_id
+            )
+            .where(
+                CateringExpenseCostAssociation.status
+                == "ELIGIBLE"
+            )
+        )
+
+        return list(
+            db.session.execute(
+                statement
+            )
+            .scalars()
+            .all()
+        )
+
+    def get_by_contribution_id(
+        self,
+        contribution_id: str,
+    ) -> CateringExpenseCostAssociation | None:
+        """
+        Return the Catering Expense Cost Association for a stable contribution ID.
+        """
+        statement = (
+            select(CateringExpenseCostAssociation)
+            .where(
+                CateringExpenseCostAssociation.contribution_id
+                == contribution_id
+            )
+        )
+
+        return db.session.execute(statement).scalar_one_or_none()
 
 
 __all__ = [
