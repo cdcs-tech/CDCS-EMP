@@ -488,7 +488,31 @@ The implementation reuses the enterprise post-commit execution and integration i
 
 ### C5 — Catering → Finance Revenue Integration
 
-Connect completed/approved Catering revenue events to the focused Finance capability.
+Connect an already-established Catering revenue fact to the focused Finance capability through the enterprise integration boundary.
+
+C5 depends on **A1 — Finance Domain & Contract Definition** and **A2 — Catering Revenue Capability**. A1 defines the Finance-side revenue record, lifecycle, classification, source/reference, ownership, audit, idempotency, and integration contract. A2 establishes the authoritative Catering revenue fact, including its recognition/eligibility rules, amount, date, source identity, and applicable customer/event relationship.
+
+C5 shall:
+
+- deliver an immutable Catering revenue contribution to Finance after the originating Catering transaction has successfully committed;
+- use the existing enterprise `IntegrationRequest` → `IntegrationService` → registered provider architecture;
+- use the existing `PostCommitExecutor` boundary rather than performing Finance delivery inside the originating Catering transaction;
+- provide a stable contribution identity so repeated delivery cannot create duplicate Finance revenue representation;
+- preserve traceability from the Finance financial record back to its authoritative Catering revenue source;
+- keep Catering authoritative for the originating revenue business fact;
+- keep Finance authoritative for the resulting financial record.
+
+C5 shall **not**:
+
+- define Catering revenue recognition rules;
+- infer recognized revenue solely from a Catering Event status;
+- create duplicate financial ownership inside Catering;
+- create invoices, receipts, payments, accounting/ledger postings, or profitability calculations;
+- calculate or independently redefine the authoritative Catering revenue amount;
+- directly access Finance repositories from Catering or Catering repositories from the Finance provider;
+- roll back, reject, or invalidate an already-committed Catering transaction when post-commit Finance delivery fails.
+
+The exact revenue contribution fields, Finance operation name, and Finance persistence/idempotency mechanism shall be established through A1/A2 before C5 implementation begins.
 
 **Acceptance gate:** Revenue is represented once, with a clear source and ownership path.
 
