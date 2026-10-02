@@ -617,6 +617,75 @@ CATERING_QUOTATION_EXPIRE = Permission(
     action="expire",
 )
 
+
+# ---------------------------------------------------------------------------
+# Catering Revenue Permissions
+# ---------------------------------------------------------------------------
+
+CATERING_REVENUE_CREATE = Permission(
+    code="CATERING.CATERING_REVENUE.CREATE",
+    name="catering.catering_revenue.create",
+    description="Create Catering revenue records.",
+    module="CATERING",
+    resource="catering_revenue",
+    action="create",
+)
+
+CATERING_REVENUE_READ = Permission(
+    code="CATERING.CATERING_REVENUE.READ",
+    name="catering.catering_revenue.read",
+    description="Read Catering revenue records.",
+    module="CATERING",
+    resource="catering_revenue",
+    action="read",
+)
+
+CATERING_REVENUE_UPDATE = Permission(
+    code="CATERING.CATERING_REVENUE.UPDATE",
+    name="catering.catering_revenue.update",
+    description="Update Catering revenue records.",
+    module="CATERING",
+    resource="catering_revenue",
+    action="update",
+)
+
+CATERING_REVENUE_DELETE = Permission(
+    code="CATERING.CATERING_REVENUE.DELETE",
+    name="catering.catering_revenue.delete",
+    description="Delete Catering revenue records.",
+    module="CATERING",
+    resource="catering_revenue",
+    action="delete",
+)
+
+CATERING_REVENUE_ESTABLISH_ELIGIBILITY = Permission(
+    code="CATERING.CATERING_REVENUE.ESTABLISH_ELIGIBILITY",
+    name="catering.catering_revenue.establish_eligibility",
+    description="Establish Catering revenue eligibility.",
+    module="CATERING",
+    resource="catering_revenue",
+    action="establish_eligibility",
+)
+
+CATERING_REVENUE_RECOGNIZE = Permission(
+    code="CATERING.CATERING_REVENUE.RECOGNIZE",
+    name="catering.catering_revenue.recognize",
+    description="Recognize Catering revenue.",
+    module="CATERING",
+    resource="catering_revenue",
+    action="recognize",
+)
+
+CATERING_REVENUE_CANCEL = Permission(
+    code="CATERING.CATERING_REVENUE.CANCEL",
+    name="catering.catering_revenue.cancel",
+    description="Cancel Catering revenue.",
+    module="CATERING",
+    resource="catering_revenue",
+    action="cancel",
+)
+
+
 # ---------------------------------------------------------------------------
 # Catering Expense Cost Association Permissions
 # ---------------------------------------------------------------------------
@@ -689,6 +758,13 @@ CATERING_PERMISSIONS = (
     CATERING_QUOTATION_ACCEPT,
     CATERING_QUOTATION_DECLINE,
     CATERING_QUOTATION_EXPIRE,
+    CATERING_REVENUE_CREATE,
+    CATERING_REVENUE_READ,
+    CATERING_REVENUE_UPDATE,
+    CATERING_REVENUE_DELETE,
+    CATERING_REVENUE_ESTABLISH_ELIGIBILITY,
+    CATERING_REVENUE_RECOGNIZE,
+    CATERING_REVENUE_CANCEL,
     CATERING_EVENT_REQUIREMENT_CREATE,
     CATERING_EVENT_REQUIREMENT_READ,
     CATERING_EVENT_REQUIREMENT_UPDATE,
@@ -755,6 +831,13 @@ __all__ = [
     "CATERING_QUOTATION_ACCEPT",
     "CATERING_QUOTATION_DECLINE",
     "CATERING_QUOTATION_EXPIRE",
+    "CATERING_REVENUE_CREATE",
+    "CATERING_REVENUE_READ",
+    "CATERING_REVENUE_UPDATE",
+    "CATERING_REVENUE_DELETE",
+    "CATERING_REVENUE_ESTABLISH_ELIGIBILITY",
+    "CATERING_REVENUE_RECOGNIZE",
+    "CATERING_REVENUE_CANCEL",
     "CATERING_EVENT_REQUIREMENT_CREATE",
     "CATERING_EVENT_REQUIREMENT_READ",
     "CATERING_EVENT_REQUIREMENT_UPDATE",

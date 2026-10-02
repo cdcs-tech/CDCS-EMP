@@ -30,6 +30,10 @@ from app.modules.catering.workflows.transfer import (
     StockTransferWorkflow,
 )
 
+from app.modules.catering.workflows.catering_revenue import (
+    CateringRevenueWorkflow,
+)
+
 
 __all__ = [
     "CateringRequestWorkflow",
@@ -38,4 +42,5 @@ __all__ = [
     "EventRequirementWorkflow",
     "StockMovementWorkflow",
     "StockTransferWorkflow",
+    "CateringRevenueWorkflow",
 ]

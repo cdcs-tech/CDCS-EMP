@@ -27,6 +27,9 @@ from .expense_cost_association import (
 from app.modules.catering.services.expense_cost_consumption import (
     CateringExpenseCostConsumptionService,
 )
+from app.modules.catering.services.catering_revenue import (
+    CateringRevenueService,
+)
 
 __all__ = [
     "ProductService",
@@ -44,4 +47,5 @@ __all__ = [
     "CateringProcurementHandoffService",
     "CateringExpenseCostAssociationService",
     "CateringExpenseCostConsumptionService",
+    "CateringRevenueService",
 ]

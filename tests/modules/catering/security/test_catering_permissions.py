@@ -260,7 +260,35 @@ EXPECTED_PERMISSION_MATRIX = {
         "expense_cost_association",
         "create",
     ),
-}
+    "CATERING.CATERING_REVENUE.CREATE": (
+        "catering_revenue",
+        "create",
+    ),
+    "CATERING.CATERING_REVENUE.READ": (
+        "catering_revenue",
+        "read",
+    ),
+    "CATERING.CATERING_REVENUE.UPDATE": (
+        "catering_revenue",
+        "update",
+    ),
+    "CATERING.CATERING_REVENUE.DELETE": (
+        "catering_revenue",
+        "delete",
+    ),
+    "CATERING.CATERING_REVENUE.ESTABLISH_ELIGIBILITY": (
+        "catering_revenue",
+        "establish_eligibility",
+    ),
+    "CATERING.CATERING_REVENUE.RECOGNIZE": (
+        "catering_revenue",
+        "recognize",
+    ),
+    "CATERING.CATERING_REVENUE.CANCEL": (
+        "catering_revenue",
+        "cancel",
+    ),
+    }
 
 
 def test_catering_permissions_have_expected_count():
@@ -268,7 +296,7 @@ def test_catering_permissions_have_expected_count():
     Catering exposes the complete expected permission set.
     """
 
-    assert len(CATERING_PERMISSIONS) == 62
+    assert len(CATERING_PERMISSIONS) == 69
 
 
 def test_catering_permission_codes_are_unique():
