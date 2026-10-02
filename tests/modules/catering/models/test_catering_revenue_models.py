@@ -1,5 +1,8 @@
 """Tests for the Catering revenue domain model."""
 
+from datetime import date, datetime
+from decimal import Decimal
+
 from app.modules.catering.models import CateringRevenue
 
 
@@ -81,3 +84,48 @@ def test_catering_revenue_identity_is_unique():
     column = CateringRevenue.revenue_reference.property.columns[0]
 
     assert column.unique is True
+
+
+def test_catering_revenue_inherits_enterprise_mixins():
+    """Verify standard CDCS-EMP persistence and audit fields."""
+
+    revenue = CateringRevenue(
+        revenue_reference="REV-TEST-001",
+        source_type="CATERING_EVENT",
+        source_reference="EVENT-001",
+        amount=Decimal("1250.00"),
+        currency="USD",
+        revenue_date=date(2026, 10, 1),
+    )
+
+    assert hasattr(revenue, "created_at")
+    assert hasattr(revenue, "updated_at")
+    assert hasattr(revenue, "created_by")
+    assert hasattr(revenue, "updated_by")
+    assert hasattr(revenue, "is_deleted")
+    assert hasattr(revenue, "deleted_at")
+
+    assert CateringRevenue.is_deleted.property.columns[0].default.arg is False
+
+
+def test_catering_revenue_soft_delete_methods_work():
+    """Verify standard soft-delete and restore behavior."""
+
+    revenue = CateringRevenue(
+        revenue_reference="REV-TEST-002",
+        source_type="CATERING_EVENT",
+        source_reference="EVENT-002",
+        amount=Decimal("2500.00"),
+        currency="USD",
+        revenue_date=date(2026, 10, 1),
+    )
+
+    revenue.soft_delete()
+
+    assert revenue.is_deleted is True
+    assert isinstance(revenue.deleted_at, datetime)
+
+    revenue.restore()
+
+    assert revenue.is_deleted is False
+    assert revenue.deleted_at is None
