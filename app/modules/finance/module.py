@@ -28,12 +28,17 @@ class FinanceModule(BaseModule):
         """
         Register Finance SQLAlchemy models.
 
-        Finance currently has no domain persistence models.
-        Revenue persistence will be introduced in the approved
-        Finance Revenue Domain Model stage.
+        Importing the module-local model package ensures
+        Finance models are attached to the existing
+        SQLAlchemy metadata without exposing them through
+        app.models.
         """
 
-        return None
+        from app.modules.finance.models import FinanceRevenue
+
+        # Keep explicit references so the imports are intentional
+        # and remain visible to static analysis.
+        _ = (FinanceRevenue,)
 
     def get_metadata(self) -> ModuleMetadata:
         """
