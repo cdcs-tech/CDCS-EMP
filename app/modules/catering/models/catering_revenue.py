@@ -1,0 +1,94 @@
+"""
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Catering Domain
+
+Catering revenue model.
+"""
+
+from __future__ import annotations
+
+from app.extensions import db
+from app.models.base import BaseModel
+from app.models.mixins import (
+    AuditMixin,
+    SoftDeleteMixin,
+    TimestampMixin,
+)
+
+
+class CateringRevenue(
+    TimestampMixin,
+    AuditMixin,
+    SoftDeleteMixin,
+    BaseModel,
+):
+    """
+    Represents an authoritative Catering revenue business fact.
+
+    The revenue fact is owned by Catering. Finance representation,
+    financial classification, accounting treatment, invoices,
+    receipts, payments, and other Finance-owned records remain
+    outside this model's ownership boundary.
+    """
+
+    __tablename__ = "catering_revenues"
+
+    revenue_reference = db.Column(
+        db.String(100),
+        nullable=False,
+        unique=True,
+    )
+
+    source_type = db.Column(
+        db.String(50),
+        nullable=False,
+    )
+
+    source_reference = db.Column(
+        db.String(100),
+        nullable=False,
+    )
+
+    customer_id = db.Column(
+        db.Integer,
+        db.ForeignKey("customers.id"),
+        nullable=True,
+    )
+
+    event_id = db.Column(
+        db.Integer,
+        db.ForeignKey("catering_events.id"),
+        nullable=True,
+    )
+
+    amount = db.Column(
+        db.Numeric(precision=18, scale=2),
+        nullable=False,
+    )
+
+    currency = db.Column(
+        db.String(3),
+        nullable=False,
+    )
+
+    revenue_date = db.Column(
+        db.Date,
+        nullable=False,
+    )
+
+    revenue_classification = db.Column(
+        db.String(100),
+        nullable=True,
+    )
+
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="DRAFT",
+    )
+
+    recognized_at = db.Column(
+        db.DateTime,
+        nullable=True,
+    )

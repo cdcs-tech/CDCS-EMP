@@ -34,6 +34,7 @@ from app.modules.catering.models.catering_quotation_line import (
 )
 from .event_requirement import EventRequirement
 from .catering_purchase_requirement import CateringPurchaseRequirement
+from app.modules.catering.models.catering_revenue import CateringRevenue
 
 __all__ = [
     "BaseModel",
@@ -55,4 +56,5 @@ __all__ = [
     "EventRequirement",
     "CateringPurchaseRequirement",
     "CateringExpenseCostAssociation",
+    "CateringRevenue",
 ]
