@@ -5,8 +5,10 @@ This module contains explicit, immutable contracts for communication
 between Catering and other enterprise capabilities.
 
 The C4 contract describes an approved Expense business fact only.
-Catering remains responsible for its own association, consumption,
-costing, and later profitability semantics.
+The A2.6 revenue contract describes an already-established Catering
+Revenue business fact for later Finance integration.
+
+Catering remains authoritative for its originating business facts.
 """
 
 from dataclasses import dataclass
@@ -15,10 +17,16 @@ from decimal import Decimal
 
 
 # ---------------------------------------------------------------------------
-# C4 Expense integration contract identities
+# Enterprise provider identity
 # ---------------------------------------------------------------------------
 
 CATERING_INTEGRATION_PROVIDER = "catering"
+
+
+# ---------------------------------------------------------------------------
+# C4 Expense integration contract identity
+# ---------------------------------------------------------------------------
+
 CATERING_CONSUME_APPROVED_EXPENSE_OPERATION = "consume_approved_expense"
 
 
@@ -91,8 +99,81 @@ class ApprovedExpenseCostContribution:
             raise TypeError("contribution_id must be a string.")
 
 
+# ---------------------------------------------------------------------------
+# A2.6 Catering Revenue contribution
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class CateringRevenueContribution:
+    """
+    Immutable Catering Revenue business fact prepared for later integration.
+
+    The contribution represents an already-established authoritative
+    Catering Revenue fact. It does not perform or infer revenue recognition.
+
+    The contract intentionally contains source-owned business facts only.
+    Finance-specific accounting treatment, financial classifications,
+    invoices, receipts, payments, ledger entries, and journal instructions
+    remain outside this contract.
+    """
+
+    revenue_reference: str
+    source_type: str
+    source_reference: str
+    amount: Decimal
+    currency: str
+    revenue_date: date
+    revenue_classification: str | None
+    contribution_id: str
+
+    def __post_init__(self) -> None:
+        required_strings = (
+            self.revenue_reference,
+            self.source_type,
+            self.source_reference,
+            self.currency,
+            self.contribution_id,
+        )
+
+        if any(
+            not isinstance(value, str) or not value.strip()
+            for value in required_strings
+        ):
+            raise ValueError(
+                "Catering Revenue required string fields "
+                "must be non-empty."
+            )
+
+        if not isinstance(self.amount, Decimal):
+            raise TypeError("amount must be a Decimal.")
+
+        if self.amount < Decimal("0"):
+            raise ValueError("amount must not be negative.")
+
+        if not isinstance(self.currency, str):
+            raise TypeError("currency must be a string.")
+
+        if len(self.currency.strip()) != 3:
+            raise ValueError(
+                "currency must be a three-letter currency code."
+            )
+
+        if not isinstance(self.revenue_date, date):
+            raise TypeError("revenue_date must be a date.")
+
+        if self.revenue_classification is not None and (
+            not isinstance(self.revenue_classification, str)
+            or not self.revenue_classification.strip()
+        ):
+            raise ValueError(
+                "revenue_classification must be non-empty when provided."
+            )
+
+
 __all__ = [
     "CATERING_INTEGRATION_PROVIDER",
     "CATERING_CONSUME_APPROVED_EXPENSE_OPERATION",
     "ApprovedExpenseCostContribution",
+    "CateringRevenueContribution",
 ]
