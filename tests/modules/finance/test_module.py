@@ -3,7 +3,9 @@ Tests for the Finance business module.
 """
 
 from app.core.modules import BaseModule
+from app.core.workflow import WorkflowDefinition
 from app.modules.finance import FinanceModule
+from app.modules.finance.workflows import FinanceRevenueWorkflow
 
 
 def test_finance_module_inherits_base_module():
@@ -43,23 +45,46 @@ def test_finance_module_exposes_expected_metadata():
     assert metadata.active is True
 
 
-def test_finance_module_has_no_domain_capabilities_yet():
+def test_finance_module_exposes_revenue_workflow():
     """
-    Verify that the initial Finance module boundary does not
-    prematurely introduce domain models, permissions or
-    workflows.
+    Verify that the Finance Revenue lifecycle is registered
+    through the enterprise workflow definition contract.
+    """
+
+    module = FinanceModule()
+
+    workflows = module.get_workflows()
+
+    assert len(workflows) == 1
+
+    definition = workflows[0]
+
+    assert isinstance(
+        definition,
+        WorkflowDefinition,
+    )
+    assert definition.module_name == "FINANCE"
+    assert definition.workflow_name == "finance_revenue"
+    assert isinstance(
+        definition.workflow,
+        FinanceRevenueWorkflow,
+    )
+
+
+def test_finance_module_exposes_no_permissions_yet():
+    """
+    Finance permissions remain deferred until the corresponding
+    Finance capabilities introduce their security requirements.
     """
 
     module = FinanceModule()
 
     assert module.get_permissions() == []
-    assert module.get_workflows() == []
 
 
-def test_finance_module_register_models_is_safe_before_domain_models():
+def test_finance_module_register_models_is_safe():
     """
-    Finance must remain loadable before its first domain model
-    is introduced.
+    Verify that Finance model registration remains safe.
     """
 
     module = FinanceModule()

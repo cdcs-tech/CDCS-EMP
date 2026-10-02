@@ -11,6 +11,10 @@ from app.core.modules import (
     ModuleMetadata,
 )
 
+from app.core.workflow import (
+    WorkflowDefinition,
+)
+
 
 class FinanceModule(BaseModule):
     """
@@ -79,11 +83,21 @@ class FinanceModule(BaseModule):
         """
         Return Finance enterprise workflow definitions.
 
-        Finance workflows will be introduced alongside the
-        corresponding Finance capabilities.
+        Finance Revenue lifecycle registration is delegated to
+        the enterprise BaseModule lifecycle.
         """
 
-        return []
+        from app.modules.finance.workflows import (
+            FinanceRevenueWorkflow,
+        )
+
+        return [
+            WorkflowDefinition(
+                module_name="FINANCE",
+                workflow_name="finance_revenue",
+                workflow=FinanceRevenueWorkflow(),
+            ),
+        ]
 
     def register_blueprints(self, app) -> None:
         """
