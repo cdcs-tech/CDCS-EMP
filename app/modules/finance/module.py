@@ -15,6 +15,10 @@ from app.core.workflow import (
     WorkflowDefinition,
 )
 
+from app.core.integration.providers import (
+    integration_provider_registry,
+)
+
 
 class FinanceModule(BaseModule):
     """
@@ -109,6 +113,43 @@ class FinanceModule(BaseModule):
         """
 
         return None
+
+    def register_integrations(self, app) -> None:
+        """
+        Register Finance-owned enterprise integration providers.
+
+        The Finance module owns the registered ``finance`` provider
+        boundary. Individual Finance operations are exposed by the
+        provider through explicit operation identifiers.
+        """
+
+        if integration_provider_registry.has(
+            "finance"
+        ):
+            return None
+
+        from app.modules.finance.integration.providers import (
+            FinanceRevenueIntegrationProvider,
+        )
+
+        provider = FinanceRevenueIntegrationProvider()
+
+        integration_provider_registry.register(
+            provider
+        )
+
+        return None
+
+    def initialize(self, app) -> None:
+        """
+        Initialize the Finance module using the standard
+        enterprise lifecycle, then register Finance-owned
+        integration providers.
+        """
+
+        super().initialize(app)
+
+        self.register_integrations(app)
 
 
 __all__ = [
