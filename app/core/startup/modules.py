@@ -76,6 +76,10 @@ from app.modules.procurement.services import (
     ProcurementFinanceCommitmentService,
 )
 
+from app.modules.finance.integration.post_commit import (
+    FinanceCateringRevenuePostCommitExecutor,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +185,7 @@ def initialize_modules(app: Flask) -> ModuleManager:
                     commitment_service=finance_commitment_service,
                 ),
                 ExpenseCateringPostCommitExecutor(),
+                FinanceCateringRevenuePostCommitExecutor(),
             ]
         )
     )

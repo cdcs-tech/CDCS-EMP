@@ -9,9 +9,13 @@ from app.modules.finance.integration.contracts import (
 from app.modules.finance.integration.providers import (
     FinanceRevenueIntegrationProvider,
 )
+from app.modules.finance.integration.post_commit import (
+    FinanceCateringRevenuePostCommitExecutor,
+)
 
 __all__ = [
     "FINANCE_CATERING_REVENUE_OPERATION",
     "FINANCE_INTEGRATION_PROVIDER",
     "FinanceRevenueIntegrationProvider",
+    "FinanceCateringRevenuePostCommitExecutor",
 ]

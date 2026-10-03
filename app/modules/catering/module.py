@@ -23,6 +23,10 @@ from app.modules.catering.security import (
     CATERING_PERMISSIONS,
 )
 
+from app.core.execution import (
+    ExecutionDefinition,
+)
+
 
 class CateringModule(BaseModule):
     """
@@ -146,6 +150,29 @@ class CateringModule(BaseModule):
                 module_name="CATERING",
                 workflow_name="stock_transfer",
                 workflow=StockTransferWorkflow(),
+            ),
+        ]
+
+    def get_execution_definitions(self):
+        """
+        Return Catering enterprise execution definitions.
+
+        Command authorization and transaction management remain
+        owned by the enterprise execution dispatcher.
+        """
+
+        from app.modules.catering.commands import (
+            RecognizeCateringRevenueCommand,
+        )
+
+        from app.modules.catering.handlers import (
+            RecognizeCateringRevenueHandler,
+        )
+
+        return [
+            ExecutionDefinition(
+                command=RecognizeCateringRevenueCommand,
+                handler=RecognizeCateringRevenueHandler(),
             ),
         ]
 
