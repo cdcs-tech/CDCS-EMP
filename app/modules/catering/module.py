@@ -169,10 +169,40 @@ class CateringModule(BaseModule):
             RecognizeCateringRevenueHandler,
         )
 
+        from app.modules.catering.security import (
+            CateringAuthorizationAdapter,
+        )
+
+        from app.modules.catering.services import (
+            CateringRevenueService,
+        )
+
+        def evaluate_catering_permission(
+            subject,
+            permission_code,
+        ):
+            from app.security.authorization import AuthorizationService
+
+            return AuthorizationService.authorize_execution(
+                subject.user_id,
+                permission_code,
+                context=subject,
+            )
+
+        authorization_adapter = CateringAuthorizationAdapter(
+            evaluate_catering_permission,
+        )
+
+        revenue_service = CateringRevenueService(
+            authorization_adapter=authorization_adapter,
+        )
+
         return [
             ExecutionDefinition(
                 command=RecognizeCateringRevenueCommand,
-                handler=RecognizeCateringRevenueHandler(),
+                handler=RecognizeCateringRevenueHandler(
+                    service=revenue_service,
+                ),
             ),
         ]
 
