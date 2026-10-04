@@ -6,12 +6,19 @@ Catering Module
 Catering Revenue repository.
 """
 
-from app.core.data.sqlalchemy_repository import SQLAlchemyRepository
-from app.modules.catering.models import CateringRevenue
+from sqlalchemy import select
+
+from app.core.data.sqlalchemy_repository import (
+    SQLAlchemyRepository,
+)
+from app.extensions import db
+from app.modules.catering.models import (
+    CateringRevenue,
+)
 
 
 class CateringRevenueRepository(
-    SQLAlchemyRepository[CateringRevenue]
+    SQLAlchemyRepository[CateringRevenue],
 ):
     """
     Repository for Catering Revenue records.
@@ -20,7 +27,43 @@ class CateringRevenueRepository(
     """
 
     def __init__(self) -> None:
-        super().__init__(CateringRevenue)
+        """
+        Initialize the Catering Revenue repository.
+        """
+
+        super().__init__(
+            CateringRevenue
+        )
+
+    def get_recognized_by_event_id(
+        self,
+        event_id: int,
+    ) -> CateringRevenue | None:
+        """
+        Return the recognized Catering Revenue record for an Event.
+
+        Revenue recognition remains an explicit Catering business
+        state; this method only retrieves an already-recognized
+        record.
+        """
+
+        statement = (
+            select(
+                CateringRevenue
+            )
+            .where(
+                CateringRevenue.event_id
+                == event_id
+            )
+            .where(
+                CateringRevenue.status
+                == "RECOGNIZED"
+            )
+        )
+
+        return db.session.execute(
+            statement
+        ).scalar_one_or_none()
 
 
 __all__ = [

@@ -78,17 +78,62 @@ class CateringExpenseCostAssociationRepository(
         contribution_id: str,
     ) -> CateringExpenseCostAssociation | None:
         """
-        Return the Catering Expense Cost Association for a stable contribution ID.
+        Return the Catering Expense Cost Association
+        for a stable contribution ID.
         """
+
         statement = (
-            select(CateringExpenseCostAssociation)
+            select(
+                CateringExpenseCostAssociation
+            )
             .where(
                 CateringExpenseCostAssociation.contribution_id
                 == contribution_id
             )
         )
 
-        return db.session.execute(statement).scalar_one_or_none()
+        return db.session.execute(
+            statement
+        ).scalar_one_or_none()
+
+    def get_consumed_by_catering_context(
+        self,
+        catering_context_type: str,
+        catering_context_reference: str,
+    ) -> list[CateringExpenseCostAssociation]:
+        """
+        Return consumed Catering associations for a Catering context.
+
+        The lookup is intentionally scoped to Catering-owned
+        association state. It does not access or interpret the
+        associated Expense entity or its lifecycle.
+        """
+
+        statement = (
+            select(
+                CateringExpenseCostAssociation
+            )
+            .where(
+                CateringExpenseCostAssociation.catering_context_type
+                == catering_context_type
+            )
+            .where(
+                CateringExpenseCostAssociation.catering_context_reference
+                == catering_context_reference
+            )
+            .where(
+                CateringExpenseCostAssociation.status
+                == "CONSUMED"
+            )
+        )
+
+        return list(
+            db.session.execute(
+                statement
+            )
+            .scalars()
+            .all()
+        )
 
 
 __all__ = [

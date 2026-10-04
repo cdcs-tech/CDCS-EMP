@@ -72,7 +72,48 @@ def test_get_by_contribution_id_queries_stable_contribution_identity():
     session.execute.assert_called_once()
 
     statement = session.execute.call_args.args[0]
-    compiled = statement.compile(compile_kwargs={"literal_binds": True})
+    compiled = statement.compile(
+        compile_kwargs={"literal_binds": True}
+    )
 
     assert "contribution_id" in str(compiled)
     assert "expense-17-catering-event-1" in str(compiled)
+
+
+def test_get_consumed_by_catering_context_queries_consumed_associations():
+    repository = CateringExpenseCostAssociationRepository()
+
+    consumed_association = Mock(
+        spec=CateringExpenseCostAssociation,
+    )
+
+    session = Mock()
+    session.execute.return_value.scalars.return_value.all.return_value = [
+        consumed_association
+    ]
+
+    with patch(
+        "app.modules.catering.repositories.expense_cost_association.db.session",
+        session,
+    ):
+        result = repository.get_consumed_by_catering_context(
+            "CATERING_EVENT",
+            "EVENT-42",
+        )
+
+    assert result == [consumed_association]
+    session.execute.assert_called_once()
+
+    statement = session.execute.call_args.args[0]
+    compiled = statement.compile(
+        compile_kwargs={"literal_binds": True}
+    )
+
+    compiled_sql = str(compiled)
+
+    assert "catering_context_type" in compiled_sql
+    assert "CATERING_EVENT" in compiled_sql
+    assert "catering_context_reference" in compiled_sql
+    assert "EVENT-42" in compiled_sql
+    assert "status" in compiled_sql
+    assert "CONSUMED" in compiled_sql
