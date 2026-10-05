@@ -1,0 +1,298 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Customers{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Customers</h1>
+            <p class="text-muted mb-0">
+                Manage Catering customers.
+            </p>
+        </div>
+
+        <div>
+            <a href="{{ url_for('catering.create_customer') }}" class="btn btn-primary">
+                New Customer
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <form method="get" class="row g-3 mb-4">
+
+                <div class="col-md-4">
+                    <label for="search" class="form-label">
+                        Search
+                    </label>
+
+                    <input type="text" class="form-control" id="search" name="search"
+                        value="{{ request.args.get('search', '') }}" placeholder="Search customers...">
+                </div>
+
+                <div class="col-md-2">
+                    <label for="status" class="form-label">
+                        Status
+                    </label>
+
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All</option>
+
+                        <option value="ACTIVE" {% if request.args.get('status')=='ACTIVE' %} selected {% endif %}>
+                            Active
+                        </option>
+
+                        <option value="INACTIVE" {% if request.args.get('status')=='INACTIVE' %} selected {% endif %}>
+                            Inactive
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="sort" class="form-label">
+                        Sort By
+                    </label>
+
+                    <select class="form-select" id="sort" name="sort">
+                        {% for field in [
+                        'name',
+                        'customer_type',
+                        'phone',
+                        'email',
+                        'status'
+                        ] %}
+                        <option value="{{ field }}" {% if request.args.get('sort', 'name' )==field %} selected {% endif
+                            %}>
+                            {{ field|replace('_', ' ')|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="direction" class="form-label">
+                        Direction
+                    </label>
+
+                    <select class="form-select" id="direction" name="direction">
+                        <option value="asc" {% if request.args.get('direction', 'asc' )=='asc' %} selected {% endif %}>
+                            Ascending
+                        </option>
+
+                        <option value="desc" {% if request.args.get('direction')=='desc' %} selected {% endif %}>
+                            Descending
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="page_size" class="form-label">
+                        Page Size
+                    </label>
+
+                    <select class="form-select" id="page_size" name="page_size">
+                        {% for size in [10, 25, 50, 100] %}
+                        <option value="{{ size }}" {% if request.args.get('page_size', '25' )|int==size %} selected {%
+                            endif %}>
+                            {{ size }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        Apply Filters
+                    </button>
+
+                    <a href="{{ url_for('catering.customers') }}" class="btn btn-outline-secondary">
+                        Clear
+                    </a>
+                </div>
+
+            </form>
+
+            {% if customers %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Customer Type</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for customer in customers %}
+
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    {{ customer.name }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                {{ customer.customer_type|title }}
+                            </td>
+
+                            <td>
+                                {{ customer.phone or '—' }}
+                            </td>
+
+                            <td>
+                                {{ customer.email or '—' }}
+                            </td>
+
+                            <td>
+                                {% if customer.status == 'ACTIVE' %}
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end">
+
+                                <div class="btn-group" role="group">
+
+                                    <a href="{{ url_for(
+                                            'catering.view_customer',
+                                            customer_id=customer.id
+                                        ) }}" class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+
+                                    <a href="{{ url_for(
+                                            'catering.edit_customer',
+                                            customer_id=customer.id
+                                        ) }}" class="btn btn-sm btn-outline-secondary">
+                                        Edit
+                                    </a>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if pagination.total_pages > 1 %}
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+
+                <div class="text-muted small">
+                    Page {{ pagination.page }}
+                    of {{ pagination.total_pages }}
+                    · {{ pagination.total_records }} customer(s)
+                </div>
+
+                <nav aria-label="Customer pagination">
+
+                    <ul class="pagination mb-0">
+
+                        {% if pagination.has_previous %}
+
+                        <li class="page-item">
+
+                            <a class="page-link" href="{{ url_for(
+                                    'catering.customers',
+                                    page=pagination.page - 1,
+                                    page_size=pagination.page_size,
+                                    search=request.args.get('search', ''),
+                                    status=request.args.get('status', ''),
+                                    sort=request.args.get('sort', 'name'),
+                                    direction=request.args.get('direction', 'asc')
+                                ) }}">
+                                Previous
+                            </a>
+
+                        </li>
+
+                        {% endif %}
+
+                        <li class="page-item active">
+
+                            <span class="page-link">
+                                {{ pagination.page }}
+                            </span>
+
+                        </li>
+
+                        {% if pagination.has_next %}
+
+                        <li class="page-item">
+
+                            <a class="page-link" href="{{ url_for(
+                                    'catering.customers',
+                                    page=pagination.page + 1,
+                                    page_size=pagination.page_size,
+                                    search=request.args.get('search', ''),
+                                    status=request.args.get('status', ''),
+                                    sort=request.args.get('sort', 'name'),
+                                    direction=request.args.get('direction', 'asc')
+                                ) }}">
+                                Next
+                            </a>
+
+                        </li>
+
+                        {% endif %}
+
+                    </ul>
+
+                </nav>
+
+            </div>
+
+            {% endif %}
+
+            {% else %}
+
+            {% if request.args.get('search') or request.args.get('status') %}
+
+            <div class="alert alert-info">
+                No customers match the current filters.
+            </div>
+
+            {% else %}
+
+            <div class="alert alert-info">
+                No customers have been created yet.
+            </div>
+
+            {% endif %}
+
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -26,6 +26,7 @@ from .expense_cost_association import (
 from .catering_revenue import (
     CateringRevenueRepository,
 )
+from .customer import CustomerRepository
 
 __all__ = [
     "ProductRepository",
@@ -42,4 +43,5 @@ __all__ = [
     "CateringPurchaseRequirementRepository",
     "CateringExpenseCostAssociationRepository",
     "CateringRevenueRepository",
+    "CustomerRepository",
 ]

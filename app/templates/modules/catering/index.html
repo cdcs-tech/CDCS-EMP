@@ -17,6 +17,29 @@ Catering
 
     <div class="row g-4">
 
+        {% if can_read_customers %}
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h5">
+                        Customers
+                    </h2>
+
+                    <p class="text-muted">
+                        Manage customers receiving Catering
+                        services.
+                    </p>
+
+                    <a href="{{ url_for('catering.customers') }}" class="btn btn-primary">
+                        Manage Customers
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+
         {% if can_read_categories %}
 
         <div class="col-md-6">

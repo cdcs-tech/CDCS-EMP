@@ -27,6 +27,8 @@ from app.modules.catering.forms.transfer import (
     StockTransferForm,
 )
 
+from .customer import CustomerForm
+
 __all__ = [
     "ProductForm",
     "ProductCategoryForm",
@@ -34,4 +36,5 @@ __all__ = [
     "InventoryLocationForm",
     "StockMovementForm",
     "StockTransferForm",
+    "CustomerForm",
 ]

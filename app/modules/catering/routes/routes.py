@@ -20,6 +20,7 @@ from app.core.data import QueryOptions
 from app.security.decorators import require_permission
 
 from app.modules.catering.forms import (
+    CustomerForm,
     InventoryLocationForm,
     ProductCategoryForm,
     ProductForm,
@@ -46,6 +47,10 @@ from app.modules.catering.security import (
     CATERING_STOCK_TRANSFER_CREATE,
     CATERING_STOCK_TRANSFER_POST,
     CATERING_STOCK_TRANSFER_READ,
+    CATERING_CUSTOMER_CREATE,
+    CATERING_CUSTOMER_DELETE,
+    CATERING_CUSTOMER_READ,
+    CATERING_CUSTOMER_UPDATE,
 )
 
 from app.modules.catering.services import (
@@ -56,6 +61,7 @@ from app.modules.catering.services import (
     StockItemService,
     StockMovementService,
     StockTransferService,
+    CustomerService,
 )
 
 from app.modules.catering.security.authorization import (
@@ -64,6 +70,14 @@ from app.modules.catering.security.authorization import (
 
 from . import catering_bp
 
+
+_CUSTOMER_SORT_FIELDS = {
+    "name",
+    "customer_type",
+    "phone",
+    "email",
+    "status",
+}
 
 _CATEGORY_SORT_FIELDS = {
     "name",
@@ -214,6 +228,36 @@ def _parse_status_filter(
     return {
         "is_active": True,
     }
+
+
+def _build_customer_query_options() -> QueryOptions:
+    """
+    Build controlled query options for Customers.
+    """
+
+    return QueryOptions(
+        page=_parse_positive_int(
+            request.args.get("page"),
+            1,
+        ),
+        page_size=_parse_page_size(
+            request.args.get("page_size"),
+        ),
+        sort_by=_parse_sort(
+            request.args.get("sort"),
+            _CUSTOMER_SORT_FIELDS,
+            "name",
+        ),
+        sort_direction=_parse_sort_direction(
+            request.args.get("direction"),
+        ),
+        search=request.args.get(
+            "search"
+        ),
+        filters=_parse_status_filter(
+            request.args.get("status"),
+        ),
+    )
 
 
 def _build_category_query_options() -> QueryOptions:
@@ -465,6 +509,9 @@ def index():
 
     return render_template(
         "modules/catering/index.html",
+        can_read_customers=current_user.has_permission(
+            CATERING_CUSTOMER_READ.name
+        ),
         can_read_categories=current_user.has_permission(
             CATERING_PRODUCT_CATEGORY_READ.name
         ),
@@ -486,6 +533,279 @@ def index():
         can_read_stock_transfers=current_user.has_permission(
             CATERING_STOCK_TRANSFER_READ.name
         ),
+    )
+
+
+@catering_bp.route(
+    "/customers/"
+)
+@login_required
+@require_permission(
+    CATERING_CUSTOMER_READ.name
+)
+def customers():
+    """
+    Render the Customer management list.
+    """
+
+    service = CustomerService()
+
+    result = service.paginate(
+        _build_customer_query_options()
+    )
+
+    return render_template(
+        "modules/catering/customers/index.html",
+        customers=result.items,
+        pagination=result,
+    )
+
+
+@catering_bp.route(
+    "/customers/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_CUSTOMER_CREATE.name
+)
+def create_customer():
+    """
+    Create a Catering Customer.
+    """
+
+    form = CustomerForm()
+
+    if form.validate_on_submit():
+
+        service = CustomerService()
+
+        customer = service.create(
+            service.repository.model(
+                name=form.name.data,
+                customer_type=form.customer_type.data,
+                phone=form.phone.data,
+                email=form.email.data,
+                address=form.address.data,
+                notes=form.notes.data,
+            )
+        )
+
+        flash(
+            "Customer created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.customers"
+            )
+        )
+
+    return render_template(
+        "modules/catering/customers/create.html",
+        form=form,
+    )
+
+
+@catering_bp.route(
+    "/customers/<int:customer_id>"
+)
+@login_required
+@require_permission(
+    CATERING_CUSTOMER_READ.name
+)
+def view_customer(
+    customer_id,
+):
+    """
+    Render a Customer detail view.
+    """
+
+    service = CustomerService()
+
+    try:
+        customer = service.get(
+            customer_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Customer not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.customers"
+            )
+        )
+
+    return render_template(
+        "modules/catering/customers/view.html",
+        customer=customer,
+    )
+
+
+@catering_bp.route(
+    "/customers/<int:customer_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_CUSTOMER_UPDATE.name
+)
+def edit_customer(
+    customer_id,
+):
+    """
+    Edit a Catering Customer.
+    """
+
+    service = CustomerService()
+
+    try:
+        customer = service.get(
+            customer_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Customer not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.customers"
+            )
+        )
+
+    form = CustomerForm(
+        obj=customer
+    )
+
+    if form.validate_on_submit():
+
+        customer.name = form.name.data
+        customer.customer_type = (
+            form.customer_type.data
+        )
+        customer.phone = form.phone.data
+        customer.email = form.email.data
+        customer.address = form.address.data
+        customer.notes = form.notes.data
+
+        service.update(
+            customer
+        )
+
+        flash(
+            "Customer updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.view_customer",
+                customer_id=customer.id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/customers/edit.html",
+        form=form,
+        customer=customer,
+    )
+
+
+@catering_bp.route(
+    "/customers/<int:customer_id>/activate",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_CUSTOMER_UPDATE.name
+)
+def activate_customer(
+    customer_id,
+):
+    """
+    Activate a Catering Customer.
+    """
+
+    service = CustomerService()
+
+    try:
+        customer = service.activate(
+            customer_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Customer not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.customers"
+            )
+        )
+
+    flash(
+        "Customer activated successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "catering.view_customer",
+            customer_id=customer.id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/customers/<int:customer_id>/deactivate",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_CUSTOMER_UPDATE.name
+)
+def deactivate_customer(
+    customer_id,
+):
+    """
+    Deactivate a Catering Customer.
+    """
+
+    service = CustomerService()
+
+    try:
+        customer = service.deactivate(
+            customer_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Customer not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.customers"
+            )
+        )
+
+    flash(
+        "Customer deactivated successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "catering.view_customer",
+            customer_id=customer.id,
+        )
     )
 
 
