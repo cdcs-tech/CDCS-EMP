@@ -526,6 +526,45 @@ Validate the complete business flow:
 
 **Acceptance gate:** The complete pilot business flow executes without violating module boundaries.
 
+## 7.4 Stream C Completion Status
+
+**Status:** Technically Complete
+
+Stream C — Finance / Procurement / Expense Integration has completed its planned implementation and end-to-end technical validation through **C6 — End-to-End Business Integration**.
+
+C6.1 through C6.8 have been completed. The C6.8 acceptance scenario validated the complete pilot business flow through event profitability:
+
+**Customer → Event → Quotation → Requirements → Procurement → Inventory → Production/Delivery → Revenue → Costs → Profitability**
+
+The completed C6.8 validation established that the flow can be composed across the existing CDCS-EMP business capabilities while preserving the defined module ownership and integration boundaries.
+
+### C6 Technical Acceptance Evidence
+
+- **C6.8 full pilot E2E acceptance:** 1 passed;
+- **C6 integration regression:** 194 passed;
+- **Full CDCS-EMP regression:** 3,113 passed;
+- **Final Git checkpoint:** `94398da` — `test(ssrc): validate full pilot business flow`;
+- **Working tree:** clean at the C6 checkpoint.
+
+### C6 Acceptance Position
+
+The C6 technical acceptance gate is satisfied:
+
+> The complete pilot business flow executes without violating module boundaries.
+
+C6 technical acceptance does **not** constitute SSRC user acceptance or final pilot acceptance.
+
+The roadmap's **Gate 6 — SSRC Acceptance Ready** separately requires configuration, users, permissions, master data, workflows, end-to-end scenarios, and **UAT**. Browser-based user verification of the pilot-critical scenario therefore remains a required pilot-readiness activity.
+
+The C6.8 technical validation also ends at **Profitability**. The subsequent **Management Report** and **KPI / Dashboard** steps defined in the pilot-critical end-to-end scenario remain associated with **Stream D — SSRC Reporting & Dashboards** and have not been treated as completed by C6.
+
+Accordingly:
+
+- **Stream C / C6 technical acceptance:** Complete;
+- **C6 browser / UAT validation:** Pending;
+- **Gate 6 — SSRC Acceptance Ready:** Not yet claimed;
+- **Stream D reporting, KPI, and dashboard validation:** Pending.
+
 ---
 
 # 8. Stream D — SSRC Reporting & Dashboards
