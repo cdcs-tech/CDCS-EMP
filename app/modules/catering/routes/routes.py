@@ -20,6 +20,7 @@ from app.core.data import QueryOptions
 from app.security.decorators import require_permission
 
 from app.modules.catering.forms import (
+    CateringEventForm,
     CateringRequestForm,
     CustomerForm,
     InventoryLocationForm,
@@ -58,6 +59,11 @@ from app.modules.catering.security import (
     CATERING_REQUEST_READ,
     CATERING_REQUEST_SUBMIT,
     CATERING_REQUEST_UPDATE,
+    CATERING_EVENT_CANCEL,
+    CATERING_EVENT_CREATE,
+    CATERING_EVENT_DELETE,
+    CATERING_EVENT_READ,
+    CATERING_EVENT_UPDATE,
 )
 
 from app.modules.catering.services import (
@@ -70,6 +76,8 @@ from app.modules.catering.services import (
     StockTransferService,
     CustomerService,
     CateringRequestService,
+    CateringEventService,
+    CateringRequestEventCoordinationService,
 )
 
 from app.modules.catering.security.authorization import (
@@ -547,6 +555,9 @@ def index():
         ),
                 can_read_requests=current_user.has_permission(
             CATERING_REQUEST_READ.name
+        ),
+        can_read_events=current_user.has_permission(
+            CATERING_EVENT_READ.name
         ),
         can_read_categories=current_user.has_permission(
             CATERING_PRODUCT_CATEGORY_READ.name
@@ -1253,6 +1264,349 @@ def delete_catering_request(
     return redirect(
         url_for(
             "catering.catering_requests"
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/"
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_READ.name
+)
+def catering_events():
+    """
+    Render the Catering Event list.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    result = service.repository.paginate(
+        QueryOptions(
+            page=_parse_positive_int(
+                request.args.get("page"),
+                1,
+            ),
+            page_size=_parse_page_size(
+                request.args.get("page_size")
+            ),
+            sort_by="event_date",
+            sort_direction=_parse_sort_direction(
+                request.args.get("direction")
+            ),
+        )
+    )
+
+    return render_template(
+        "modules/catering/events/index.html",
+        events=result.items,
+        pagination=result,
+    )
+
+
+@catering_bp.route(
+    "/requests/<int:request_id>/create-event",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_CREATE.name
+)
+def create_catering_event_from_request(
+    request_id,
+):
+    """
+    Create an operational Catering Event from an existing Request.
+    """
+
+    request_service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_request = request_service.get(
+            request_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Request not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_requests"
+            )
+        )
+
+    form = CateringEventForm()
+
+    if request.method == "GET":
+        form.event_date.data = catering_request.service_date
+        form.service_details.data = catering_request.requested_service
+        form.attendance.data = catering_request.attendance
+        form.operational_notes.data = (
+            catering_request.notes
+            or catering_request.requirements
+        )
+
+    if form.validate_on_submit():
+
+        coordination_service = (
+            CateringRequestEventCoordinationService(
+                authorization_adapter=(
+                    _build_catering_authorization_adapter()
+                ),
+            )
+        )
+
+        catering_event = (
+            coordination_service.create_event_from_request(
+                request_id,
+                subject=current_user,
+                event_date=form.event_date.data,
+                service_details=form.service_details.data,
+                attendance=form.attendance.data,
+                operational_notes=form.operational_notes.data,
+            )
+        )
+
+        flash(
+            "Catering Event created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.view_catering_event",
+                event_id=catering_event.id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/events/create.html",
+        form=form,
+        catering_request=catering_request,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>"
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_READ.name
+)
+def view_catering_event(
+    event_id,
+):
+    """
+    Render a Catering Event detail view.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(
+            event_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    return render_template(
+        "modules/catering/events/view.html",
+        catering_event=catering_event,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_UPDATE.name
+)
+def edit_catering_event(
+    event_id,
+):
+    """
+    Edit the operational fields of a Catering Event.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(
+            event_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    form = CateringEventForm(
+        obj=catering_event,
+    )
+
+    if form.validate_on_submit():
+
+        catering_event.event_date = (
+            form.event_date.data
+        )
+        catering_event.service_details = (
+            form.service_details.data
+        )
+        catering_event.attendance = (
+            form.attendance.data
+        )
+        catering_event.operational_notes = (
+            form.operational_notes.data
+        )
+
+        service.update(
+            catering_event,
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Event updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.view_catering_event",
+                event_id=catering_event.id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/events/edit.html",
+        form=form,
+        catering_event=catering_event,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/cancel",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_CANCEL.name
+)
+def cancel_catering_event(
+    event_id,
+):
+    """
+    Cancel a Catering Event.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(
+            event_id
+        )
+        service.cancel(
+            catering_event,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    flash(
+        "Catering Event cancelled successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/delete",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_DELETE.name
+)
+def delete_catering_event(
+    event_id,
+):
+    """
+    Delete a Catering Event.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        service.delete(
+            event_id,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    flash(
+        "Catering Event deleted successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "catering.catering_events"
         )
     )
 

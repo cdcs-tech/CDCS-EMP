@@ -120,10 +120,17 @@ subtitle="View Catering customer request information."
 
             {% elif catering_request.status == "SUBMITTED" %}
 
+            <a href="{{ url_for(
+            'catering.create_catering_event_from_request',
+            request_id=catering_request.id
+        ) }}" class="btn btn-primary">
+                Create Event
+            </a>
+
             <form method="post" action="{{ url_for(
-                    'catering.cancel_catering_request',
-                    request_id=catering_request.id
-                ) }}" class="d-inline">
+        'catering.cancel_catering_request',
+        request_id=catering_request.id
+    ) }}" class="d-inline">
 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 

@@ -12,6 +12,9 @@ from .catering_quotation import CateringQuotationService
 from .catering_quotation_event_coordination import (
     CateringQuotationEventCoordinationService,
 )
+from .catering_request_event_coordination import (
+    CateringRequestEventCoordinationService,
+)
 from .catering_request import CateringRequestService
 from .location import InventoryLocationService
 from .movement import StockMovementService
@@ -44,6 +47,7 @@ __all__ = [
     "CateringRequestService",
     "CateringQuotationService",
     "CateringQuotationEventCoordinationService",
+    "CateringRequestEventCoordinationService",
     "EventRequirementService",
     "CateringProcurementHandoffService",
     "CateringExpenseCostAssociationService",

@@ -1,0 +1,146 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Create Catering Event{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">
+            Create Catering Event
+        </h1>
+        <p class="text-muted mb-0">
+            Create an operational Event from Catering Request #{{ catering_request.id }}.
+        </p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+
+            <h2 class="h5 mb-3">
+                Source Request
+            </h2>
+
+            <dl class="row mb-0">
+
+                <dt class="col-sm-3">
+                    Customer
+                </dt>
+                <dd class="col-sm-9">
+                    {{ catering_request.customer.name }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Request Date
+                </dt>
+                <dd class="col-sm-9">
+                    {{ catering_request.request_date }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Requested Service
+                </dt>
+                <dd class="col-sm-9">
+                    {{ catering_request.requested_service }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Service Date
+                </dt>
+                <dd class="col-sm-9">
+                    {{ catering_request.service_date }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Attendance
+                </dt>
+                <dd class="col-sm-9">
+                    {{ catering_request.attendance }}
+                </dd>
+
+            </dl>
+
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <form method="POST">
+
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.event_date.label(class="form-label") }}
+                    {{ form.event_date(class="form-control") }}
+
+                    {% for error in form.event_date.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.service_details.label(class="form-label") }}
+                    {{ form.service_details(
+                    class="form-control",
+                    rows="4"
+                    ) }}
+
+                    {% for error in form.service_details.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.attendance.label(class="form-label") }}
+                    {{ form.attendance(class="form-control") }}
+
+                    {% for error in form.attendance.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.operational_notes.label(class="form-label") }}
+                    {{ form.operational_notes(
+                    class="form-control",
+                    rows="4"
+                    ) }}
+
+                    {% for error in form.operational_notes.errors %}
+                    <div class="text-danger small">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+                        Create Event
+                    </button>
+
+                    <a href="{{ url_for(
+                            'catering.view_catering_request',
+                            request_id=catering_request.id
+                        ) }}" class="btn btn-outline-secondary">
+                        Back to Request
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

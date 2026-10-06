@@ -64,6 +64,29 @@ Catering
 
         {% endif %}
 
+        {% if can_read_events %}
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h5">
+                        Catering Events
+                    </h2>
+
+                    <p class="text-muted">
+                        Manage operational Catering engagements
+                        created from customer requests.
+                    </p>
+
+                    <a href="{{ url_for('catering.catering_events') }}" class="btn btn-primary">
+                        Manage Catering Events
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+
         {% if can_read_categories %}
 
         <div class="col-md-6">

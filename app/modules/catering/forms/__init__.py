@@ -31,6 +31,8 @@ from .customer import CustomerForm
 
 from .catering_request import CateringRequestForm
 
+from app.modules.catering.forms.catering_event import CateringEventForm
+
 __all__ = [
     "ProductForm",
     "ProductCategoryForm",
@@ -39,5 +41,6 @@ __all__ = [
     "StockMovementForm",
     "StockTransferForm",
     "CustomerForm",
-    "CateringRequestForm"
+    "CateringRequestForm",
+    "CateringEventForm"
 ]
