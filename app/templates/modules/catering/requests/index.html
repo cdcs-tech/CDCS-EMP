@@ -1,0 +1,206 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Catering Requests{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Catering Requests</h1>
+            <p class="text-muted mb-0">
+                Manage initial Catering customer requests.
+            </p>
+        </div>
+
+        <div>
+            <a href="{{ url_for('catering.create_catering_request') }}" class="btn btn-primary">
+                New Catering Request
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            {% if requests %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Request Date</th>
+                            <th>Customer</th>
+                            <th>Requested Service</th>
+                            <th>Service Date</th>
+                            <th>Attendance</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for catering_request in requests %}
+
+                        <tr>
+
+                            <td>
+                                {{ catering_request.request_date }}
+                            </td>
+
+                            <td>
+                                <strong>
+                                    {{ catering_request.customer.name }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                {{ catering_request.requested_service }}
+                            </td>
+
+                            <td>
+                                {{ catering_request.service_date }}
+                            </td>
+
+                            <td>
+                                {{ catering_request.attendance }}
+                            </td>
+
+                            <td>
+                                {% if catering_request.status == "DRAFT" %}
+                                <span class="badge bg-secondary">
+                                    Draft
+                                </span>
+                                {% elif catering_request.status == "SUBMITTED" %}
+                                <span class="badge bg-success">
+                                    Submitted
+                                </span>
+                                {% elif catering_request.status == "CANCELLED" %}
+                                <span class="badge bg-danger">
+                                    Cancelled
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ catering_request.status }}
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end">
+
+                                <div class="btn-group" role="group">
+
+                                    <a href="{{ url_for(
+                                            'catering.view_catering_request',
+                                            request_id=catering_request.id
+                                        ) }}" class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+
+                                    {% if catering_request.status == "DRAFT" %}
+
+                                    <a href="{{ url_for(
+                                            'catering.edit_catering_request',
+                                            request_id=catering_request.id
+                                        ) }}" class="btn btn-sm btn-outline-secondary">
+                                        Edit
+                                    </a>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if pagination.total_pages > 1 %}
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+
+                <div class="text-muted small">
+                    Page {{ pagination.page }}
+                    of {{ pagination.total_pages }}
+                    · {{ pagination.total_records }} request(s)
+                </div>
+
+                <nav aria-label="Catering Request pagination">
+
+                    <ul class="pagination mb-0">
+
+                        {% if pagination.has_previous %}
+
+                        <li class="page-item">
+
+                            <a class="page-link" href="{{ url_for(
+                                    'catering.catering_requests',
+                                    page=pagination.page - 1,
+                                    page_size=pagination.page_size,
+                                    direction=request.args.get('direction', 'asc')
+                                ) }}">
+                                Previous
+                            </a>
+
+                        </li>
+
+                        {% endif %}
+
+                        <li class="page-item active">
+
+                            <span class="page-link">
+                                {{ pagination.page }}
+                            </span>
+
+                        </li>
+
+                        {% if pagination.has_next %}
+
+                        <li class="page-item">
+
+                            <a class="page-link" href="{{ url_for(
+                                    'catering.catering_requests',
+                                    page=pagination.page + 1,
+                                    page_size=pagination.page_size,
+                                    direction=request.args.get('direction', 'asc')
+                                ) }}">
+                                Next
+                            </a>
+
+                        </li>
+
+                        {% endif %}
+
+                    </ul>
+
+                </nav>
+
+            </div>
+
+            {% endif %}
+
+            {% else %}
+
+            <div class="alert alert-info">
+                No Catering requests have been created yet.
+            </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

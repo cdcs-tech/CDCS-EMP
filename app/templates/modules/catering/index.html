@@ -40,6 +40,30 @@ Catering
 
         {% endif %}
 
+        {% if can_read_requests %}
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h5">
+                        Catering Requests
+                    </h2>
+
+                    <p class="text-muted">
+                        Manage customer requests for Catering
+                        services and prepare them for operational
+                        progression.
+                    </p>
+
+                    <a href="{{ url_for('catering.catering_requests') }}" class="btn btn-primary">
+                        Manage Catering Requests
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+
         {% if can_read_categories %}
 
         <div class="col-md-6">

@@ -20,6 +20,7 @@ from app.core.data import QueryOptions
 from app.security.decorators import require_permission
 
 from app.modules.catering.forms import (
+    CateringRequestForm,
     CustomerForm,
     InventoryLocationForm,
     ProductCategoryForm,
@@ -51,6 +52,12 @@ from app.modules.catering.security import (
     CATERING_CUSTOMER_DELETE,
     CATERING_CUSTOMER_READ,
     CATERING_CUSTOMER_UPDATE,
+    CATERING_REQUEST_CANCEL,
+    CATERING_REQUEST_CREATE,
+    CATERING_REQUEST_DELETE,
+    CATERING_REQUEST_READ,
+    CATERING_REQUEST_SUBMIT,
+    CATERING_REQUEST_UPDATE,
 )
 
 from app.modules.catering.services import (
@@ -62,6 +69,7 @@ from app.modules.catering.services import (
     StockMovementService,
     StockTransferService,
     CustomerService,
+    CateringRequestService,
 )
 
 from app.modules.catering.security.authorization import (
@@ -537,6 +545,9 @@ def index():
         can_read_customers=current_user.has_permission(
             CATERING_CUSTOMER_READ.name
         ),
+                can_read_requests=current_user.has_permission(
+            CATERING_REQUEST_READ.name
+        ),
         can_read_categories=current_user.has_permission(
             CATERING_PRODUCT_CATEGORY_READ.name
         ),
@@ -830,6 +841,418 @@ def deactivate_customer(
         url_for(
             "catering.view_customer",
             customer_id=customer.id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/requests/"
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_READ.name
+)
+def catering_requests():
+    """
+    Render the Catering Request management list.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    result = service.repository.paginate(
+        QueryOptions(
+            page=_parse_positive_int(
+                request.args.get("page"),
+                1,
+            ),
+            page_size=_parse_page_size(
+                request.args.get("page_size"),
+            ),
+            sort_by="request_date",
+            sort_direction=_parse_sort_direction(
+                request.args.get("direction"),
+            ),
+        )
+    )
+
+    return render_template(
+        "modules/catering/requests/index.html",
+        requests=result.items,
+        pagination=result,
+    )
+
+
+@catering_bp.route(
+    "/requests/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_CREATE.name
+)
+def create_catering_request():
+    """
+    Create a Catering Request.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    form = CateringRequestForm()
+
+    customers = CustomerService().paginate(
+        QueryOptions(
+            page=1,
+            page_size=100,
+            filters={
+                "status": "ACTIVE",
+            },
+            sort_by="name",
+            sort_direction="asc",
+        )
+    )
+
+    form.customer_id.choices = [
+        (
+            customer.id,
+            customer.name,
+        )
+        for customer in customers.items
+    ]
+
+    if form.validate_on_submit():
+
+        catering_request = service.create(
+            service.repository.model(
+                customer_id=form.customer_id.data,
+                request_date=form.request_date.data,
+                requested_service=form.requested_service.data,
+                service_date=form.service_date.data,
+                attendance=form.attendance.data,
+                requirements=form.requirements.data,
+                notes=form.notes.data,
+            ),
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Request created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.view_catering_request",
+                request_id=catering_request.id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/requests/create.html",
+        form=form,
+    )
+
+
+@catering_bp.route(
+    "/requests/<int:request_id>"
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_READ.name
+)
+def view_catering_request(
+    request_id,
+):
+    """
+    Render a Catering Request detail view.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_request = service.get(
+            request_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Request not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_requests"
+            )
+        )
+
+    return render_template(
+        "modules/catering/requests/view.html",
+        catering_request=catering_request,
+    )
+
+
+@catering_bp.route(
+    "/requests/<int:request_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_UPDATE.name
+)
+def edit_catering_request(
+    request_id,
+):
+    """
+    Edit a Catering Request.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_request = service.get(
+            request_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Request not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_requests"
+            )
+        )
+
+    customers = CustomerService().paginate(
+        QueryOptions(
+            page=1,
+            page_size=100,
+            filters={
+                "status": "ACTIVE",
+            },
+            sort_by="name",
+            sort_direction="asc",
+        )
+    )
+
+    form = CateringRequestForm(
+        obj=catering_request
+    )
+
+    form.customer_id.choices = [
+        (
+            customer.id,
+            customer.name,
+        )
+        for customer in customers.items
+    ]
+
+    if form.validate_on_submit():
+
+        catering_request.customer_id = (
+            form.customer_id.data
+        )
+        catering_request.request_date = (
+            form.request_date.data
+        )
+        catering_request.requested_service = (
+            form.requested_service.data
+        )
+        catering_request.service_date = (
+            form.service_date.data
+        )
+        catering_request.attendance = (
+            form.attendance.data
+        )
+        catering_request.requirements = (
+            form.requirements.data
+        )
+        catering_request.notes = (
+            form.notes.data
+        )
+
+        service.update(
+            catering_request,
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Request updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.view_catering_request",
+                request_id=catering_request.id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/requests/edit.html",
+        form=form,
+        catering_request=catering_request,
+    )
+
+
+@catering_bp.route(
+    "/requests/<int:request_id>/submit",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_SUBMIT.name
+)
+def submit_catering_request(
+    request_id,
+):
+    """
+    Submit a Catering Request.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_request = service.get(
+            request_id
+        )
+
+        service.submit(
+            catering_request,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Request not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_requests"
+            )
+        )
+
+    flash(
+        "Catering Request submitted successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_request",
+            request_id=request_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/requests/<int:request_id>/cancel",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_CANCEL.name
+)
+def cancel_catering_request(
+    request_id,
+):
+    """
+    Cancel a Catering Request.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_request = service.get(
+            request_id
+        )
+
+        service.cancel(
+            catering_request,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Request not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_requests"
+            )
+        )
+
+    flash(
+        "Catering Request cancelled successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_request",
+            request_id=request_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/requests/<int:request_id>/delete",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_DELETE.name
+)
+def delete_catering_request(
+    request_id,
+):
+    """
+    Delete a Catering Request.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        service.delete(
+            request_id,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Request not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_requests"
+            )
+        )
+
+    flash(
+        "Catering Request deleted successfully.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "catering.catering_requests"
         )
     )
 

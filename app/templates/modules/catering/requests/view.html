@@ -1,0 +1,166 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Catering Request Details{% endblock %}
+
+{% block page_content %}
+
+{% with
+title="Catering Request Details",
+subtitle="View Catering customer request information."
+%}
+{% include "components/page_header.html" %}
+{% endwith %}
+
+<div class="card">
+
+    <div class="card-header">
+        <h5 class="mb-0">Catering Request Details</h5>
+    </div>
+
+    <div class="card-body">
+
+        <dl class="row mb-4">
+
+            <dt class="col-sm-3">Customer</dt>
+            <dd class="col-sm-9">
+                {{ catering_request.customer.name }}
+            </dd>
+
+            <dt class="col-sm-3">Request Date</dt>
+            <dd class="col-sm-9">
+                {{ catering_request.request_date }}
+            </dd>
+
+            <dt class="col-sm-3">Requested Service</dt>
+            <dd class="col-sm-9">
+                {{ catering_request.requested_service }}
+            </dd>
+
+            <dt class="col-sm-3">Service Date</dt>
+            <dd class="col-sm-9">
+                {{ catering_request.service_date }}
+            </dd>
+
+            <dt class="col-sm-3">Attendance</dt>
+            <dd class="col-sm-9">
+                {{ catering_request.attendance }}
+            </dd>
+
+            <dt class="col-sm-3">Requirements</dt>
+            <dd class="col-sm-9">
+                {{ catering_request.requirements or "-" }}
+            </dd>
+
+            <dt class="col-sm-3">Notes</dt>
+            <dd class="col-sm-9">
+                {{ catering_request.notes or "-" }}
+            </dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+
+                {% if catering_request.status == "DRAFT" %}
+                <span class="badge bg-secondary">
+                    Draft
+                </span>
+                {% elif catering_request.status == "SUBMITTED" %}
+                <span class="badge bg-success">
+                    Submitted
+                </span>
+                {% elif catering_request.status == "CANCELLED" %}
+                <span class="badge bg-danger">
+                    Cancelled
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">
+                    {{ catering_request.status }}
+                </span>
+                {% endif %}
+
+            </dd>
+
+        </dl>
+
+        <div class="d-flex gap-2 flex-wrap">
+
+            {% if catering_request.status == "DRAFT" %}
+
+            <a href="{{ url_for(
+                    'catering.edit_catering_request',
+                    request_id=catering_request.id
+                ) }}" class="btn btn-primary">
+                Edit Request
+            </a>
+
+            <form method="post" action="{{ url_for(
+                    'catering.submit_catering_request',
+                    request_id=catering_request.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-success">
+                    Submit Request
+                </button>
+
+            </form>
+
+            <form method="post" action="{{ url_for(
+                    'catering.cancel_catering_request',
+                    request_id=catering_request.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-warning">
+                    Cancel Request
+                </button>
+
+            </form>
+
+            {% elif catering_request.status == "SUBMITTED" %}
+
+            <form method="post" action="{{ url_for(
+                    'catering.cancel_catering_request',
+                    request_id=catering_request.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-warning">
+                    Cancel Request
+                </button>
+
+            </form>
+
+            {% endif %}
+
+            {% if catering_request.status in ["DRAFT", "CANCELLED"] %}
+
+            <form method="post" action="{{ url_for(
+                    'catering.delete_catering_request',
+                    request_id=catering_request.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-outline-danger"
+                    onclick="return confirm('Delete this Catering Request?');">
+                    Delete Request
+                </button>
+
+            </form>
+
+            {% endif %}
+
+            <a href="{{ url_for('catering.catering_requests') }}" class="btn btn-secondary">
+                Back to Requests
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
