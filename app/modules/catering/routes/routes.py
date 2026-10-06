@@ -211,8 +211,8 @@ def _parse_status_filter(
     value,
 ) -> dict[str, bool]:
     """
-    Translate the Catering status query parameter into
-    an explicit repository filter.
+    Translate the shared Catering status query parameter into
+    an explicit is_active repository filter.
 
     The default behavior is active records only.
     """
@@ -227,6 +227,31 @@ def _parse_status_filter(
 
     return {
         "is_active": True,
+    }
+
+
+def _parse_customer_status_filter(
+    value,
+) -> dict[str, str]:
+    """
+    Translate the Customer status query parameter into
+    an explicit status repository filter.
+
+    Customer uses a status field rather than the shared
+    is_active lifecycle field used by other Catering entities.
+    The default behavior is active customers only.
+    """
+
+    if value == "inactive":
+        return {
+            "status": "INACTIVE",
+        }
+
+    if value == "all":
+        return {}
+
+    return {
+        "status": "ACTIVE",
     }
 
 
@@ -254,7 +279,7 @@ def _build_customer_query_options() -> QueryOptions:
         search=request.args.get(
             "search"
         ),
-        filters=_parse_status_filter(
+        filters=_parse_customer_status_filter(
             request.args.get("status"),
         ),
     )

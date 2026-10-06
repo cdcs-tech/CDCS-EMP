@@ -70,7 +70,7 @@ def test_customers_list_delegates_to_service(
             assert options.sort_direction == "asc"
             assert options.search is None
             assert options.filters == {
-                "is_active": True,
+                "status": "ACTIVE",
             }
             return result
 
@@ -157,7 +157,7 @@ def test_customers_supports_controlled_query_options(
     assert options.sort_direction == "desc"
     assert options.search == "John"
     assert options.filters == {
-        "is_active": False,
+        "status": "INACTIVE",
     }
 
 
@@ -490,7 +490,7 @@ def test_activate_customer_delegates_to_service(
 
     customer = SimpleNamespace(
         id=1,
-        is_active=True,
+        status="ACTIVE",
     )
 
     captured = {}
@@ -544,7 +544,7 @@ def test_deactivate_customer_delegates_to_service(
 
     customer = SimpleNamespace(
         id=1,
-        is_active=False,
+        status="INACTIVE",
     )
 
     captured = {}

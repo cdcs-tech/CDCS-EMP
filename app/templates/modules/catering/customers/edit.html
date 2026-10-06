@@ -1,8 +1,6 @@
-{% raw %}{% extends "base/dashboard_base.html" %}
+{% extends "base/dashboard_base.html" %}
 
-{% block title %}
-Edit Customer
-{% endblock %}
+{% block title %}Edit Customer{% endblock %}
 
 {% block page_content %}
 
@@ -99,10 +97,8 @@ Edit Customer
                         Update Customer
                     </button>
 
-                    <a href="{{ url_for(
-                        'catering.view_customer',
-                        customer_id=customer.id
-                    ) }}" class="btn btn-secondary">
+                    <a href="{{ url_for('catering.view_customer', customer_id=customer.id) }}"
+                        class="btn btn-secondary">
                         Cancel
                     </a>
 
@@ -116,4 +112,4 @@ Edit Customer
 
 </div>
 
-{% endblock %}{% endraw %}
+{% endblock %}
