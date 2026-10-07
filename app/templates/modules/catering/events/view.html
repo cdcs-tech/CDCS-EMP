@@ -107,6 +107,13 @@
 
         {% endif %}
 
+        <a href="{{ url_for(
+    'catering.create_catering_quotation_from_event',
+    event_id=catering_event.id
+) }}" class="btn btn-primary">
+            Create Quotation
+        </a>
+
         {% if catering_event.status in [
         "REQUESTED",
         "QUOTED",

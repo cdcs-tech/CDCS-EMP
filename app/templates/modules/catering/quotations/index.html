@@ -1,0 +1,198 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Catering Quotations{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                Catering Quotations
+            </h1>
+            <p class="text-muted mb-0">
+                Manage commercial quotations for Catering Events.
+            </p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            {% if quotations %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Quotation Date</th>
+                            <th>Valid Until</th>
+                            <th>Customer</th>
+                            <th>Event</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for quotation in quotations %}
+
+                        <tr>
+
+                            <td>
+                                {{ quotation.quotation_date }}
+                            </td>
+
+                            <td>
+                                {{ quotation.valid_until }}
+                            </td>
+
+                            <td>
+                                {{ quotation.customer.name }}
+                            </td>
+
+                            <td>
+                                <a href="{{ url_for(
+                                        'catering.view_catering_event',
+                                        event_id=quotation.event_id
+                                    ) }}">
+                                    Event #{{ quotation.event_id }}
+                                </a>
+                            </td>
+
+                            <td>
+                                {{ "%.2f"|format(quotation.total_amount) }}
+                            </td>
+
+                            <td>
+                                {% if quotation.status == "DRAFT" %}
+                                <span class="badge bg-secondary">
+                                    DRAFT
+                                </span>
+                                {% elif quotation.status == "ISSUED" %}
+                                <span class="badge bg-info text-dark">
+                                    ISSUED
+                                </span>
+                                {% elif quotation.status == "ACCEPTED" %}
+                                <span class="badge bg-success">
+                                    ACCEPTED
+                                </span>
+                                {% elif quotation.status == "DECLINED" %}
+                                <span class="badge bg-danger">
+                                    DECLINED
+                                </span>
+                                {% elif quotation.status == "EXPIRED" %}
+                                <span class="badge bg-warning text-dark">
+                                    EXPIRED
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ quotation.status }}
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end text-nowrap">
+
+                                <a href="{{ url_for(
+                                        'catering.view_catering_quotation',
+                                        quotation_id=quotation.id
+                                    ) }}" class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+
+                                {% if quotation.status == "DRAFT" %}
+
+                                <a href="{{ url_for(
+                                        'catering.edit_catering_quotation',
+                                        quotation_id=quotation.id
+                                    ) }}" class="btn btn-sm btn-outline-secondary">
+                                    Edit
+                                </a>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <div class="text-center py-5">
+
+                <h2 class="h5">
+                    No Catering Quotations
+                </h2>
+
+                <p class="text-muted">
+                    Create a quotation from a Catering Event to begin
+                    the commercial quotation process.
+                </p>
+
+                <a href="{{ url_for('catering.catering_events') }}" class="btn btn-primary">
+                    View Catering Events
+                </a>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+    {% if pagination.total_pages > 1 %}
+
+    <nav class="mt-4" aria-label="Catering Quotation pagination">
+
+        <ul class="pagination">
+
+            {% if pagination.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for(
+                        'catering.catering_quotations',
+                        page=pagination.page - 1
+                    ) }}">
+                    Previous
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">
+                    Page {{ pagination.page }} of {{ pagination.total_pages }}
+                </span>
+            </li>
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for(
+                        'catering.catering_quotations',
+                        page=pagination.page + 1
+                    ) }}">
+                    Next
+                </a>
+            </li>
+            {% endif %}
+
+        </ul>
+
+    </nav>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

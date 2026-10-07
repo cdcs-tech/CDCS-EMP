@@ -14,13 +14,21 @@ from flask import url_for
 from flask_login import current_user
 from flask_login import login_required
 
-from app.core.crud.exceptions import EntityNotFoundException
+from app.core.crud.exceptions import (
+    EntityNotFoundException,
+    EntityValidationException,
+)
 from app.core.data import QueryOptions
 
 from app.security.decorators import require_permission
 
+from app.modules.catering.models import CateringQuotation
+from app.modules.catering.models import CateringQuotationLine
+
 from app.modules.catering.forms import (
     CateringEventForm,
+    CateringQuotationForm,
+    CateringQuotationLineForm,
     CateringRequestForm,
     CustomerForm,
     InventoryLocationForm,
@@ -64,6 +72,14 @@ from app.modules.catering.security import (
     CATERING_EVENT_DELETE,
     CATERING_EVENT_READ,
     CATERING_EVENT_UPDATE,
+    CATERING_QUOTATION_ACCEPT,
+    CATERING_QUOTATION_CREATE,
+    CATERING_QUOTATION_DECLINE,
+    CATERING_QUOTATION_DELETE,
+    CATERING_QUOTATION_EXPIRE,
+    CATERING_QUOTATION_ISSUE,
+    CATERING_QUOTATION_READ,
+    CATERING_QUOTATION_UPDATE,
 )
 
 from app.modules.catering.services import (
@@ -78,10 +94,16 @@ from app.modules.catering.services import (
     CateringRequestService,
     CateringEventService,
     CateringRequestEventCoordinationService,
+    CateringQuotationService,
+    CateringQuotationEventCoordinationService,
 )
 
 from app.modules.catering.security.authorization import (
     CateringAuthorizationAdapter,
+)
+
+from app.modules.catering.workflows.catering_quotation import (
+    CateringQuotationWorkflow,
 )
 
 from . import catering_bp
@@ -1264,6 +1286,408 @@ def delete_catering_request(
     return redirect(
         url_for(
             "catering.catering_requests"
+        )
+    )
+
+
+@catering_bp.route("/quotations")
+@login_required
+@require_permission(CATERING_QUOTATION_READ.name)
+def catering_quotations():
+    """List Catering quotations."""
+    service = CateringQuotationService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    result = service.repository.paginate(
+        QueryOptions(
+            page=_parse_positive_int(request.args.get("page"), 1),
+            page_size=_parse_page_size(request.args.get("page_size")),
+            sort_by="quotation_date",
+            sort_direction=_parse_sort_direction(
+                request.args.get("direction")
+            ),
+        )
+    )
+
+    return render_template(
+        "modules/catering/quotations/index.html",
+        quotations=result.items,
+        pagination=result,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/create-quotation",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(CATERING_QUOTATION_CREATE.name)
+def create_catering_quotation_from_event(event_id):
+    """Create a Catering quotation for an existing Catering Event."""
+    event_service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = event_service.get(event_id)
+    except EntityNotFoundException:
+        flash("Catering event not found.", "danger")
+        return redirect(url_for("catering.catering_events"))
+
+    form = CateringQuotationForm()
+
+    line_forms = [
+        CateringQuotationLineForm(prefix=f"line-{index}")
+        for index in range(5)
+    ]
+
+    if form.validate_on_submit():
+        populated_line_forms = []
+
+        for line_form in line_forms:
+            has_data = any(
+                field.raw_data and any(
+                    value.strip() for value in field.raw_data
+                )
+                for field in (
+                    line_form.description,
+                    line_form.item_reference,
+                    line_form.quantity,
+                    line_form.unit,
+                    line_form.unit_price,
+                    line_form.notes,
+                )
+            )
+
+            if not has_data:
+                continue
+
+            if not line_form.validate():
+                continue
+
+            populated_line_forms.append(line_form)
+
+        quotation = CateringQuotation(
+            customer_id=catering_event.customer_id,
+            event_id=catering_event.id,
+            quotation_date=form.quotation_date.data,
+            valid_until=form.valid_until.data,
+            adjustment_amount=form.adjustment_amount.data or 0,
+            customer_notes=form.customer_notes.data,
+            status=CateringQuotationWorkflow.DRAFT,
+        )
+
+        quotation.lines = [
+            CateringQuotationLine(
+                description=line_form.description.data,
+                item_reference=line_form.item_reference.data,
+                quantity=line_form.quantity.data,
+                unit=line_form.unit.data,
+                unit_price=line_form.unit_price.data,
+                notes=line_form.notes.data,
+            )
+            for line_form in populated_line_forms
+        ]
+
+        try:
+            quotation = CateringQuotationService(
+                authorization_adapter=_build_catering_authorization_adapter(),
+            ).create(
+                quotation,
+                subject=current_user,
+            )
+        except EntityValidationException as exc:
+            flash(str(exc), "danger")
+        else:
+            flash("Catering quotation created successfully.", "success")
+            return redirect(
+                url_for(
+                    "catering.view_catering_quotation",
+                    quotation_id=quotation.id,
+                )
+            )
+
+    return render_template(
+        "modules/catering/quotations/create.html",
+        form=form,
+        line_forms=line_forms,
+        catering_event=catering_event,
+    )
+
+
+@catering_bp.route("/quotations/<int:quotation_id>")
+@login_required
+@require_permission(CATERING_QUOTATION_READ.name)
+def view_catering_quotation(quotation_id):
+    """View a Catering quotation."""
+    service = CateringQuotationService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_quotation = service.get(quotation_id)
+    except EntityNotFoundException:
+        flash("Catering quotation not found.", "danger")
+        return redirect(url_for("catering.catering_quotations"))
+
+    return render_template(
+        "modules/catering/quotations/view.html",
+        catering_quotation=catering_quotation,
+    )
+
+
+@catering_bp.route(
+    "/quotations/<int:quotation_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(CATERING_QUOTATION_UPDATE.name)
+def edit_catering_quotation(quotation_id):
+    """Edit a draft Catering quotation."""
+    service = CateringQuotationService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_quotation = service.get(quotation_id)
+    except EntityNotFoundException:
+        flash("Catering quotation not found.", "danger")
+        return redirect(url_for("catering.catering_quotations"))
+
+    form = CateringQuotationForm(obj=catering_quotation)
+
+    line_forms = [
+        CateringQuotationLineForm(
+            prefix=f"line-{index}",
+            obj=(
+                catering_quotation.lines[index]
+                if index < len(catering_quotation.lines)
+                else None
+            ),
+        )
+        for index in range(5)
+    ]
+
+    if form.validate_on_submit():
+        populated_line_forms = []
+
+        for line_form in line_forms:
+            has_data = any(
+                field.data not in (None, "")
+                for field in (
+                    line_form.description,
+                    line_form.item_reference,
+                    line_form.quantity,
+                    line_form.unit,
+                    line_form.unit_price,
+                    line_form.notes,
+                )
+            )
+
+            if not has_data:
+                continue
+
+            if not line_form.validate():
+                continue
+
+            populated_line_forms.append(line_form)
+
+        catering_quotation.quotation_date = form.quotation_date.data
+        catering_quotation.valid_until = form.valid_until.data
+        catering_quotation.adjustment_amount = (
+            form.adjustment_amount.data or 0
+        )
+        catering_quotation.customer_notes = form.customer_notes.data
+
+        catering_quotation.lines = [
+            CateringQuotationLine(
+                description=line_form.description.data,
+                item_reference=line_form.item_reference.data,
+                quantity=line_form.quantity.data,
+                unit=line_form.unit.data,
+                unit_price=line_form.unit_price.data,
+                notes=line_form.notes.data,
+            )
+            for line_form in populated_line_forms
+        ]
+
+        try:
+            service.update(
+                catering_quotation,
+                subject=current_user,
+            )
+        except EntityValidationException as exc:
+            flash(str(exc), "danger")
+        else:
+            flash("Catering quotation updated successfully.", "success")
+            return redirect(
+                url_for(
+                    "catering.view_catering_quotation",
+                    quotation_id=catering_quotation.id,
+                )
+            )
+
+    return render_template(
+        "modules/catering/quotations/edit.html",
+        form=form,
+        line_forms=line_forms,
+        catering_quotation=catering_quotation,
+    )
+
+
+@catering_bp.route(
+    "/quotations/<int:quotation_id>/issue",
+    methods=["POST"],
+)
+@login_required
+@require_permission(CATERING_QUOTATION_ISSUE.name)
+def issue_catering_quotation(quotation_id):
+    """Issue a draft Catering quotation."""
+    service = CateringQuotationService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_quotation = service.get(quotation_id)
+        catering_quotation = service.issue(
+            catering_quotation,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash("Catering quotation not found.", "danger")
+        return redirect(url_for("catering.catering_quotations"))
+    except EntityValidationException as exc:
+        flash(str(exc), "danger")
+        return redirect(
+            url_for(
+                "catering.view_catering_quotation",
+                quotation_id=quotation_id,
+            )
+        )
+
+    flash("Catering quotation issued successfully.", "success")
+    return redirect(
+        url_for(
+            "catering.view_catering_quotation",
+            quotation_id=catering_quotation.id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/quotations/<int:quotation_id>/accept",
+    methods=["POST"],
+)
+@login_required
+@require_permission(CATERING_QUOTATION_ACCEPT.name)
+def accept_catering_quotation(quotation_id):
+    """Accept an issued Catering quotation."""
+    service = CateringQuotationService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_quotation = service.get(quotation_id)
+        catering_quotation = service.accept(
+            catering_quotation,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash("Catering quotation not found.", "danger")
+        return redirect(url_for("catering.catering_quotations"))
+    except EntityValidationException as exc:
+        flash(str(exc), "danger")
+        return redirect(
+            url_for(
+                "catering.view_catering_quotation",
+                quotation_id=quotation_id,
+            )
+        )
+
+    flash("Catering quotation accepted successfully.", "success")
+    return redirect(
+        url_for(
+            "catering.view_catering_quotation",
+            quotation_id=catering_quotation.id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/quotations/<int:quotation_id>/decline",
+    methods=["POST"],
+)
+@login_required
+@require_permission(CATERING_QUOTATION_DECLINE.name)
+def decline_catering_quotation(quotation_id):
+    """Decline an issued Catering quotation."""
+    service = CateringQuotationService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_quotation = service.get(quotation_id)
+        catering_quotation = service.decline(
+            catering_quotation,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash("Catering quotation not found.", "danger")
+        return redirect(url_for("catering.catering_quotations"))
+    except EntityValidationException as exc:
+        flash(str(exc), "danger")
+        return redirect(
+            url_for(
+                "catering.view_catering_quotation",
+                quotation_id=quotation_id,
+            )
+        )
+
+    flash("Catering quotation declined.", "success")
+    return redirect(
+        url_for(
+            "catering.view_catering_quotation",
+            quotation_id=catering_quotation.id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/quotations/<int:quotation_id>/expire",
+    methods=["POST"],
+)
+@login_required
+@require_permission(CATERING_QUOTATION_EXPIRE.name)
+def expire_catering_quotation(quotation_id):
+    """Expire an issued Catering quotation."""
+    service = CateringQuotationService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_quotation = service.get(quotation_id)
+        catering_quotation = service.expire(
+            catering_quotation,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash("Catering quotation not found.", "danger")
+        return redirect(url_for("catering.catering_quotations"))
+    except EntityValidationException as exc:
+        flash(str(exc), "danger")
+        return redirect(
+            url_for(
+                "catering.view_catering_quotation",
+                quotation_id=quotation_id,
+            )
+        )
+
+    flash("Catering quotation expired.", "success")
+    return redirect(
+        url_for(
+            "catering.view_catering_quotation",
+            quotation_id=catering_quotation.id,
         )
     )
 

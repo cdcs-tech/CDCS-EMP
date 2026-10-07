@@ -114,6 +114,7 @@ class CateringQuotation(
         "CateringQuotationLine",
         back_populates="quotation",
         lazy="select",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (
