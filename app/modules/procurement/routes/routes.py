@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from flask import (
     Blueprint,
+    current_app,
     abort,
     flash,
     redirect,
@@ -17,9 +18,10 @@ from flask import (
     request,
     url_for,
 )
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from app.core.data import QueryOptions
+from app.core.execution.context import ExecutionContext
 from app.modules.procurement.forms import (
     PurchaseOrderForm,
     PurchaseOrderLineForm,
@@ -36,6 +38,10 @@ from app.modules.procurement.models import (
     PurchaseRequirement,
     Supplier,
 )
+from app.modules.procurement.commands.purchase_order import (
+    ApprovePurchaseOrderCommand,
+    SubmitPurchaseOrderCommand,
+)
 from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_ORDER_CREATE,
     PROCUREMENT_PURCHASE_ORDER_DELETE,
@@ -44,6 +50,8 @@ from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_ORDER_LINE_UPDATE,
     PROCUREMENT_PURCHASE_ORDER_READ,
     PROCUREMENT_PURCHASE_ORDER_UPDATE,
+    PROCUREMENT_PURCHASE_ORDER_SUBMIT,
+    PROCUREMENT_PURCHASE_ORDER_APPROVE,
     PROCUREMENT_PURCHASE_REQUEST_CREATE,
     PROCUREMENT_PURCHASE_REQUEST_DELETE,
     PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
@@ -1285,6 +1293,98 @@ def view_purchase_order(
     return render_template(
         "modules/procurement/purchase_orders/view.html",
         purchase_order=purchase_order,
+    )
+
+
+@procurement_bp.route(
+    "/purchase-orders/<int:purchase_order_id>/submit",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_ORDER_SUBMIT.name
+)
+def submit_purchase_order(
+    purchase_order_id: int,
+):
+    """
+    Submit a Purchase Order through the enterprise execution framework.
+    """
+    command = SubmitPurchaseOrderCommand(
+        purchase_order_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="PROCUREMENT",
+        operation="procurement.purchase_order.submit",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.view_purchase_order",
+            purchase_order_id=purchase_order_id,
+        )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-orders/<int:purchase_order_id>/approve",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_ORDER_APPROVE.name
+)
+def approve_purchase_order(
+    purchase_order_id: int,
+):
+    """
+    Approve a Purchase Order through the enterprise execution framework.
+    """
+    command = ApprovePurchaseOrderCommand(
+        purchase_order_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="PROCUREMENT",
+        operation="procurement.purchase_order.approve",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.view_purchase_order",
+            purchase_order_id=purchase_order_id,
+        )
     )
 
 

@@ -124,6 +124,30 @@
 </div>
 
 <div class="d-flex gap-2">
+    {% if purchase_order.status == "DRAFT" %}
+    <form method="post" action="{{ url_for(
+            'procurement.submit_purchase_order',
+            purchase_order_id=purchase_order.id
+        ) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-warning">
+            Submit Purchase Order
+        </button>
+    </form>
+    {% endif %}
+
+    {% if purchase_order.status == "SUBMITTED" %}
+    <form method="post" action="{{ url_for(
+            'procurement.approve_purchase_order',
+            purchase_order_id=purchase_order.id
+        ) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-success">
+            Approve Purchase Order
+        </button>
+    </form>
+    {% endif %}
+
     <a href="{{ url_for(
             'procurement.edit_purchase_order',
             purchase_order_id=purchase_order.id
