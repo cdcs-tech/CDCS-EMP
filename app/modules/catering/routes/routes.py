@@ -80,6 +80,8 @@ from app.modules.catering.security import (
     CATERING_QUOTATION_ISSUE,
     CATERING_QUOTATION_READ,
     CATERING_QUOTATION_UPDATE,
+    CATERING_EVENT_QUOTE,
+    CATERING_EVENT_CONFIRM,
 )
 
 from app.modules.catering.services import (
@@ -104,6 +106,14 @@ from app.modules.catering.security.authorization import (
 
 from app.modules.catering.workflows.catering_quotation import (
     CateringQuotationWorkflow,
+)
+
+from app.modules.catering.repositories.catering_quotation import (
+    CateringQuotationRepository,
+)
+
+from app.modules.catering.repositories.catering_event import (
+    CateringEventRepository,
 )
 
 from . import catering_bp
@@ -1851,9 +1861,18 @@ def view_catering_event(
             )
         )
 
+    quotation_repository = CateringQuotationRepository()
+
+    accepted_quotation = (
+        quotation_repository.get_accepted_by_event_id(
+            catering_event.id
+        )
+    )
+
     return render_template(
         "modules/catering/events/view.html",
         catering_event=catering_event,
+        accepted_quotation=accepted_quotation,
     )
 
 
@@ -1932,6 +1951,197 @@ def edit_catering_event(
         "modules/catering/events/edit.html",
         form=form,
         catering_event=catering_event,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/quote",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_QUOTE.name
+)
+def quote_catering_event(
+    event_id,
+):
+    """
+    Progress a Catering Event from REQUESTED to QUOTED
+    using its accepted Catering Quotation.
+    """
+
+    quotation_repository = CateringQuotationRepository()
+
+    try:
+        catering_quotation = (
+            quotation_repository.get_accepted_by_event_id(
+                event_id
+            )
+        )
+
+        if catering_quotation is None:
+            raise EntityValidationException(
+                "No ACCEPTED quotation exists for this Event."
+            )
+
+        coordination_service = (
+            CateringQuotationEventCoordinationService(
+                quotation_repository=quotation_repository,
+                event_repository=CateringEventRepository(),
+                authorization_adapter=(
+                    _build_catering_authorization_adapter()
+                ),
+            )
+        )
+
+        coordination_service.progress_event_from_accepted_quotation(
+            catering_quotation.id,
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Event progressed to QUOTED.",
+            "success",
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event or Quotation not found.",
+            "danger",
+        )
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/request-confirmation",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_CONFIRM.name
+)
+def request_confirmation_catering_event(
+    event_id,
+):
+    """
+    Progress a Catering Event from QUOTED to PENDING_CONFIRMATION.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(
+            event_id
+        )
+
+        service.request_confirmation(
+            catering_event,
+            subject=current_user,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    else:
+        flash(
+            "Catering Event moved to pending confirmation.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/confirm",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_CONFIRM.name
+)
+def confirm_catering_event(
+    event_id,
+):
+    """
+    Confirm a Catering Event.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(
+            event_id
+        )
+
+        service.confirm(
+            catering_event,
+            subject=current_user,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    else:
+        flash(
+            "Catering Event confirmed successfully.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
     )
 
 

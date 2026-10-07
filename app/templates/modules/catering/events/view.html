@@ -105,14 +105,57 @@
             Edit
         </a>
 
-        {% endif %}
+        {% if accepted_quotation %}
+
+        <form method="POST" action="{{ url_for(
+                'catering.quote_catering_event',
+                event_id=catering_event.id
+            ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Quote Event
+            </button>
+        </form>
+
+        {% else %}
 
         <a href="{{ url_for(
-    'catering.create_catering_quotation_from_event',
-    event_id=catering_event.id
-) }}" class="btn btn-primary">
+                'catering.create_catering_quotation_from_event',
+                event_id=catering_event.id
+            ) }}" class="btn btn-primary">
             Create Quotation
         </a>
+
+        {% endif %}
+
+        {% elif catering_event.status == "QUOTED" %}
+
+        <form method="POST" action="{{ url_for(
+                'catering.request_confirmation_catering_event',
+                event_id=catering_event.id
+            ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Request Confirmation
+            </button>
+        </form>
+
+        {% elif catering_event.status == "PENDING_CONFIRMATION" %}
+
+        <form method="POST" action="{{ url_for(
+                'catering.confirm_catering_event',
+                event_id=catering_event.id
+            ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Confirm Event
+            </button>
+        </form>
+
+        {% endif %}
 
         {% if catering_event.status in [
         "REQUESTED",

@@ -248,3 +248,168 @@ def test_edit_quotation_replaces_lines_and_delegates_to_service(
     assert line.notes == "Updated notes"
 
     assert updated["subject"] is not None
+
+
+def test_quote_catering_event_progresses_from_accepted_quotation(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    quotation = SimpleNamespace(
+        id=21,
+        event_id=7,
+        status="ACCEPTED",
+    )
+
+    retrieved = {}
+    progressed = {}
+
+    class FakeQuotationRepository:
+        def get_accepted_by_event_id(self, event_id):
+            assert event_id == 7
+            retrieved["quotation"] = quotation
+            return quotation
+
+    class FakeCoordinationService:
+        def __init__(self, **kwargs):
+            retrieved["kwargs"] = kwargs
+
+        def progress_event_from_accepted_quotation(
+            self,
+            quotation_id,
+            *,
+            subject,
+        ):
+            progressed["quotation_id"] = quotation_id
+            progressed["subject"] = subject
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationRepository",
+        FakeQuotationRepository,
+    )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationEventCoordinationService",
+        FakeCoordinationService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/quote",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7"
+    )
+
+    assert retrieved["quotation"] is quotation
+    assert progressed["quotation_id"] == 21
+    assert progressed["subject"] is not None
+
+def test_request_confirmation_catering_event_progresses_quoted_event(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    event = SimpleNamespace(
+        id=7,
+        status="QUOTED",
+    )
+
+    retrieved = {}
+    progressed = {}
+
+    class FakeEventService:
+        def __init__(self, **kwargs):
+            retrieved["kwargs"] = kwargs
+
+        def get(self, event_id):
+            assert event_id == 7
+            retrieved["event"] = event
+            return event
+
+        def request_confirmation(
+            self,
+            catering_event,
+            *,
+            subject,
+        ):
+            progressed["event"] = catering_event
+            progressed["subject"] = subject
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventService",
+        FakeEventService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/request-confirmation",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7"
+    )
+
+    assert retrieved["event"] is event
+    assert progressed["event"] is event
+    assert progressed["subject"] is not None
+
+def test_confirm_catering_event_progresses_pending_confirmation_event(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    event = SimpleNamespace(
+        id=7,
+        status="PENDING_CONFIRMATION",
+    )
+
+    retrieved = {}
+    progressed = {}
+
+    class FakeEventService:
+        def __init__(self, **kwargs):
+            retrieved["kwargs"] = kwargs
+
+        def get(self, event_id):
+            assert event_id == 7
+            retrieved["event"] = event
+            return event
+
+        def confirm(
+            self,
+            catering_event,
+            *,
+            subject,
+        ):
+            progressed["event"] = catering_event
+            progressed["subject"] = subject
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventService",
+        FakeEventService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/confirm",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7"
+    )
+
+    assert retrieved["event"] is event
+    assert progressed["event"] is event
+    assert progressed["subject"] is not None
