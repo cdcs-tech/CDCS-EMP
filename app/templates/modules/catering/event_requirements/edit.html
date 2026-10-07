@@ -1,0 +1,164 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Edit Event Requirement{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">
+            Edit Event Requirement #{{ requirement.id }}
+        </h1>
+        <p class="text-muted mb-0">
+            Update this Catering Event Requirement.
+        </p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+
+            <h2 class="h5 mb-3">
+                Event Information
+            </h2>
+
+            <dl class="row mb-0">
+
+                <dt class="col-sm-3">
+                    Customer
+                </dt>
+                <dd class="col-sm-9">
+                    {{ catering_event.customer.name }}
+                </dd>
+
+                <dt class="col-sm-3">
+                    Catering Event
+                </dt>
+                <dd class="col-sm-9">
+                    <a href="{{ url_for(
+                            'catering.view_catering_event',
+                            event_id=catering_event.id
+                        ) }}">
+                        Event #{{ catering_event.id }}
+                    </a>
+                </dd>
+
+                <dt class="col-sm-3">
+                    Requirement Status
+                </dt>
+                <dd class="col-sm-9">
+                    {{ requirement.status }}
+                </dd>
+
+            </dl>
+
+        </div>
+    </div>
+
+    <form method="POST">
+
+        {{ form.hidden_tag() }}
+
+        <div class="card mb-4">
+
+            <div class="card-body">
+
+                <h2 class="h5 mb-3">
+                    Requirement Information
+                </h2>
+
+                <div class="row g-3">
+
+                    <div class="col-12">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control") }}
+
+                        {% for error in form.description.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.item_reference.label(class="form-label") }}
+                        {{ form.item_reference(class="form-control") }}
+
+                        {% for error in form.item_reference.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-3">
+                        {{ form.quantity.label(class="form-label") }}
+                        {{ form.quantity(class="form-control") }}
+
+                        {% for error in form.quantity.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-3">
+                        {{ form.unit.label(class="form-label") }}
+                        {{ form.unit(class="form-control") }}
+
+                        {% for error in form.unit.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.fulfilment_type.label(class="form-label") }}
+                        {{ form.fulfilment_type(class="form-select") }}
+
+                        {% for error in form.fulfilment_type.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.required_by_date.label(class="form-label") }}
+                        {{ form.required_by_date(class="form-control") }}
+
+                        {% for error in form.required_by_date.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-12">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(
+                        class="form-control",
+                        rows="4"
+                        ) }}
+
+                        {% for error in form.notes.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+
+            <button type="submit" class="btn btn-primary">
+                Save Changes
+            </button>
+
+            <a href="{{ url_for(
+                    'catering.view_catering_event_requirement',
+                    event_id=catering_event.id,
+                    requirement_id=requirement.id
+                ) }}" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

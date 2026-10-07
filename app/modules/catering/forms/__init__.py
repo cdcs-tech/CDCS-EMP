@@ -38,6 +38,11 @@ from app.modules.catering.forms.catering_quotation import (
     CateringQuotationLineForm,
 )
 
+from app.modules.catering.forms.event_requirement import (
+    EventRequirementForm,
+    FULFILMENT_TYPE_CHOICES,
+)
+
 __all__ = [
     "ProductForm",
     "ProductCategoryForm",
@@ -50,4 +55,6 @@ __all__ = [
     "CateringEventForm",
     "CateringQuotationForm",
     "CateringQuotationLineForm",
+    "EventRequirementForm",
+    "FULFILMENT_TYPE_CHOICES",
 ]

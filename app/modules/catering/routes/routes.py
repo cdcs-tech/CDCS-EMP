@@ -24,6 +24,7 @@ from app.security.decorators import require_permission
 
 from app.modules.catering.models import CateringQuotation
 from app.modules.catering.models import CateringQuotationLine
+from app.modules.catering.models import EventRequirement
 
 from app.modules.catering.forms import (
     CateringEventForm,
@@ -31,6 +32,7 @@ from app.modules.catering.forms import (
     CateringQuotationLineForm,
     CateringRequestForm,
     CustomerForm,
+    EventRequirementForm,
     InventoryLocationForm,
     ProductCategoryForm,
     ProductForm,
@@ -82,6 +84,12 @@ from app.modules.catering.security import (
     CATERING_QUOTATION_UPDATE,
     CATERING_EVENT_QUOTE,
     CATERING_EVENT_CONFIRM,
+    CATERING_EVENT_REQUIREMENT_CANCEL,
+    CATERING_EVENT_REQUIREMENT_CREATE,
+    CATERING_EVENT_REQUIREMENT_IDENTIFY,
+    CATERING_EVENT_REQUIREMENT_READ,
+    CATERING_EVENT_REQUIREMENT_READY,
+    CATERING_EVENT_REQUIREMENT_UPDATE,
 )
 
 from app.modules.catering.services import (
@@ -98,6 +106,7 @@ from app.modules.catering.services import (
     CateringRequestEventCoordinationService,
     CateringQuotationService,
     CateringQuotationEventCoordinationService,
+    EventRequirementService,
 )
 
 from app.modules.catering.security.authorization import (
@@ -114,6 +123,10 @@ from app.modules.catering.repositories.catering_quotation import (
 
 from app.modules.catering.repositories.catering_event import (
     CateringEventRepository,
+)
+
+from app.modules.catering.repositories.event_requirement import (
+    EventRequirementRepository,
 )
 
 from . import catering_bp
@@ -2241,6 +2254,479 @@ def delete_catering_event(
     return redirect(
         url_for(
             "catering.catering_events"
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements"
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_REQUIREMENT_READ.name
+)
+def catering_event_requirements(event_id):
+    """
+    Render Event Requirements for a Catering Event.
+    """
+
+    try:
+        catering_event = CateringEventService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).get(event_id)
+    except EntityNotFoundException:
+        flash(
+            "Catering event not found.",
+            "danger",
+        )
+        return redirect(
+            url_for("catering.catering_events")
+        )
+
+    repository = EventRequirementRepository()
+
+    requirements = repository.query(
+        QueryOptions(
+            filters={
+                "event_id": event_id,
+            },
+            page=1,
+            page_size=100,
+            sort_by="id",
+            sort_direction="asc",
+        )
+    )
+
+    return render_template(
+        "modules/catering/event_requirements/index.html",
+        catering_event=catering_event,
+        requirements=requirements,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_REQUIREMENT_CREATE.name
+)
+def create_catering_event_requirement(event_id):
+    """
+    Create an Event Requirement for a Catering Event.
+    """
+
+    try:
+        catering_event = CateringEventService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).get(event_id)
+    except EntityNotFoundException:
+        flash(
+            "Catering event not found.",
+            "danger",
+        )
+        return redirect(
+            url_for("catering.catering_events")
+        )
+
+    form = EventRequirementForm()
+
+    if form.validate_on_submit():
+        requirement = EventRequirement(
+            event_id=catering_event.id,
+            description=form.description.data,
+            item_reference=form.item_reference.data,
+            quantity=form.quantity.data,
+            unit=form.unit.data,
+            fulfilment_type=form.fulfilment_type.data,
+            required_by_date=form.required_by_date.data,
+            notes=form.notes.data,
+            status="DRAFT",
+        )
+
+        try:
+            requirement = EventRequirementService(
+                authorization_adapter=_build_catering_authorization_adapter(),
+            ).create(
+                requirement,
+                subject=current_user,
+            )
+        except EntityNotFoundException as exc:
+            flash(
+                str(exc),
+                "danger",
+            )
+        except EntityValidationException as exc:
+            flash(
+                str(exc),
+                "danger",
+            )
+        except ValueError as exc:
+            flash(
+                str(exc),
+                "danger",
+            )
+        else:
+            flash(
+                "Event Requirement created successfully.",
+                "success",
+            )
+            return redirect(
+                url_for(
+                    "catering.view_catering_event_requirement",
+                    event_id=catering_event.id,
+                    requirement_id=requirement.id,
+                )
+            )
+
+    return render_template(
+        "modules/catering/event_requirements/create.html",
+        form=form,
+        catering_event=catering_event,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements/<int:requirement_id>"
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_REQUIREMENT_READ.name
+)
+def view_catering_event_requirement(
+    event_id,
+    requirement_id,
+):
+    """
+    Render an Event Requirement detail view.
+    """
+
+    repository = EventRequirementRepository()
+
+    try:
+        catering_event = CateringEventService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).get(event_id)
+
+        requirement = repository.get_by_id(requirement_id)
+    except EntityNotFoundException:
+        flash(
+            "Event Requirement not found.",
+            "danger",
+        )
+        return redirect(
+            url_for(
+                "catering.catering_event_requirements",
+                event_id=event_id,
+            )
+        )
+
+    if requirement.event_id != catering_event.id:
+        flash(
+            "Event Requirement does not belong to this Catering Event.",
+            "danger",
+        )
+        return redirect(
+            url_for(
+                "catering.catering_event_requirements",
+                event_id=event_id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/event_requirements/view.html",
+        requirement=requirement,
+        catering_event=catering_event,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements/<int:requirement_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_REQUIREMENT_UPDATE.name
+)
+def edit_catering_event_requirement(
+    event_id,
+    requirement_id,
+):
+    """
+    Edit an Event Requirement.
+    """
+
+    repository = EventRequirementRepository()
+
+    try:
+        catering_event = CateringEventService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).get(event_id)
+
+        requirement = repository.get_by_id(requirement_id)
+    except EntityNotFoundException:
+        flash(
+            "Event Requirement not found.",
+            "danger",
+        )
+        return redirect(
+            url_for(
+                "catering.catering_event_requirements",
+                event_id=event_id,
+            )
+        )
+
+    if requirement.event_id != catering_event.id:
+        flash(
+            "Event Requirement does not belong to this Catering Event.",
+            "danger",
+        )
+        return redirect(
+            url_for(
+                "catering.catering_event_requirements",
+                event_id=event_id,
+            )
+        )
+
+    form = EventRequirementForm(
+        obj=requirement
+    )
+
+    if form.validate_on_submit():
+        requirement.description = form.description.data
+        requirement.item_reference = form.item_reference.data
+        requirement.quantity = form.quantity.data
+        requirement.unit = form.unit.data
+        requirement.fulfilment_type = form.fulfilment_type.data
+        requirement.required_by_date = form.required_by_date.data
+        requirement.notes = form.notes.data
+
+        try:
+            EventRequirementService(
+                authorization_adapter=_build_catering_authorization_adapter(),
+            ).update(
+                requirement,
+                subject=current_user,
+            )
+        except EntityNotFoundException as exc:
+            flash(
+                str(exc),
+                "danger",
+            )
+        except EntityValidationException as exc:
+            flash(
+                str(exc),
+                "danger",
+            )
+        except ValueError as exc:
+            flash(
+                str(exc),
+                "danger",
+            )
+        else:
+            flash(
+                "Event Requirement updated successfully.",
+                "success",
+            )
+            return redirect(
+                url_for(
+                    "catering.view_catering_event_requirement",
+                    event_id=catering_event.id,
+                    requirement_id=requirement.id,
+                )
+            )
+
+    return render_template(
+        "modules/catering/event_requirements/edit.html",
+        form=form,
+        requirement=requirement,
+        catering_event=catering_event,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements/<int:requirement_id>/identify",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_REQUIREMENT_IDENTIFY.name
+)
+def identify_catering_event_requirement(
+    event_id,
+    requirement_id,
+):
+    """
+    Identify an Event Requirement.
+    """
+
+    repository = EventRequirementRepository()
+
+    try:
+        requirement = repository.get_by_id(requirement_id)
+
+        if requirement.event_id != event_id:
+            raise EntityValidationException(
+                "Event Requirement does not belong to this Catering Event."
+            )
+
+        EventRequirementService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).identify(
+            requirement,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Event Requirement not found.",
+            "danger",
+        )
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+    except ValueError as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+    else:
+        flash(
+            "Event Requirement identified successfully.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event_requirement",
+            event_id=event_id,
+            requirement_id=requirement_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements/<int:requirement_id>/ready",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_REQUIREMENT_READY.name
+)
+def ready_catering_event_requirement(
+    event_id,
+    requirement_id,
+):
+    """
+    Mark an Event Requirement ready.
+    """
+
+    repository = EventRequirementRepository()
+
+    try:
+        requirement = repository.get_by_id(requirement_id)
+
+        if requirement.event_id != event_id:
+            raise EntityValidationException(
+                "Event Requirement does not belong to this Catering Event."
+            )
+
+        EventRequirementService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).ready(
+            requirement,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Event Requirement not found.",
+            "danger",
+        )
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+    except ValueError as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+    else:
+        flash(
+            "Event Requirement marked ready successfully.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event_requirement",
+            event_id=event_id,
+            requirement_id=requirement_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements/<int:requirement_id>/cancel",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_REQUIREMENT_CANCEL.name
+)
+def cancel_catering_event_requirement(
+    event_id,
+    requirement_id,
+):
+    """
+    Cancel an Event Requirement.
+    """
+
+    repository = EventRequirementRepository()
+
+    try:
+        requirement = repository.get_by_id(requirement_id)
+
+        if requirement.event_id != event_id:
+            raise EntityValidationException(
+                "Event Requirement does not belong to this Catering Event."
+            )
+
+        EventRequirementService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).cancel(
+            requirement,
+            subject=current_user,
+        )
+    except EntityNotFoundException:
+        flash(
+            "Event Requirement not found.",
+            "danger",
+        )
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+    except ValueError as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+    else:
+        flash(
+            "Event Requirement cancelled successfully.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event_requirement",
+            event_id=event_id,
+            requirement_id=requirement_id,
         )
     )
 
