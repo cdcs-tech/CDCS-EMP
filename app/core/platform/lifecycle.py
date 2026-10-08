@@ -115,6 +115,12 @@ class ApplicationLifecycle:
             "procurement.submit_purchase_order",
             "procurement.approve_purchase_order",
             "procurement.receive_purchase_order",
+            "expense.submit_expense",
+            "expense.approve_expense",
+            "expense.reject_expense",
+            "expense.return_expense",
+            "expense.resubmit_expense",
+            "expense.close_expense",
         }
     )
 
