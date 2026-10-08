@@ -1,0 +1,161 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Catering Revenue Details{% endblock %}
+
+{% block page_content %}
+
+{% with
+title="Catering Revenue Details",
+subtitle="View Catering revenue business information."
+%}
+{% include "components/page_header.html" %}
+{% endwith %}
+
+<div class="card">
+
+    <div class="card-header">
+        <h5 class="mb-0">Revenue Details</h5>
+    </div>
+
+    <div class="card-body">
+
+        <dl class="row mb-4">
+
+            <dt class="col-sm-3">Revenue Reference</dt>
+            <dd class="col-sm-9">{{ revenue.revenue_reference }}</dd>
+
+            <dt class="col-sm-3">Source Type</dt>
+            <dd class="col-sm-9">{{ revenue.source_type }}</dd>
+
+            <dt class="col-sm-3">Source Reference</dt>
+            <dd class="col-sm-9">{{ revenue.source_reference }}</dd>
+
+            <dt class="col-sm-3">Customer</dt>
+            <dd class="col-sm-9">
+                {{ revenue.customer.name if revenue.customer else "-" }}
+            </dd>
+
+            <dt class="col-sm-3">Catering Event</dt>
+            <dd class="col-sm-9">
+                {% if revenue.event %}
+                Event #{{ revenue.event.id }}
+                {% else %}
+                -
+                {% endif %}
+            </dd>
+
+            <dt class="col-sm-3">Amount</dt>
+            <dd class="col-sm-9">
+                {{ revenue.amount }} {{ revenue.currency }}
+            </dd>
+
+            <dt class="col-sm-3">Revenue Date</dt>
+            <dd class="col-sm-9">{{ revenue.revenue_date }}</dd>
+
+            <dt class="col-sm-3">Revenue Classification</dt>
+            <dd class="col-sm-9">
+                {{ revenue.revenue_classification or "-" }}
+            </dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+
+                {% if revenue.status == "RECOGNIZED" %}
+                <span class="badge bg-success">Recognized</span>
+                {% elif revenue.status == "ELIGIBLE" %}
+                <span class="badge bg-info">Eligible</span>
+                {% elif revenue.status == "CANCELLED" %}
+                <span class="badge bg-secondary">Cancelled</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">Draft</span>
+                {% endif %}
+
+            </dd>
+
+            {% if revenue.recognized_at %}
+
+            <dt class="col-sm-3">Recognized At</dt>
+            <dd class="col-sm-9">{{ revenue.recognized_at }}</dd>
+
+            {% endif %}
+
+        </dl>
+
+        <div class="d-flex gap-2">
+
+            {% if revenue.status == "DRAFT" %}
+
+            <a href="{{ url_for(
+                'catering.edit_revenue',
+                revenue_id=revenue.id
+            ) }}" class="btn btn-primary">
+                Edit Revenue
+            </a>
+
+            <form method="post" action="{{ url_for(
+                    'catering.establish_revenue_eligibility',
+                    revenue_id=revenue.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-info">
+                    Establish Eligibility
+                </button>
+
+            </form>
+
+            <form method="post" action="{{ url_for(
+                    'catering.cancel_revenue',
+                    revenue_id=revenue.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-warning">
+                    Cancel Revenue
+                </button>
+
+            </form>
+
+            {% elif revenue.status == "ELIGIBLE" %}
+
+            <form method="post" action="{{ url_for(
+                    'catering.recognize_revenue',
+                    revenue_id=revenue.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-success">
+                    Recognize Revenue
+                </button>
+
+            </form>
+
+            <form method="post" action="{{ url_for(
+                    'catering.cancel_revenue',
+                    revenue_id=revenue.id
+                ) }}" class="d-inline">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-warning">
+                    Cancel Revenue
+                </button>
+
+            </form>
+
+            {% endif %}
+
+            <a href="{{ url_for('catering.revenues') }}" class="btn btn-secondary">
+                Back to Revenue
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

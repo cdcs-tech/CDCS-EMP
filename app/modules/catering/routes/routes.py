@@ -6,11 +6,15 @@ Catering Module
 Routes.
 """
 
-from flask import flash
-from flask import redirect
-from flask import render_template
-from flask import request
-from flask import url_for
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user
 from flask_login import login_required
 
@@ -19,6 +23,8 @@ from app.core.crud.exceptions import (
     EntityValidationException,
 )
 from app.core.data import QueryOptions
+
+from app.core.execution.context import ExecutionContext
 
 from app.security.decorators import require_permission
 
@@ -39,6 +45,7 @@ from app.modules.catering.forms import (
     StockItemForm,
     StockMovementForm,
     StockTransferForm,
+    CateringRevenueForm,
 )
 
 from app.modules.catering.security import (
@@ -95,6 +102,12 @@ from app.modules.catering.security import (
     CATERING_EVENT_REQUIREMENT_READ,
     CATERING_EVENT_REQUIREMENT_READY,
     CATERING_EVENT_REQUIREMENT_UPDATE,
+    CATERING_REVENUE_CREATE,
+    CATERING_REVENUE_READ,
+    CATERING_REVENUE_UPDATE,
+    CATERING_REVENUE_ESTABLISH_ELIGIBILITY,
+    CATERING_REVENUE_RECOGNIZE,
+    CATERING_REVENUE_CANCEL,
 )
 
 from app.modules.catering.services import (
@@ -112,14 +125,23 @@ from app.modules.catering.services import (
     CateringQuotationService,
     CateringQuotationEventCoordinationService,
     EventRequirementService,
+    CateringRevenueService,
 )
 
 from app.modules.catering.security.authorization import (
     CateringAuthorizationAdapter,
 )
 
+from app.modules.catering.commands import (
+    RecognizeCateringRevenueCommand,
+)
+
 from app.modules.catering.workflows.catering_quotation import (
     CateringQuotationWorkflow,
+)
+
+from app.modules.catering.workflows.catering_revenue import (
+    CateringRevenueWorkflow,
 )
 
 from app.modules.catering.repositories.catering_quotation import (
@@ -132,6 +154,10 @@ from app.modules.catering.repositories.catering_event import (
 
 from app.modules.catering.repositories.event_requirement import (
     EventRequirementRepository,
+)
+
+from app.modules.catering.repositories.catering_revenue import (
+    CateringRevenueRepository,
 )
 
 from . import catering_bp
@@ -609,6 +635,9 @@ def index():
         can_read_events=current_user.has_permission(
             CATERING_EVENT_READ.name
         ),
+        can_read_revenues=current_user.has_permission(
+            CATERING_REVENUE_READ.name
+        ),
         can_read_categories=current_user.has_permission(
             CATERING_PRODUCT_CATEGORY_READ.name
         ),
@@ -902,6 +931,445 @@ def deactivate_customer(
         url_for(
             "catering.view_customer",
             customer_id=customer.id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/revenues/"
+)
+@login_required
+@require_permission(
+    CATERING_REVENUE_READ.name
+)
+def revenues():
+    """
+    Render the Catering Revenue list.
+    """
+
+    service = CateringRevenueService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    result = service.repository.paginate(
+        QueryOptions(
+            page=_parse_positive_int(
+                request.args.get("page"),
+                1,
+            ),
+            page_size=_parse_page_size(
+                request.args.get("page_size")
+            ),
+            sort_by="revenue_date",
+            sort_direction=_parse_sort_direction(
+                request.args.get("direction")
+            ),
+        )
+    )
+
+    return render_template(
+        "modules/catering/revenues/index.html",
+        revenues=result.items,
+        pagination=result,
+    )
+
+
+@catering_bp.route(
+    "/revenues/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REVENUE_CREATE.name
+)
+def create_revenue():
+    """
+    Create a Catering Revenue record.
+    """
+
+    form = CateringRevenueForm()
+
+    customers = CustomerService().paginate(
+        QueryOptions(
+            page=1,
+            page_size=100,
+            sort_by="name",
+            sort_direction="asc",
+        )
+    )
+
+    events = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    ).repository.paginate(
+        QueryOptions(
+            page=1,
+            page_size=100,
+            sort_by="event_date",
+            sort_direction="desc",
+        )
+    )
+
+    form.customer_id.choices = [
+        (customer.id, customer.name)
+        for customer in customers.items
+    ]
+
+    form.event_id.choices = [
+        (
+            event.id,
+            f"Event #{event.id} — {event.event_date} — {event.status}",
+        )
+        for event in events.items
+    ]
+
+    if form.validate_on_submit():
+
+        service = CateringRevenueService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        )
+
+        revenue = service.create(
+            service.repository.model(
+                revenue_reference=form.revenue_reference.data,
+                source_type=form.source_type.data,
+                source_reference=form.source_reference.data,
+                customer_id=form.customer_id.data,
+                event_id=form.event_id.data,
+                amount=form.amount.data,
+                currency=form.currency.data,
+                revenue_date=form.revenue_date.data,
+                revenue_classification=form.revenue_classification.data,
+                status=CateringRevenueWorkflow.DRAFT,
+            ),
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Revenue created successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.view_revenue",
+                revenue_id=revenue.id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/revenues/create.html",
+        form=form,
+    )
+
+
+@catering_bp.route(
+    "/revenues/<int:revenue_id>"
+)
+@login_required
+@require_permission(
+    CATERING_REVENUE_READ.name
+)
+def view_revenue(
+    revenue_id,
+):
+    """
+    Render a Catering Revenue detail view.
+    """
+
+    service = CateringRevenueService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        revenue = service.get(
+            revenue_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Revenue not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.revenues"
+            )
+        )
+
+    return render_template(
+        "modules/catering/revenues/view.html",
+        revenue=revenue,
+    )
+
+
+@catering_bp.route(
+    "/revenues/<int:revenue_id>/edit",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REVENUE_UPDATE.name
+)
+def edit_revenue(
+    revenue_id,
+):
+    """
+    Edit a DRAFT Catering Revenue record.
+    """
+
+    service = CateringRevenueService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        revenue = service.get(
+            revenue_id
+        )
+    except EntityNotFoundException:
+        flash(
+            "Catering Revenue not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.revenues"
+            )
+        )
+
+    form = CateringRevenueForm(
+        obj=revenue
+    )
+
+    customers = CustomerService().paginate(
+        QueryOptions(
+            page=1,
+            page_size=100,
+            sort_by="name",
+            sort_direction="asc",
+        )
+    )
+
+    events = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    ).repository.paginate(
+        QueryOptions(
+            page=1,
+            page_size=100,
+            sort_by="event_date",
+            sort_direction="desc",
+        )
+    )
+
+    form.customer_id.choices = [
+        (customer.id, customer.name)
+        for customer in customers.items
+    ]
+
+    form.event_id.choices = [
+        (
+            event.id,
+            f"Event #{event.id} — {event.event_date} — {event.status}",
+        )
+        for event in events.items
+    ]
+
+    if form.validate_on_submit():
+
+        revenue.revenue_reference = (
+            form.revenue_reference.data
+        )
+        revenue.source_type = (
+            form.source_type.data
+        )
+        revenue.source_reference = (
+            form.source_reference.data
+        )
+        revenue.customer_id = (
+            form.customer_id.data
+        )
+        revenue.event_id = (
+            form.event_id.data
+        )
+        revenue.amount = (
+            form.amount.data
+        )
+        revenue.currency = (
+            form.currency.data
+        )
+        revenue.revenue_date = (
+            form.revenue_date.data
+        )
+        revenue.revenue_classification = (
+            form.revenue_classification.data
+        )
+
+        service.update(
+            revenue,
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Revenue updated successfully.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "catering.view_revenue",
+                revenue_id=revenue.id,
+            )
+        )
+
+    return render_template(
+        "modules/catering/revenues/edit.html",
+        form=form,
+        revenue=revenue,
+    )
+
+
+@catering_bp.route(
+    "/revenues/<int:revenue_id>/establish-eligibility",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REVENUE_ESTABLISH_ELIGIBILITY.name
+)
+def establish_revenue_eligibility(
+    revenue_id,
+):
+    """
+    Establish Catering Revenue recognition eligibility.
+    """
+
+    service = CateringRevenueService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        revenue = service.get(
+            revenue_id
+        )
+
+        service.establish_eligibility(
+            revenue,
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Revenue marked eligible for recognition.",
+            "success",
+        )
+
+    except (
+        EntityNotFoundException,
+        EntityValidationException,
+        ValueError,
+    ) as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_revenue",
+            revenue_id=revenue_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/revenues/<int:revenue_id>/recognize",
+    methods=["POST"],
+)
+@login_required
+@require_permission(CATERING_REVENUE_RECOGNIZE.name)
+def recognize_revenue(revenue_id):
+    """
+    Recognize Catering Revenue through the enterprise execution framework.
+    """
+    command = RecognizeCateringRevenueCommand(
+        revenue_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="CATERING",
+        operation="catering.revenue.recognize",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "catering.view_revenue",
+            revenue_id=revenue_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/revenues/<int:revenue_id>/cancel",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_REVENUE_CANCEL.name
+)
+def cancel_revenue(
+    revenue_id,
+):
+    """
+    Cancel a Catering Revenue record.
+    """
+
+    service = CateringRevenueService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        revenue = service.get(
+            revenue_id
+        )
+
+        service.cancel(
+            revenue,
+            subject=current_user,
+        )
+
+        flash(
+            "Catering Revenue cancelled successfully.",
+            "success",
+        )
+
+    except (
+        EntityNotFoundException,
+        EntityValidationException,
+        ValueError,
+    ) as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_revenue",
+            revenue_id=revenue_id,
         )
     )
 
