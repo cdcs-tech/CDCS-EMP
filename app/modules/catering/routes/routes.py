@@ -74,6 +74,11 @@ from app.modules.catering.security import (
     CATERING_EVENT_DELETE,
     CATERING_EVENT_READ,
     CATERING_EVENT_UPDATE,
+    CATERING_EVENT_PLAN,
+    CATERING_EVENT_READY,
+    CATERING_EVENT_START_PRODUCTION,
+    CATERING_EVENT_DELIVER,
+    CATERING_EVENT_COMPLETE,
     CATERING_QUOTATION_ACCEPT,
     CATERING_QUOTATION_CREATE,
     CATERING_QUOTATION_DECLINE,
@@ -2147,6 +2152,291 @@ def confirm_catering_event(
     else:
         flash(
             "Catering Event confirmed successfully.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/plan",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_PLAN.name
+)
+def plan_catering_event(event_id):
+    """
+    Progress a confirmed Catering Event to PLANNING.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(event_id)
+
+        service.plan(
+            catering_event,
+            subject=current_user,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    else:
+        flash(
+            "Catering Event moved to planning.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/ready",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_READY.name
+)
+def ready_catering_event(event_id):
+    """
+    Progress a planned Catering Event to READY.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(event_id)
+
+        service.ready(
+            catering_event,
+            subject=current_user,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    else:
+        flash(
+            "Catering Event marked ready.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/start-production",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_START_PRODUCTION.name
+)
+def start_production_catering_event(event_id):
+    """
+    Start production for a READY Catering Event.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(event_id)
+
+        service.start_production(
+            catering_event,
+            subject=current_user,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    else:
+        flash(
+            "Catering Event moved to production.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/deliver",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_DELIVER.name
+)
+def deliver_catering_event(event_id):
+    """
+    Mark an IN_PRODUCTION Catering Event as DELIVERED.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(event_id)
+
+        service.deliver(
+            catering_event,
+            subject=current_user,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    else:
+        flash(
+            "Catering Event marked delivered.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event_id,
+        )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/complete",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EVENT_COMPLETE.name
+)
+def complete_catering_event(event_id):
+    """
+    Complete a DELIVERED Catering Event.
+    """
+
+    service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    try:
+        catering_event = service.get(event_id)
+
+        service.complete(
+            catering_event,
+            subject=current_user,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event not found.",
+            "danger",
+        )
+
+        return redirect(
+            url_for(
+                "catering.catering_events"
+            )
+        )
+
+    except EntityValidationException as exc:
+        flash(
+            str(exc),
+            "danger",
+        )
+
+    else:
+        flash(
+            "Catering Event completed successfully.",
             "success",
         )
 

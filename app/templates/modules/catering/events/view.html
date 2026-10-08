@@ -282,6 +282,71 @@
             </button>
         </form>
 
+        {% elif catering_event.status == "CONFIRMED" %}
+
+        <form method="POST" action="{{ url_for(
+        'catering.plan_catering_event',
+        event_id=catering_event.id
+    ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Plan Event
+            </button>
+        </form>
+
+        {% elif catering_event.status == "PLANNING" %}
+
+        <form method="POST" action="{{ url_for(
+        'catering.ready_catering_event',
+        event_id=catering_event.id
+    ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Mark Ready
+            </button>
+        </form>
+
+        {% elif catering_event.status == "READY" %}
+
+        <form method="POST" action="{{ url_for(
+        'catering.start_production_catering_event',
+        event_id=catering_event.id
+    ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Start Production
+            </button>
+        </form>
+
+        {% elif catering_event.status == "IN_PRODUCTION" %}
+
+        <form method="POST" action="{{ url_for(
+        'catering.deliver_catering_event',
+        event_id=catering_event.id
+    ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Mark Delivered
+            </button>
+        </form>
+
+        {% elif catering_event.status == "DELIVERED" %}
+
+        <form method="POST" action="{{ url_for(
+        'catering.complete_catering_event',
+        event_id=catering_event.id
+    ) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <button type="submit" class="btn btn-primary">
+                Complete Event
+            </button>
+        </form>
+
         {% endif %}
 
         {% if catering_event.status in [

@@ -33,6 +33,13 @@ class CateringEventService(CRUDService[CateringEvent]):
     """
 
     CONFIRM_PERMISSION = "CATERING.CATERING_EVENT.CONFIRM"
+    PLAN_PERMISSION = "CATERING.CATERING_EVENT.PLAN"
+    READY_PERMISSION = "CATERING.CATERING_EVENT.READY"
+    START_PRODUCTION_PERMISSION = (
+        "CATERING.CATERING_EVENT.START_PRODUCTION"
+    )
+    DELIVER_PERMISSION = "CATERING.CATERING_EVENT.DELIVER"
+    COMPLETE_PERMISSION = "CATERING.CATERING_EVENT.COMPLETE"
 
     def __init__(
         self,
@@ -217,6 +224,131 @@ class CateringEventService(CRUDService[CateringEvent]):
         self._transition_workflow(
             event,
             CateringEventWorkflow.CONFIRMED,
+        )
+
+        return super().update(event)
+
+    def plan(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Progress an Event from CONFIRMED to PLANNING.
+
+        Event lifecycle validity remains delegated to
+        CateringEventWorkflow.
+        """
+
+        self._authorize(
+            subject,
+            self.PLAN_PERMISSION,
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.PLANNING,
+        )
+
+        return super().update(event)
+
+    def ready(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Progress an Event from PLANNING to READY.
+
+        Event lifecycle validity remains delegated to
+        CateringEventWorkflow.
+        """
+
+        self._authorize(
+            subject,
+            self.READY_PERMISSION,
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.READY,
+        )
+
+        return super().update(event)
+
+    def start_production(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Progress an Event from READY to IN_PRODUCTION.
+
+        Event lifecycle validity remains delegated to
+        CateringEventWorkflow.
+        """
+
+        self._authorize(
+            subject,
+            self.START_PRODUCTION_PERMISSION,
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.IN_PRODUCTION,
+        )
+
+        return super().update(event)
+
+    def deliver(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Progress an Event from IN_PRODUCTION to DELIVERED.
+
+        Event lifecycle validity remains delegated to
+        CateringEventWorkflow.
+        """
+
+        self._authorize(
+            subject,
+            self.DELIVER_PERMISSION,
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.DELIVERED,
+        )
+
+        return super().update(event)
+
+    def complete(
+        self,
+        event: CateringEvent,
+        *,
+        subject: Any,
+    ) -> CateringEvent:
+        """
+        Progress an Event from DELIVERED to COMPLETED.
+
+        Event lifecycle validity remains delegated to
+        CateringEventWorkflow.
+        """
+
+        self._authorize(
+            subject,
+            self.COMPLETE_PERMISSION,
+        )
+
+        self._transition_workflow(
+            event,
+            CateringEventWorkflow.COMPLETED,
         )
 
         return super().update(event)
