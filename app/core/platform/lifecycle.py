@@ -113,6 +113,7 @@ class ApplicationLifecycle:
             "catering.post_transfer",
             "procurement.submit_purchase_order",
             "procurement.approve_purchase_order",
+            "procurement.receive_purchase_order",
         }
     )
 

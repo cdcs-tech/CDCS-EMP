@@ -14,6 +14,10 @@ from app.modules.procurement.forms.purchase_order_line import (
     PurchaseOrderLineForm,
 )
 
+from app.modules.procurement.forms.purchase_order_receive import (
+    PurchaseOrderReceiveForm,
+)
+
 from app.modules.procurement.forms.purchase_request import (
     PurchaseRequestForm,
 )
@@ -38,4 +42,5 @@ __all__ = [
     "PurchaseRequestLineForm",
     "PurchaseOrderForm",
     "PurchaseOrderLineForm",
+    "PurchaseOrderReceiveForm",
 ]

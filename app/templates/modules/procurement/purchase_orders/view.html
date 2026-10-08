@@ -148,6 +148,15 @@
     </form>
     {% endif %}
 
+    {% if purchase_order.status == "APPROVED" %}
+    <a href="{{ url_for(
+        'procurement.receive_purchase_order',
+        purchase_order_id=purchase_order.id
+    ) }}" class="btn btn-success">
+        Receive Purchase Order
+    </a>
+    {% endif %}
+
     <a href="{{ url_for(
             'procurement.edit_purchase_order',
             purchase_order_id=purchase_order.id

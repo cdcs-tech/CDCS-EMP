@@ -29,6 +29,7 @@ from app.modules.procurement.forms import (
     PurchaseRequestLineForm,
     PurchaseRequirementForm,
     SupplierForm,
+    PurchaseOrderReceiveForm,
 )
 from app.modules.procurement.models import (
     PurchaseOrder,
@@ -42,6 +43,9 @@ from app.modules.procurement.commands.purchase_order import (
     ApprovePurchaseOrderCommand,
     SubmitPurchaseOrderCommand,
 )
+from app.modules.procurement.commands.purchase_order_receive import (
+    ReceivePurchaseOrderCommand,
+)
 from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_ORDER_CREATE,
     PROCUREMENT_PURCHASE_ORDER_DELETE,
@@ -52,6 +56,7 @@ from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_ORDER_UPDATE,
     PROCUREMENT_PURCHASE_ORDER_SUBMIT,
     PROCUREMENT_PURCHASE_ORDER_APPROVE,
+    PROCUREMENT_PURCHASE_ORDER_RECEIVE,
     PROCUREMENT_PURCHASE_REQUEST_CREATE,
     PROCUREMENT_PURCHASE_REQUEST_DELETE,
     PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
@@ -1385,6 +1390,161 @@ def approve_purchase_order(
             "procurement.view_purchase_order",
             purchase_order_id=purchase_order_id,
         )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-orders/<int:purchase_order_id>/receive",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_ORDER_RECEIVE.name
+)
+def receive_purchase_order(
+    purchase_order_id: int,
+):
+    """
+    Submit a Purchase Order receipt to Inventory through
+    the enterprise execution framework.
+    """
+    purchase_order = PurchaseOrderService().get_by_id(
+        purchase_order_id
+    )
+
+    if purchase_order is None:
+        abort(404)
+
+    if purchase_order.status != "APPROVED":
+        flash(
+            "Only APPROVED Purchase Orders can be received.",
+            "danger",
+        )
+        return redirect(
+            url_for(
+                "procurement.view_purchase_order",
+                purchase_order_id=purchase_order_id,
+            )
+        )
+
+    form = PurchaseOrderReceiveForm()
+
+    form.purchase_order_line_id.choices = [
+        (
+            line.id,
+            (
+                f"{line.description} — "
+                f"{line.quantity} {line.unit}"
+            ),
+        )
+        for line in purchase_order.lines
+    ]
+
+    if form.validate_on_submit():
+        purchase_order_line = next(
+            (
+                line
+                for line in purchase_order.lines
+                if line.id == form.purchase_order_line_id.data
+            ),
+            None,
+        )
+
+        if purchase_order_line is None:
+            flash(
+                "The selected Purchase Order Line is invalid.",
+                "danger",
+            )
+            return render_template(
+                "modules/procurement/purchase_orders/receive.html",
+                purchase_order=purchase_order,
+                form=form,
+            )
+
+        try:
+            from datetime import datetime
+
+            received_at = datetime.strptime(
+                form.received_at.data,
+                "%Y-%m-%dT%H:%M",
+            )
+        except (TypeError, ValueError):
+            form.received_at.errors.append(
+                "Enter a valid date and time."
+            )
+            return render_template(
+                "modules/procurement/purchase_orders/receive.html",
+                purchase_order=purchase_order,
+                form=form,
+            )
+
+        receiving_reference = (
+            form.receiving_reference.data.strip()
+        )
+
+        idempotency_key = (
+            f"procurement-receipt:"
+            f"{purchase_order.id}:"
+            f"{purchase_order_line.id}:"
+            f"{receiving_reference}"
+        )
+
+        command = ReceivePurchaseOrderCommand(
+            purchase_order_id=purchase_order.id,
+            purchase_order_reference=purchase_order.reference,
+            purchase_order_line_reference=(
+                purchase_order_line.item_reference
+            ),
+            stock_item_reference=(
+                purchase_order_line.item_reference
+            ),
+            inventory_location_reference=(
+                form.inventory_location_reference.data.strip()
+            ),
+            quantity_received=form.quantity_received.data,
+            unit=purchase_order_line.unit,
+            received_at=received_at,
+            receiving_reference=receiving_reference,
+            idempotency_key=idempotency_key,
+            notes=(
+                form.notes.data.strip()
+                if form.notes.data
+                else None
+            ),
+        )
+
+        context = ExecutionContext(
+            user_id=str(current_user.id),
+            module_name="PROCUREMENT",
+            operation="procurement.purchase_order.receive",
+        )
+
+        dispatcher = current_app.extensions[
+            "command_dispatcher"
+        ]
+
+        result = dispatcher.dispatch(
+            command,
+            context,
+        )
+
+        flash(
+            result.message,
+            "success" if result.success else "danger",
+        )
+
+        if result.success:
+            return redirect(
+                url_for(
+                    "procurement.view_purchase_order",
+                    purchase_order_id=purchase_order_id,
+                )
+            )
+
+    return render_template(
+        "modules/procurement/purchase_orders/receive.html",
+        purchase_order=purchase_order,
+        form=form,
     )
 
 
