@@ -24,6 +24,8 @@ from app.core.crud.exceptions import (
 )
 from app.core.data import QueryOptions
 
+from sqlalchemy.exc import MultipleResultsFound
+
 from app.core.execution.context import ExecutionContext
 
 from app.security.decorators import require_permission
@@ -130,6 +132,10 @@ from app.modules.catering.services import (
     EventRequirementService,
     CateringRevenueService,
     CateringExpenseCostAssociationService,
+)
+
+from app.modules.catering.services.event_profitability import (
+    EventProfitabilityService,
 )
 
 from app.modules.catering.security.authorization import (
@@ -2365,10 +2371,46 @@ def view_catering_event(
         )
     )
 
+    profitability_result = None
+    profitability_unavailable = False
+    profitability_data_conflict = False
+
+    profitability_service = EventProfitabilityService(
+        catering_event_repository=CateringEventRepository(),
+        catering_revenue_repository=CateringRevenueRepository(),
+        expense_cost_association_repository=(
+            CateringExpenseCostAssociationRepository()
+        ),
+        expense_repository=ExpenseRepository(),
+    )
+
+    try:
+        profitability_result = (
+            profitability_service.calculate_for_event(
+                catering_event.id
+            )
+        )
+    except MultipleResultsFound:
+        # Multiple recognized revenue records violate the current
+        # profitability service's single-revenue expectation.
+        profitability_unavailable = True
+        profitability_data_conflict = True
+    except ValueError:
+        # Authoritative revenue or consumed-cost data is unavailable.
+        profitability_unavailable = True
+
     return render_template(
         "modules/catering/events/view.html",
         catering_event=catering_event,
+        can_create_expense_cost_association=(
+            current_user.has_permission(
+                CATERING_EXPENSE_COST_ASSOCIATION_CREATE.name
+            )
+        ),
         accepted_quotation=accepted_quotation,
+        profitability_result=profitability_result,
+        profitability_unavailable=profitability_unavailable,
+        profitability_data_conflict=profitability_data_conflict,
     )
 
 
@@ -3109,7 +3151,7 @@ def create_event_expense_cost_association(event_id):
                 )
                 return redirect(
                     url_for(
-                        "catering.create_event_expense_cost_association",
+                        "catering.view_catering_event",
                         event_id=event.id,
                     )
                 )

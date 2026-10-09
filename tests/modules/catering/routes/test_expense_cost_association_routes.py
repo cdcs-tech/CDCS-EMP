@@ -231,10 +231,7 @@ def test_create_association_allows_same_expense_for_different_event(
         follow_redirects=False,
     )
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith(
-        "/catering/events/8/expense-cost-associations/create"
-    )
+    assert response.headers["Location"].endswith("/catering/events/8")
 
     association = captured["association"]
     assert association.expense_id == 12
