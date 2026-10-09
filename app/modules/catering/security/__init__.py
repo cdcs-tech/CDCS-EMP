@@ -74,6 +74,7 @@ from app.modules.catering.security.permissions import (
     CATERING_REVENUE_ESTABLISH_ELIGIBILITY,
     CATERING_REVENUE_RECOGNIZE,
     CATERING_REVENUE_CANCEL,
+    CATERING_EXPENSE_COST_ASSOCIATION_CREATE,
 )
 
 from .authorization import (
@@ -150,6 +151,7 @@ __all__ = [
     "CATERING_REVENUE_ESTABLISH_ELIGIBILITY",
     "CATERING_REVENUE_RECOGNIZE",
     "CATERING_REVENUE_CANCEL",
+    "CATERING_EXPENSE_COST_ASSOCIATION_CREATE",
     "AuthorizationEvaluator",
     "CateringAuthorizationAdapter",
 ]

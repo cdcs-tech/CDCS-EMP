@@ -31,6 +31,7 @@ from app.security.decorators import require_permission
 from app.modules.catering.models import CateringQuotation
 from app.modules.catering.models import CateringQuotationLine
 from app.modules.catering.models import EventRequirement
+from app.modules.catering.models import CateringExpenseCostAssociation
 
 from app.modules.catering.forms import (
     CateringEventForm,
@@ -46,6 +47,7 @@ from app.modules.catering.forms import (
     StockMovementForm,
     StockTransferForm,
     CateringRevenueForm,
+    CateringExpenseCostAssociationForm,
 )
 
 from app.modules.catering.security import (
@@ -96,6 +98,7 @@ from app.modules.catering.security import (
     CATERING_QUOTATION_UPDATE,
     CATERING_EVENT_QUOTE,
     CATERING_EVENT_CONFIRM,
+    CATERING_EXPENSE_COST_ASSOCIATION_CREATE,
     CATERING_EVENT_REQUIREMENT_CANCEL,
     CATERING_EVENT_REQUIREMENT_CREATE,
     CATERING_EVENT_REQUIREMENT_IDENTIFY,
@@ -126,6 +129,7 @@ from app.modules.catering.services import (
     CateringQuotationEventCoordinationService,
     EventRequirementService,
     CateringRevenueService,
+    CateringExpenseCostAssociationService,
 )
 
 from app.modules.catering.security.authorization import (
@@ -159,6 +163,12 @@ from app.modules.catering.repositories.event_requirement import (
 from app.modules.catering.repositories.catering_revenue import (
     CateringRevenueRepository,
 )
+
+from app.modules.catering.repositories.expense_cost_association import (
+    CateringExpenseCostAssociationRepository,
+)
+
+from app.modules.expense.repositories.expense import ExpenseRepository
 
 from . import catering_bp
 
@@ -3013,6 +3023,101 @@ def delete_catering_event(
         url_for(
             "catering.catering_events"
         )
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/expense-cost-associations/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EXPENSE_COST_ASSOCIATION_CREATE.name
+)
+def create_event_expense_cost_association(event_id):
+    """Associate an existing Expense with a Catering Event."""
+
+    form = CateringExpenseCostAssociationForm()
+
+    event_repository = CateringEventRepository()
+    expense_repository = ExpenseRepository()
+    association_repository = CateringExpenseCostAssociationRepository()
+
+    event = event_repository.get_by_id(event_id)
+    if event is None:
+        flash("Catering Event not found.", "danger")
+        return redirect(url_for("catering.catering_events"))
+
+    if form.validate_on_submit():
+        expense_id = form.expense_id.data
+        expense = expense_repository.get_by_id(expense_id)
+
+        if expense is None:
+            flash("Expense not found.", "danger")
+        else:
+            context_type = "CATERING_EVENT"
+            context_reference = f"EVENT-{event.id}"
+
+            # Check the actual database uniqueness combination:
+            # expense_id + catering_context_type + catering_context_reference.
+            existing_associations = association_repository.get_all()
+
+            duplicate_exists = any(
+                association.expense_id == expense_id
+                and association.catering_context_type == context_type
+                and association.catering_context_reference
+                == context_reference
+                for association in existing_associations
+            )
+
+            if duplicate_exists:
+                flash(
+                    "This Expense is already associated with this "
+                    "Catering Event.",
+                    "warning",
+                )
+            else:
+                contribution_id = (
+                    f"expense:{expense_id}:"
+                    f"catering:event:{event.id}:"
+                    "consume_approved_expense"
+                )
+
+                association = CateringExpenseCostAssociation(
+                    expense_id=expense_id,
+                    catering_context_type=context_type,
+                    catering_context_reference=context_reference,
+                    status="ELIGIBLE",
+                    contribution_id=contribution_id,
+                )
+
+                service = CateringExpenseCostAssociationService(
+                    repository=association_repository,
+                    authorization_adapter=(
+                        _build_catering_authorization_adapter()
+                    ),
+                )
+
+                service.create(
+                    association,
+                    subject=current_user,
+                )
+
+                flash(
+                    "Expense associated with Catering Event successfully.",
+                    "success",
+                )
+                return redirect(
+                    url_for(
+                        "catering.create_event_expense_cost_association",
+                        event_id=event.id,
+                    )
+                )
+
+    return render_template(
+        "modules/catering/expense_cost_associations/create.html",
+        form=form,
+        event=event,
     )
 
 

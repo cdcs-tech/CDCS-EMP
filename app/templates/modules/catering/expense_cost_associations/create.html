@@ -1,0 +1,36 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1 class="h3 mb-3">Associate Expense with Catering Event</h1>
+
+    <p>
+        <strong>Event ID:</strong> {{ event.id }}
+    </p>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.expense_id.label(class="form-label") }}
+            {{ form.expense_id(class="form-control") }}
+
+            {% for error in form.expense_id.errors %}
+            <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.event_id(type="hidden", value=event.id) }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Associate Expense
+        </button>
+
+        <a href="{{ url_for('catering.view_catering_event', event_id=event.id) }}" class="btn btn-secondary">
+            Cancel
+        </a>
+    </form>
+</div>
+{% endblock %}

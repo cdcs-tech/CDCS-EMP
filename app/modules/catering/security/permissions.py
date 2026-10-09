@@ -463,6 +463,12 @@ CATERING_EVENT_CANCEL = Permission(
     action="cancel",
 )
 
+CATERING_EXPENSE_COST_ASSOCIATION_CREATE = Permission(
+    code="CATERING.EXPENSE_COST_ASSOCIATION.CREATE",
+    name="catering.expense_cost_association.create",
+    description="Create Catering Expense Cost Associations",
+)
+
 
 # ---------------------------------------------------------------------------
 # Catering Event Requirement Permissions

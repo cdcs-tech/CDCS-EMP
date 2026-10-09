@@ -81,8 +81,8 @@ def test_approved_expense_is_consumed_by_catering_after_commit(
 
         association = CateringExpenseCostAssociation(
             expense_id=expense.id,
-            catering_context_type="EVENT",
-            catering_context_reference="EVENT-001",
+            catering_context_type="CATERING_EVENT",
+            catering_context_reference="EVENT-1",
             status="ELIGIBLE",
             contribution_id=(
                 f"expense:{expense.id}:"
