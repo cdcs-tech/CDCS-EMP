@@ -6,7 +6,7 @@
 **Relationship:** Post-C6 Technical Acceptance / Pre-Gate 6 Remediation Baseline
 **Status:** **APPROVED / ACTIVE**
 **Application-Code Changes:** None authorized by this baseline alone
-**Acceptance Position:** Browser UAT inventory completed; remediation baseline approved; Gate 6 not yet achieved
+**Acceptance Position:** Browser UAT remediation implementation R01–R12 committed; controlled-data browser re-UAT and Gate 6 acceptance remain pending
 
 ---
 
@@ -983,3 +983,251 @@ The decision is:
 **Code Changes:** None authorized by approval of this baseline alone
 **Gate 6:** Pending
 **Final Pilot Acceptance:** Not claimed
+
+---
+
+# 18. UAT-R12 Implementation Checkpoint
+
+## 18.1 Implementation Record
+
+**Finding:** UAT-R12 — Event Profitability
+**Implementation Status:** Implemented and committed
+**Commit:** `8df8a26` — `feat(catering): expose event profitability`
+**Branch:** `master`
+**Automated Regression:** 3,216 tests passed
+**Working Tree at Checkpoint:** Clean
+
+The implementation exposes the existing read-only `EventProfitabilityService` through the Catering event-detail browser surface. The view presents the event context, recognized revenue, consumed costs, total cost, resulting profit, and cost contributions where the underlying service can provide them.
+
+The implementation preserves the established business ownership boundaries and does not introduce a second profitability calculation, a duplicate accounting ledger, or persisted profitability facts.
+
+The focused route tests and expense-cost association tests passed during implementation validation. Python compilation and Git whitespace checks also passed.
+
+## 18.2 Browser Verification Limitation
+
+Initial browser verification confirmed that:
+
+- the event-detail page loads;
+- the profitability view is exposed;
+- the expense-cost association form opens; and
+- successful expense-cost association submission redirects to the event detail and displays a success message.
+
+However, the event-detail page displayed a warning that multiple recognized Catering revenue records were found. Successful profitability figures have therefore **not yet been accepted as browser-verified against a controlled dataset**.
+
+The revenue retrieval path currently expects a single recognized revenue result for the event. The multiple-result condition must be investigated through read-only inspection and controlled UAT preparation.
+
+Do not arbitrarily select one revenue record, aggregate records, alter existing business data, or change the revenue domain contract as part of dataset preparation. Any required business-rule change must be assessed and approved separately.
+
+## 18.3 Checkpoint Decision
+
+UAT-R12 is implementation-complete for code-checkpoint purposes, but its browser acceptance evidence remains incomplete.
+
+The R12 implementation checkpoint does not establish Gate 6 readiness. Controlled-data browser re-UAT remains required.
+
+# 19. Controlled UAT Dataset Preparation and Recovery Gate
+
+## 19.1 Objective
+
+Prepare a controlled, reproducible dataset for end-to-end browser re-UAT after completion of the R01–R12 remediation implementation.
+
+The dataset must support verification of the pilot business flow across Catering, Procurement, Inventory, Expense, and the established financial integration boundaries. It must also allow the R12 profitability view to be evaluated using unambiguous recognized-revenue and consumed-cost data.
+
+## 19.2 Mandatory Preparation Sequence
+
+Dataset preparation must follow these gated stages:
+
+1. **Read-only environment and database discovery.** Identify the active application configuration, database target, migration state, relevant tables, record counts, foreign-key relationships, and dependencies. Do not expose passwords, connection strings, or other secrets in the evidence.
+2. **Data and dependency assessment.** Determine which existing records are production-like, operational, reference, test, or otherwise protected. Identify dependencies across Catering, Procurement, Inventory, Expense, users, permissions, and financial integration records.
+3. **Backup and recovery verification.** Create a backup using the approved database-specific procedure. Record the database identity, backup timestamp, artifact location, verification result, and recovery instructions. Establish that the backup is usable and that the restoration procedure is available before any destructive operation is considered.
+4. **Proposed reset and seed plan.** Prepare a dependency-aware plan identifying the exact records or tables proposed for reset, the deletion or cleanup order, the records to preserve, the seed sequence, and the verification criteria.
+5. **Explicit review and approval.** Review the proposed plan and backup evidence before authorizing any reset or data modification.
+6. **Controlled execution.** Only after approval, execute the approved reset and seed operations, verify referential integrity and expected records, and capture the resulting evidence.
+7. **Browser re-UAT.** Execute the agreed end-to-end pilot scenarios against the controlled dataset and record pass, fail, or blocked results with supporting evidence.
+
+Progression through a stage does not automatically authorize the next stage.
+
+## 19.3 Data Protection Rules
+
+Until the reset and seed plan has been explicitly approved:
+
+- perform read-only inspection only;
+- do not delete, truncate, overwrite, or bulk-update database records;
+- do not reset the database or rerun migrations against an unverified target;
+- do not modify users, roles, permissions, application configuration, reference data, or migration history;
+- do not alter existing business records merely to remove the R12 multiple-revenue warning; and
+- do not assume that a development or UAT database is disposable until its identity and purpose are verified.
+
+Any proposed exception must be documented and approved before execution.
+
+## 19.4 Dataset Design Requirements
+
+The proposed controlled dataset should include only the records required to execute and verify the approved pilot scenarios.
+
+The plan must account for the relevant relationships among:
+
+- Catering customers, requests, events, quotations, and event requirements;
+- Catering purchase requirements and Procurement purchase requests and purchase orders;
+- approved purchase orders and receiving operations;
+- Inventory movements, balances, and stock effects;
+- Expense records, approval state, and Catering cost associations;
+- recognized Catering revenue and the associated financial integration records; and
+- user identities, roles, permissions, and audit or idempotency records required by the tested workflows.
+
+The exact table list, dependency order, reset scope, and seed values must be derived from read-only repository and database inspection. They must not be guessed from this conceptual list.
+
+## 19.5 R12 Profitability Acceptance Data
+
+The controlled R12 scenario must make the expected profitability result independently verifiable.
+
+Before execution, document:
+
+- the selected test event;
+- the expected recognized-revenue record or records under the approved domain contract;
+- the expected consumed-cost contributions;
+- the expected total cost and resulting profit;
+- the source records used to establish those expectations; and
+- the browser evidence required to confirm that the displayed values match the expected result.
+
+The dataset must not conceal or work around an unresolved business rule concerning multiple recognized revenue records. If the supported domain contract requires exactly one recognized revenue record per event, the controlled scenario should satisfy that rule. If multiple records are valid, their expected handling must be clarified and approved separately.
+
+## 19.6 Backup and Recovery Evidence
+
+Before any approved reset, retain a record of:
+
+- database identity and environment;
+- backup timestamp and artifact location;
+- backup verification or integrity-check result;
+- the applicable restoration procedure;
+- restoration prerequisites and access requirements; and
+- the person responsible for confirming recovery readiness.
+
+Do not include credentials or secret configuration values in the decision record. Do not claim that recovery has been verified until the relevant evidence exists.
+
+## 19.7 Current Authorization Boundary
+
+**Current status:** Planning approved; database inspection, backup execution, reset, and seeding are separate pending activities.
+
+This section authorizes planning and read-only discovery only. It does not authorize database mutation, cleanup, deletion, reset, or seeding.
+
+The controlled dataset may be executed only after the target database is identified, the backup and recovery evidence is reviewed, and the exact reset and seed plan is explicitly approved.
+
+## 19.8 Acceptance Gate
+
+Controlled-data browser re-UAT may begin only when:
+
+1. the target environment and database are verified;
+2. the backup and recovery procedure are documented and verified;
+3. the dependency-aware reset and seed plan is approved;
+4. the approved dataset has been created and validated; and
+5. expected outcomes for the pilot scenarios, including R12 profitability, are documented.
+
+Gate 6 remains pending until the required browser scenarios pass and the pilot readiness evidence is reviewed.
+
+---
+
+# 20. Completed Read-Only Browser Walkthrough and Navigation Findings
+
+## 20.1 Purpose and Evidence Boundary
+
+The read-only browser walkthrough reviewed the accessible Catering, Procurement, Inventory, and Expense Management pages in the configured UAT environment.
+
+**Walkthrough status:** Completed
+**Data mutation during walkthrough:** None
+**Controlled ICRC scenario entered:** No
+**Gate 6:** Pending
+
+The walkthrough verified page accessibility, visible empty states, available create actions, and form presentation. It did not establish successful end-to-end business transactions, controlled-data financial results, or final pilot acceptance.
+
+A page loading successfully is evidence of browser accessibility only. It does not prove that every underlying business capability is complete or that the full workflow has passed acceptance testing.
+
+## 20.2 Verified Browser Observations
+
+### Catering
+
+The following pages opened without visible browser errors and presented sensible empty states:
+
+- Customers
+- Catering Requests
+- Catering Events
+- Catering Revenue
+- Product Categories
+- Products
+
+Create actions were available on the reviewed list pages. Forms were opened for inspection only; no records were submitted or created.
+
+The Catering Events page directs the user to **View Catering Requests** to access the request-led event workflow. This is consistent with the established B1 workflow and is not classified as a defect merely because event creation is not presented as an independent create action.
+
+The current Catering navigation did not expose a visible Quotations page. Event Requirements, Catering Purchase Requirements, and Production/Delivery were also not visible as separate entries in the reviewed navigation. These observations establish a navigation/accessibility gap for further investigation; they do not prove that the underlying capabilities or routes are absent.
+
+### Procurement
+
+The Suppliers, Purchase Requirements, Purchase Requests, and Purchase Orders pages opened without visible browser errors and displayed sensible empty states.
+
+Create actions and forms were accessible for the reviewed Purchase Requirements, Purchase Requests, and Purchase Orders workflows. No forms were submitted and no records were changed.
+
+No Create Supplier action was visible during the Suppliers list review. This is recorded as an observation pending permission and workflow verification, not as a confirmed defect.
+
+### Inventory
+
+The Stock Items, Inventory Locations, Stock Balances, Stock Movements, and Stock Transfers pages opened without visible browser errors and displayed sensible empty states.
+
+Create actions were available on the reviewed Stock Items, Inventory Locations, Stock Movements, and Stock Transfers pages. Forms were inspected without submission.
+
+### Expense Management
+
+The Expenses and Expense Classifications pages opened without visible browser errors and displayed sensible empty states. Create actions and forms were accessible. No records were submitted or changed.
+
+## 20.3 Navigation Information-Architecture Finding
+
+The current Catering navigation places Inventory and its five operational pages within the same navigation list as Catering's customer, request, event, revenue, product-category, and product pages.
+
+This arrangement makes the Catering business workflow and physical stock-management functions appear as one undifferentiated navigation group. It is a navigation and information-architecture concern; the walkthrough does not establish that the underlying module ownership or permissions are incorrect.
+
+**Proposed navigation structure for review:**
+
+**Catering**
+- Customers
+- Catering Requests
+- Catering Events
+- Catering Revenue
+- Product Categories
+- Products
+
+**Inventory Management — separate top-level navigation section**
+- Stock Items
+- Inventory Locations
+- Stock Balances
+- Stock Movements
+- Stock Transfers
+
+The proposal is intended to make the distinction between Catering's business workflow and Inventory's physical stock responsibilities clearer to users. It does not authorize changes to routes, permissions, module registration, database structures, or business logic.
+
+Before implementation, verify the existing module-registration and navigation architecture, permission requirements, and cross-module links. The proposed arrangement must preserve authorized access and the established ownership boundary: Inventory remains responsible for physical stock effects, while Catering owns its business-layer concepts.
+
+## 20.4 Deferred Form Usability Observations
+
+Across several reviewed Catering, Procurement, and Expense Management forms, required fields were not consistently obvious to users. Some forms displayed Cancel but did not expose a separate return-to-list action.
+
+The walkthrough also observed inconsistent visible browser-native validation behavior between forms. These are recorded as usability observations for later assessment. They do not, by themselves, establish that server-side validation is absent or that the forms are functionally invalid.
+
+No form was submitted to test or alter application data during this walkthrough. No code changes are authorized by these observations.
+
+## 20.5 Interpretation and Follow-Up Classification
+
+The findings are classified as follows:
+
+1. **Browser-accessible:** Reviewed list pages and forms loaded without visible browser errors.
+2. **Navigation proposal:** Separate Inventory Management from the Catering navigation list, subject to architecture and permission review.
+3. **Further verification required:** Access paths for Quotations, Event Requirements, Catering Purchase Requirements, and Production/Delivery; the absence of a visible Create Supplier action; and any related permission or workflow constraints.
+4. **Deferred usability assessment:** Required-field clarity, form return navigation, and consistent browser validation feedback.
+5. **Not yet accepted:** End-to-end workflow execution against a controlled dataset, R12 profitability acceptance against unambiguous test data, and Gate 6 readiness.
+
+These results supplement the historical R01–R12 findings. They do not erase the original findings, replace the R12 controlled-data acceptance requirement, or establish that unverified capabilities are complete.
+
+## 20.6 Data Protection and Authorization Boundary
+
+The browser walkthrough was read-only. No customer, request, event, revenue, product, supplier, inventory, purchase, or expense records were created or modified, and the approved ICRC scenario was not entered.
+
+The database preparation, backup and recovery, reset and seed authorization gates in Section 19 remain in force. Any future scenario execution must follow those gates and receive the required explicit approval.
+
+**Decision:** Record the completed read-only walkthrough and the proposed navigation improvement. Defer application changes until the relevant architecture and permission boundaries are reviewed. Controlled-data browser re-UAT and Gate 6 acceptance remain pending.
