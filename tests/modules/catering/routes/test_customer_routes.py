@@ -211,6 +211,49 @@ def test_create_customer_renders_form(
     assert captured["context"]["form"] is not None
 
 
+def test_create_customer_renders_validation_errors_for_blank_fields(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    def fail_if_create_called(*args, **kwargs):
+        raise AssertionError(
+            "CustomerService.create() must not be called "
+            "when required fields are blank."
+        )
+
+    class FakeCustomerService:
+        def __init__(self):
+            self.create = fail_if_create_called
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CustomerService",
+        FakeCustomerService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/customers/create",
+        data={
+            "name": "",
+            "customer_type": "",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert b'name="name"' in response.data
+    assert b'name="customer_type"' in response.data
+
+    # WTForms should render the required-field attributes.
+    assert b'name="name" required' in response.data
+    assert b'name="customer_type" required' in response.data
+
+    # The real template should render server-side validation feedback.
+    assert b"This field is required." in response.data
+
+
 def test_create_customer_delegates_to_service(
     authenticated_client,
     monkeypatch,
@@ -266,6 +309,66 @@ def test_create_customer_delegates_to_service(
     assert entity.email == "client@example.com"
     assert entity.address == "Juba"
     assert entity.notes == "UAT customer"
+
+
+def test_create_customer_rejects_blank_required_fields(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    def fail_if_create_called(*args, **kwargs):
+        raise AssertionError(
+            "CustomerService.create() must not be called "
+            "when required form fields are blank."
+        )
+
+    class FakeCustomerService:
+        def __init__(self):
+            self.create = fail_if_create_called
+
+    captured = {}
+
+    def fake_render_template(template, **context):
+        captured["template"] = template
+        captured["form"] = context["form"]
+
+        form = context["form"]
+        errors = []
+        for field in (form.name, form.customer_type):
+            errors.extend(field.errors)
+
+        captured["errors"] = errors
+        return " ".join(str(error) for error in errors)
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CustomerService",
+        FakeCustomerService,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "render_template",
+        fake_render_template,
+    )
+
+    response = authenticated_client.post(
+        "/catering/customers/create",
+        data={
+            "name": "",
+            "customer_type": "",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert captured["template"] == (
+        "modules/catering/customers/create.html"
+    )
+    assert captured["form"].name.errors
+    assert captured["form"].customer_type.errors
+    assert captured["errors"]
+    assert "required" in response.text.lower()
 
 
 def test_view_customer_requires_read_permission(
