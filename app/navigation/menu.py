@@ -14,6 +14,39 @@ MENU_ITEMS = [
         "icon": "bi-cup-hot",
     },
     {
+        "title": "Inventory Management",
+        "endpoint": None,
+        "icon": "bi-box-seam",
+        "hide_if_empty": True,
+        "children": [
+            {
+                "title": "Stock Items",
+                "endpoint": "catering.stock_items",
+                "permission": "catering.stock_item.read",
+            },
+            {
+                "title": "Inventory Locations",
+                "endpoint": "catering.locations",
+                "permission": "catering.inventory_location.read",
+            },
+            {
+                "title": "Stock Balances",
+                "endpoint": "catering.balances",
+                "permission": "catering.stock_balance.read",
+            },
+            {
+                "title": "Stock Movements",
+                "endpoint": "catering.movements",
+                "permission": "catering.stock_movement.read",
+            },
+            {
+                "title": "Stock Transfers",
+                "endpoint": "catering.transfers",
+                "permission": "catering.stock_transfer.read",
+            },
+        ],
+    },
+    {
         "title": "Procurement",
         "endpoint": None,
         "icon": "bi-cart4",

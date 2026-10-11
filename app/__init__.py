@@ -148,17 +148,62 @@ def create_app(config_name=None):
     from app.navigation.menu import (
         MENU_ITEMS,
     )
+    from app.security.authorization import (
+        AuthorizationService,
+    )
 
     @app.context_processor
     def inject_navigation():
+        visible_items = []
+
+        for item in MENU_ITEMS:
+            visible_item = {
+                key: value
+                for key, value in item.items()
+                if key not in {
+                    "children",
+                    "hide_if_empty",
+                }
+            }
+
+            if item.get("children") is not None:
+                visible_children = []
+
+                for child in item["children"]:
+                    permission = child.get("permission")
+
+                    if (
+                        permission
+                        and not AuthorizationService.has_permission(
+                            permission
+                        )
+                    ):
+                        continue
+
+                    visible_children.append({
+                        key: value
+                        for key, value in child.items()
+                        if key != "permission"
+                    })
+
+                if (
+                    item.get("hide_if_empty")
+                    and not visible_children
+                ):
+                    continue
+
+                visible_item["children"] = visible_children
+
+            visible_items.append(visible_item)
+
         return {
-            "menu_items": MENU_ITEMS
+            "menu_items": visible_items,
         }
 
     @app.context_processor
     def inject_brand():
         return {
-            "brand": BRAND
+            "brand": BRAND,
         }
 
     return app
