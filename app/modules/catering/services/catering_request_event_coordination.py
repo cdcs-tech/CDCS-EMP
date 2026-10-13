@@ -93,7 +93,7 @@ class CateringRequestEventCoordinationService:
         operational_notes=None,
     ) -> CateringEvent:
         """
-        Create an operational Catering Event from a Catering Request.
+        Create an operational Catering Event from a submitted Request.
 
         The resulting Event starts in REQUESTED state. The source
         Request is not modified.
@@ -109,6 +109,22 @@ class CateringRequestEventCoordinationService:
             raise EntityNotFoundException(
                 "Catering Request",
                 request_id,
+            )
+
+        if request.status != "SUBMITTED":
+            raise ValueError(
+                "A Catering Event can only be created from a "
+                "SUBMITTED Catering Request."
+            )
+
+        existing_event = self.event_repository.get_by_request_id(
+            request.id
+        )
+
+        if existing_event is not None:
+            raise ValueError(
+                "A Catering Event already exists for Catering "
+                f"Request {request.id}."
             )
 
         event = CateringEvent(

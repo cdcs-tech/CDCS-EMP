@@ -11,9 +11,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from app.core.crud.exceptions import (
-    EntityNotFoundException,
-)
+from app.core.crud.exceptions import EntityNotFoundException
 from app.modules.catering.models import CateringEvent, CateringRequest
 from app.modules.catering.repositories import (
     CateringEventRepository,
@@ -42,26 +40,35 @@ def _build_request() -> CateringRequest:
     )
 
 
+def _build_service():
+    request_repository = Mock(spec=CateringRequestRepository)
+    event_repository = Mock(spec=CateringEventRepository)
+    authorization_adapter = Mock(spec=CateringAuthorizationAdapter)
+
+    service = CateringRequestEventCoordinationService(
+        request_repository=request_repository,
+        event_repository=event_repository,
+        authorization_adapter=authorization_adapter,
+    )
+
+    return (
+        service,
+        request_repository,
+        event_repository,
+        authorization_adapter,
+    )
+
+
 def test_service_uses_default_repositories():
     service = CateringRequestEventCoordinationService()
 
-    assert isinstance(
-        service.request_repository,
-        CateringRequestRepository,
-    )
-    assert isinstance(
-        service.event_repository,
-        CateringEventRepository,
-    )
+    assert isinstance(service.request_repository, CateringRequestRepository)
+    assert isinstance(service.event_repository, CateringEventRepository)
 
 
 def test_create_event_requires_authorization_adapter():
-    request_repository = Mock(
-        spec=CateringRequestRepository,
-    )
-    event_repository = Mock(
-        spec=CateringEventRepository,
-    )
+    request_repository = Mock(spec=CateringRequestRepository)
+    event_repository = Mock(spec=CateringEventRepository)
 
     service = CateringRequestEventCoordinationService(
         request_repository=request_repository,
@@ -72,111 +79,125 @@ def test_create_event_requires_authorization_adapter():
         RuntimeError,
         match="Catering authorization adapter is required",
     ):
-        service.create_event_from_request(
-            17,
-            subject=Mock(),
-        )
+        service.create_event_from_request(17, subject=Mock())
 
     request_repository.get_by_id.assert_not_called()
+    event_repository.get_by_request_id.assert_not_called()
     event_repository.add.assert_not_called()
 
 
 def test_create_event_authorizes_before_loading_request():
-    request_repository = Mock(
-        spec=CateringRequestRepository,
-    )
-    event_repository = Mock(
-        spec=CateringEventRepository,
-    )
-    authorization_adapter = Mock(
-        spec=CateringAuthorizationAdapter,
-    )
-    authorization_adapter.authorize.side_effect = PermissionError(
-        "Denied",
-    )
+    (
+        service,
+        request_repository,
+        event_repository,
+        authorization_adapter,
+    ) = _build_service()
 
-    service = CateringRequestEventCoordinationService(
-        request_repository=request_repository,
-        event_repository=event_repository,
-        authorization_adapter=authorization_adapter,
-    )
+    authorization_adapter.authorize.side_effect = PermissionError("Denied")
 
-    with pytest.raises(
-        PermissionError,
-        match="Denied",
-    ):
-        service.create_event_from_request(
-            17,
-            subject=Mock(),
-        )
+    with pytest.raises(PermissionError, match="Denied"):
+        service.create_event_from_request(17, subject=Mock())
 
     request_repository.get_by_id.assert_not_called()
+    event_repository.get_by_request_id.assert_not_called()
     event_repository.add.assert_not_called()
 
 
 def test_create_event_raises_when_request_does_not_exist():
-    request_repository = Mock(
-        spec=CateringRequestRepository,
-    )
-    event_repository = Mock(
-        spec=CateringEventRepository,
-    )
-    authorization_adapter = Mock(
-        spec=CateringAuthorizationAdapter,
-    )
+    (
+        service,
+        request_repository,
+        event_repository,
+        authorization_adapter,
+    ) = _build_service()
+
     request_repository.get_by_id.return_value = None
-
     subject = Mock()
-
-    service = CateringRequestEventCoordinationService(
-        request_repository=request_repository,
-        event_repository=event_repository,
-        authorization_adapter=authorization_adapter,
-    )
 
     with pytest.raises(
         EntityNotFoundException,
         match="Catering Request with id 999 was not found.",
     ):
-        service.create_event_from_request(
-            999,
-            subject=subject,
-        )
+        service.create_event_from_request(999, subject=subject)
 
     authorization_adapter.authorize.assert_called_once_with(
         subject,
         CATERING_EVENT_CREATE.name,
     )
     request_repository.get_by_id.assert_called_once_with(999)
+    event_repository.get_by_request_id.assert_not_called()
+    event_repository.add.assert_not_called()
+
+
+@pytest.mark.parametrize("status", ["DRAFT", "CANCELLED"])
+def test_create_event_rejects_ineligible_request_status(status):
+    (
+        service,
+        request_repository,
+        event_repository,
+        _,
+    ) = _build_service()
+
+    request = _build_request()
+    request.status = status
+    request_repository.get_by_id.return_value = request
+
+    with pytest.raises(
+        ValueError,
+        match="only be created from a SUBMITTED Catering Request",
+    ):
+        service.create_event_from_request(
+            request.id,
+            subject=Mock(),
+        )
+
+    event_repository.get_by_request_id.assert_not_called()
+    event_repository.add.assert_not_called()
+
+
+def test_create_event_rejects_duplicate_event():
+    (
+        service,
+        request_repository,
+        event_repository,
+        _,
+    ) = _build_service()
+
+    request = _build_request()
+    request_repository.get_by_id.return_value = request
+    event_repository.get_by_request_id.return_value = Mock(
+        spec=CateringEvent,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="A Catering Event already exists for Catering Request 17",
+    ):
+        service.create_event_from_request(
+            request.id,
+            subject=Mock(),
+        )
+
+    event_repository.get_by_request_id.assert_called_once_with(request.id)
     event_repository.add.assert_not_called()
 
 
 def test_create_event_maps_request_to_event():
-    request_repository = Mock(
-        spec=CateringRequestRepository,
-    )
-    event_repository = Mock(
-        spec=CateringEventRepository,
-    )
-    authorization_adapter = Mock(
-        spec=CateringAuthorizationAdapter,
-    )
+    (
+        service,
+        request_repository,
+        event_repository,
+        authorization_adapter,
+    ) = _build_service()
 
     request = _build_request()
     request_repository.get_by_id.return_value = request
+    event_repository.get_by_request_id.return_value = None
 
-    created_event = Mock(
-        spec=CateringEvent,
-    )
+    created_event = Mock(spec=CateringEvent)
     event_repository.add.return_value = created_event
-
     subject = Mock()
-
-    service = CateringRequestEventCoordinationService(
-        request_repository=request_repository,
-        event_repository=event_repository,
-        authorization_adapter=authorization_adapter,
-    )
 
     result = service.create_event_from_request(
         request.id,
@@ -189,11 +210,10 @@ def test_create_event_maps_request_to_event():
         subject,
         CATERING_EVENT_CREATE.name,
     )
-    request_repository.get_by_id.assert_called_once_with(
-        request.id,
-    )
-
+    request_repository.get_by_id.assert_called_once_with(request.id)
+    event_repository.get_by_request_id.assert_called_once_with(request.id)
     event_repository.add.assert_called_once()
+
     created_argument = event_repository.add.call_args.args[0]
 
     assert isinstance(created_argument, CateringEvent)
@@ -207,30 +227,18 @@ def test_create_event_maps_request_to_event():
 
 
 def test_create_event_uses_requirements_when_request_has_no_notes():
-    request_repository = Mock(
-        spec=CateringRequestRepository,
-    )
-    event_repository = Mock(
-        spec=CateringEventRepository,
-    )
-    authorization_adapter = Mock(
-        spec=CateringAuthorizationAdapter,
-    )
+    (
+        service,
+        request_repository,
+        event_repository,
+        _,
+    ) = _build_service()
 
     request = _build_request()
     request.notes = None
     request_repository.get_by_id.return_value = request
-
-    created_event = Mock(
-        spec=CateringEvent,
-    )
-    event_repository.add.return_value = created_event
-
-    service = CateringRequestEventCoordinationService(
-        request_repository=request_repository,
-        event_repository=event_repository,
-        authorization_adapter=authorization_adapter,
-    )
+    event_repository.get_by_request_id.return_value = None
+    event_repository.add.return_value = Mock(spec=CateringEvent)
 
     service.create_event_from_request(
         request.id,
@@ -238,27 +246,21 @@ def test_create_event_uses_requirements_when_request_has_no_notes():
     )
 
     created_argument = event_repository.add.call_args.args[0]
-
     assert created_argument.operational_notes == request.requirements
 
 
 def test_create_event_does_not_modify_request():
-    request_repository = Mock(
-        spec=CateringRequestRepository,
-    )
-    event_repository = Mock(
-        spec=CateringEventRepository,
-    )
-    authorization_adapter = Mock(
-        spec=CateringAuthorizationAdapter,
-    )
+    (
+        service,
+        request_repository,
+        event_repository,
+        _,
+    ) = _build_service()
 
     request = _build_request()
     request_repository.get_by_id.return_value = request
-
-    event_repository.add.return_value = Mock(
-        spec=CateringEvent,
-    )
+    event_repository.get_by_request_id.return_value = None
+    event_repository.add.return_value = Mock(spec=CateringEvent)
 
     original_values = {
         "status": request.status,
@@ -266,12 +268,6 @@ def test_create_event_does_not_modify_request():
         "service_date": request.service_date,
         "attendance": request.attendance,
     }
-
-    service = CateringRequestEventCoordinationService(
-        request_repository=request_repository,
-        event_repository=event_repository,
-        authorization_adapter=authorization_adapter,
-    )
 
     service.create_event_from_request(
         request.id,
@@ -282,5 +278,4 @@ def test_create_event_does_not_modify_request():
     assert request.request_date == original_values["request_date"]
     assert request.service_date == original_values["service_date"]
     assert request.attendance == original_values["attendance"]
-
     request_repository.update.assert_not_called()

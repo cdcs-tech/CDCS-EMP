@@ -153,3 +153,265 @@ def test_complete_catering_event_delegates_to_service(
         service_method="complete",
         initial_status="DELIVERED",
     )
+
+
+def test_select_catering_request_for_event_filters_submitted_requests(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    request_record = SimpleNamespace(
+        id=17,
+        request_date="2026-10-11",
+        customer=SimpleNamespace(
+            name="International Committee of the Red Cross (ICRC)",
+        ),
+        requested_service="Five-day workshop catering and venue hire",
+        service_date="2026-10-19",
+        attendance=35,
+        status="SUBMITTED",
+    )
+
+    pagination = SimpleNamespace(
+        items=[request_record],
+        page=1,
+        page_size=25,
+        total_pages=1,
+        total_records=1,
+        has_previous=False,
+        has_next=False,
+    )
+
+    captured = {}
+
+    class FakeRequestRepository:
+        def paginate(self, options):
+            captured["options"] = options
+            return pagination
+
+    class FakeCateringRequestService:
+        def __init__(self, **kwargs):
+            self.repository = FakeRequestRepository()
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestService",
+        FakeCateringRequestService,
+    )
+
+    response = authenticated_client.get(
+        "/catering/events/create-from-request",
+    )
+
+    assert response.status_code == 200
+    assert b"Select Catering Request" in response.data
+    assert b"International Committee of the Red Cross (ICRC)" in response.data
+    assert b"Create Event" in response.data
+    assert b"/catering/requests/17/create-event" in response.data
+
+    options = captured["options"]
+    assert options.filters == {"status": "SUBMITTED"}
+
+
+def test_select_catering_request_for_event_shows_empty_state(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    pagination = SimpleNamespace(
+        items=[],
+        page=1,
+        page_size=25,
+        total_pages=0,
+        total_records=0,
+        has_previous=False,
+        has_next=False,
+    )
+
+    class FakeRequestRepository:
+        def paginate(self, options):
+            assert options.filters == {"status": "SUBMITTED"}
+            return pagination
+
+    class FakeCateringRequestService:
+        def __init__(self, **kwargs):
+            self.repository = FakeRequestRepository()
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestService",
+        FakeCateringRequestService,
+    )
+
+    response = authenticated_client.get(
+        "/catering/events/create-from-request",
+    )
+
+    assert response.status_code == 200
+    assert b"No submitted Catering Requests are currently available" in response.data
+
+
+
+def test_submit_catering_request_delegates_to_service(
+    authenticated_client,
+    monkeypatch,
+):
+    """Verify POST submission delegates to the request service."""
+    _allow_permissions(monkeypatch)
+
+    catering_request = SimpleNamespace(id=17)
+    delegated = {}
+
+    class FakeRequestService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, request_id):
+            assert request_id == 17
+            return catering_request
+
+        def submit(self, entity, *, subject):
+            delegated["entity"] = entity
+            delegated["subject"] = subject
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestService",
+        FakeRequestService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/requests/17/submit",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/requests/17"
+    )
+    assert delegated["entity"] is catering_request
+    assert delegated["subject"] is not None
+
+
+def test_submit_catering_request_handles_missing_request(
+    authenticated_client,
+    monkeypatch,
+):
+    """Verify a missing request redirects to the request list."""
+    _allow_permissions(monkeypatch)
+
+    from app.core.crud.exceptions import EntityNotFoundException
+
+    class FakeRequestService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, request_id):
+            raise EntityNotFoundException(
+                "Catering Request",
+                request_id,
+            )
+
+        def submit(self, entity, *, subject):
+            raise AssertionError(
+                "Submission must not run for a missing request."
+            )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestService",
+        FakeRequestService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/requests/17/submit",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/requests/"
+    )
+
+
+
+def test_submit_catering_request_handles_permission_error(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    class FakeRequestService:
+        def __init__(self, authorization_adapter=None):
+            pass
+
+        def get(self, request_id):
+            return SimpleNamespace(id=request_id)
+
+        def submit(self, catering_request, *, subject):
+            raise PermissionError("Submission denied.")
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestService",
+        FakeRequestService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/requests/17/submit",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/catering/requests/17")
+
+    with authenticated_client.session_transaction() as session:
+        flashes = session.get("_flashes", [])
+
+    assert any(
+        "not authorized to submit" in message.lower()
+        for category, message in flashes
+        if category == "danger"
+    )
+
+
+def test_submit_catering_request_handles_validation_error(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    class FakeRequestService:
+        def __init__(self, authorization_adapter=None):
+            pass
+
+        def get(self, request_id):
+            return SimpleNamespace(id=request_id)
+
+        def submit(self, catering_request, *, subject):
+            raise ValueError("Catering Request cannot be submitted in its current state.")
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestService",
+        FakeRequestService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/requests/17/submit",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/catering/requests/17")
+
+    with authenticated_client.session_transaction() as session:
+        flashes = session.get("_flashes", [])
+
+    assert any(
+        "cannot be submitted in its current state" in message.lower()
+        for category, message in flashes
+        if category == "danger"
+    )

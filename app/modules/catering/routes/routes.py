@@ -1430,6 +1430,48 @@ def catering_requests():
 
 
 @catering_bp.route(
+    "/events/create-from-request",
+)
+@login_required
+@require_permission(
+    CATERING_REQUEST_READ.name
+)
+def select_catering_request_for_event():
+    """
+    Select a submitted Catering Request for Event creation.
+    """
+
+    service = CateringRequestService(
+        authorization_adapter=_build_catering_authorization_adapter(),
+    )
+
+    result = service.repository.paginate(
+        QueryOptions(
+            page=_parse_positive_int(
+                request.args.get("page"),
+                1,
+            ),
+            page_size=_parse_page_size(
+                request.args.get("page_size"),
+            ),
+            filters={
+                "status": "SUBMITTED",
+            },
+            sort_by="request_date",
+            sort_direction=_parse_sort_direction(
+                request.args.get("direction"),
+            ),
+        )
+    )
+
+    return render_template(
+        "modules/catering/events/select_request.html",
+        requests=result.items,
+        pagination=result,
+    )
+
+
+@catering_bp.route(
     "/requests/create",
     methods=["GET", "POST"],
 )
@@ -1648,6 +1690,7 @@ def edit_catering_request(
     )
 
 
+
 @catering_bp.route(
     "/requests/<int:request_id>/submit",
     methods=["POST"],
@@ -1656,42 +1699,33 @@ def edit_catering_request(
 @require_permission(
     CATERING_REQUEST_SUBMIT.name
 )
-def submit_catering_request(
-    request_id,
-):
-    """
-    Submit a Catering Request.
-    """
+def submit_catering_request(request_id):
+    """Submit a Catering Request."""
 
     service = CateringRequestService(
         authorization_adapter=_build_catering_authorization_adapter(),
     )
 
     try:
-        catering_request = service.get(
-            request_id
-        )
-
+        catering_request = service.get(request_id)
         service.submit(
             catering_request,
             subject=current_user,
         )
     except EntityNotFoundException:
+        flash("Catering Request not found.", "danger")
+        return redirect(url_for("catering.catering_requests"))
+    except PermissionError:
         flash(
-            "Catering Request not found.",
+            "You are not authorized to submit this Catering Request.",
             "danger",
         )
-
-        return redirect(
-            url_for(
-                "catering.catering_requests"
-            )
-        )
-
-    flash(
-        "Catering Request submitted successfully.",
-        "success",
-    )
+    except EntityValidationException as exc:
+        flash(str(exc), "danger")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    else:
+        flash("Catering Request submitted successfully.", "success")
 
     return redirect(
         url_for(
