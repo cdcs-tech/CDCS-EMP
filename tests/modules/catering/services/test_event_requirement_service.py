@@ -386,35 +386,27 @@ def test_identify_authorizes_before_transition():
     )
 
 
-def test_ready_authorizes_before_transition():
-    repository = Mock(
-        spec=EventRequirementRepository,
-    )
-    authorization_adapter = Mock(
-        spec=CateringAuthorizationAdapter,
-    )
-    workflow = Mock(
-        spec=EventRequirementWorkflow,
-    )
+def test_ready_authorizes_and_persists_without_fulfilment_verification():
+    """Verify READY represents Catering-side planning readiness."""
+
+    repository = Mock(spec=EventRequirementRepository)
+    authorization_adapter = Mock(spec=CateringAuthorizationAdapter)
+    workflow = Mock(spec=EventRequirementWorkflow)
+    fulfilment_verifier = Mock()
 
     requirement = _requirement(
         status=EventRequirementWorkflow.IDENTIFIED,
     )
-    workflow.transition.return_value = type(
-        "WorkflowState",
-        (),
-        {"name": EventRequirementWorkflow.READY},
-    )()
+    subject = Mock()
 
     service = EventRequirementService(
         repository=repository,
         authorization_adapter=authorization_adapter,
         workflow=workflow,
+        fulfilment_verifier=fulfilment_verifier,
     )
 
-    subject = Mock()
-
-    service.ready(
+    result = service.ready(
         requirement,
         subject=subject,
     )
@@ -423,14 +415,10 @@ def test_ready_authorizes_before_transition():
         subject,
         "CATERING.EVENT_REQUIREMENT.READY",
     )
-    workflow.transition.assert_called_once_with(
-        EventRequirementWorkflow.IDENTIFIED,
-        EventRequirementWorkflow.READY,
-    )
-    assert requirement.status == EventRequirementWorkflow.READY
-    repository.update.assert_called_once_with(
-        requirement,
-    )
+    workflow.transition.assert_called_once()
+    repository.update.assert_called_once_with(requirement)
+    fulfilment_verifier.ensure_fulfilled.assert_not_called()
+    assert result is repository.update.return_value
 
 
 @pytest.mark.parametrize(

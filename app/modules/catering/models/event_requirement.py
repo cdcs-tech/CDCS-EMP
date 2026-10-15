@@ -29,6 +29,10 @@ class EventRequirement(
     The requirement remains owned by Catering and records the
     explicit fulfilment path without becoming a Procurement
     transaction or an Inventory stock transaction.
+
+    stock_item_id optionally identifies the authoritative Inventory
+    StockItem associated with the requirement. It remains nullable
+    to preserve compatibility with existing requirements.
     """
 
     __tablename__ = "catering_event_requirements"
@@ -48,6 +52,15 @@ class EventRequirement(
 
     item_reference = db.Column(
         db.String(100),
+        nullable=True,
+    )
+
+    stock_item_id = db.Column(
+        db.Integer,
+        db.ForeignKey(
+            "stock_items.id",
+            name="fk_catering_event_requirements_stock_item_id",
+        ),
         nullable=True,
     )
 
@@ -88,6 +101,11 @@ class EventRequirement(
     event = db.relationship(
         "CateringEvent",
         back_populates="requirements",
+        lazy="select",
+    )
+
+    stock_item = db.relationship(
+        "StockItem",
         lazy="select",
     )
 

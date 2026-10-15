@@ -12,6 +12,8 @@ from types import SimpleNamespace
 
 from app.models.user import User
 
+from app.core.crud.exceptions import EntityValidationException
+
 import app.modules.catering.routes.routes as catering_routes
 
 
@@ -250,6 +252,166 @@ def test_edit_quotation_replaces_lines_and_delegates_to_service(
     assert updated["subject"] is not None
 
 
+def test_accept_catering_quotation_progresses_associated_event(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    quotation = SimpleNamespace(
+        id=21,
+        event_id=7,
+        customer_id=11,
+        status="ISSUED",
+    )
+    accepted = {}
+    progressed = {}
+
+    class FakeQuotationService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, quotation_id):
+            assert quotation_id == 21
+            return quotation
+
+        def accept(self, entity, *, subject):
+            assert entity is quotation
+            accepted["quotation"] = entity
+            accepted["subject"] = subject
+            entity.status = "ACCEPTED"
+            return entity
+
+    class FakeCoordinationService:
+        def __init__(self, **kwargs):
+            progressed["kwargs"] = kwargs
+
+        def progress_event_from_accepted_quotation(
+            self,
+            quotation_id,
+            *,
+            subject,
+        ):
+            assert quotation_id == 21
+            assert quotation.status == "ACCEPTED"
+            progressed["quotation_id"] = quotation_id
+            progressed["subject"] = subject
+            return SimpleNamespace(id=7, status="QUOTED")
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationService",
+        FakeQuotationService,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationEventCoordinationService",
+        FakeCoordinationService,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "_build_catering_authorization_adapter",
+        lambda: object(),
+    )
+
+    response = authenticated_client.post(
+        "/catering/quotations/21/accept",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/quotations/21"
+    )
+    assert accepted["quotation"] is quotation
+    assert accepted["subject"] is not None
+    assert quotation.status == "ACCEPTED"
+    assert progressed["quotation_id"] == 21
+    assert progressed["subject"] is accepted["subject"]
+    assert progressed["kwargs"]["quotation_repository"] is not None
+    assert progressed["kwargs"]["event_repository"] is not None
+    assert progressed["kwargs"]["authorization_adapter"] is not None
+
+
+def test_accept_catering_quotation_warns_when_event_progression_fails(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    quotation = SimpleNamespace(
+        id=22,
+        event_id=8,
+        customer_id=12,
+        status="ISSUED",
+    )
+
+    class FakeQuotationService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, quotation_id):
+            assert quotation_id == 22
+            return quotation
+
+        def accept(self, entity, *, subject):
+            entity.status = "ACCEPTED"
+            return entity
+
+    class FakeCoordinationService:
+        def __init__(self, **kwargs):
+            pass
+
+        def progress_event_from_accepted_quotation(
+            self,
+            quotation_id,
+            *,
+            subject,
+        ):
+            assert quotation_id == 22
+            assert quotation.status == "ACCEPTED"
+            raise EntityValidationException(
+                "Event is not in REQUESTED status."
+            )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationService",
+        FakeQuotationService,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationEventCoordinationService",
+        FakeCoordinationService,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "_build_catering_authorization_adapter",
+        lambda: object(),
+    )
+
+    response = authenticated_client.post(
+        "/catering/quotations/22/accept",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/quotations/22"
+    )
+    assert quotation.status == "ACCEPTED"
+
+    with authenticated_client.session_transaction() as session:
+        flashes = session.get("_flashes", [])
+
+    assert any(
+        category == "warning"
+        and "could not be progressed to QUOTED" in message
+        and "Event is not in REQUESTED status." in message
+        for category, message in flashes
+    )
+
+
 def test_quote_catering_event_progresses_from_accepted_quotation(
     authenticated_client,
     monkeypatch,
@@ -289,7 +451,6 @@ def test_quote_catering_event_progresses_from_accepted_quotation(
         "CateringQuotationRepository",
         FakeQuotationRepository,
     )
-
     monkeypatch.setattr(
         catering_routes,
         "CateringQuotationEventCoordinationService",
@@ -305,10 +466,10 @@ def test_quote_catering_event_progresses_from_accepted_quotation(
     assert response.headers["Location"].endswith(
         "/catering/events/7"
     )
-
     assert retrieved["quotation"] is quotation
     assert progressed["quotation_id"] == 21
     assert progressed["subject"] is not None
+
 
 def test_request_confirmation_catering_event_progresses_quoted_event(
     authenticated_client,

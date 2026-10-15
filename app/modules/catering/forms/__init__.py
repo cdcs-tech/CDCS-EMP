@@ -45,6 +45,10 @@ from app.modules.catering.forms.event_requirement import (
     FULFILMENT_TYPE_CHOICES,
 )
 
+from app.modules.catering.forms.catering_purchase_requirement import (
+    CateringPurchaseRequirementForm,
+)
+
 from app.modules.catering.forms.expense_cost_association import (
     CateringExpenseCostAssociationForm,
 )
@@ -63,6 +67,7 @@ __all__ = [
     "CateringQuotationForm",
     "CateringQuotationLineForm",
     "EventRequirementForm",
+    "CateringPurchaseRequirementForm",
     "FULFILMENT_TYPE_CHOICES",
     "CateringExpenseCostAssociationForm",
 ]

@@ -330,6 +330,62 @@ def test_ready_event_requirement_delegates_to_service(
     assert delegated["subject"] is not None
 
 
+def test_ready_event_requirement_preserves_separate_fulfilment_verifier(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    requirement = SimpleNamespace(
+        id=31,
+        event_id=7,
+        status="IDENTIFIED",
+    )
+
+    captured = {}
+
+    class FakeRequirementRepository:
+        def get_by_id(self, requirement_id):
+            assert requirement_id == 31
+            return requirement
+
+    class FakeRequirementService:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def ready(self, entity, *, subject):
+            assert entity is requirement
+            assert subject is not None
+            return entity
+
+    monkeypatch.setattr(
+        catering_routes,
+        "EventRequirementRepository",
+        FakeRequirementRepository,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "EventRequirementService",
+        FakeRequirementService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/requirements/31/ready",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7/requirements/31"
+    )
+
+    verifier = captured.get("fulfilment_verifier")
+    assert isinstance(
+        verifier,
+        catering_routes.EventRequirementFulfilmentVerifier,
+    )
+
+
 def test_cancel_event_requirement_delegates_to_service(
     authenticated_client,
     monkeypatch,

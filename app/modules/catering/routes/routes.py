@@ -22,6 +22,9 @@ from app.core.crud.exceptions import (
     EntityNotFoundException,
     EntityValidationException,
 )
+
+from app.core.crud.transaction import SQLAlchemyTransactionManager
+
 from app.core.data import QueryOptions
 
 from sqlalchemy.exc import MultipleResultsFound
@@ -33,6 +36,7 @@ from app.security.decorators import require_permission
 from app.modules.catering.models import CateringQuotation
 from app.modules.catering.models import CateringQuotationLine
 from app.modules.catering.models import EventRequirement
+from app.modules.catering.models import CateringPurchaseRequirement
 from app.modules.catering.models import CateringExpenseCostAssociation
 
 from app.modules.catering.forms import (
@@ -42,6 +46,7 @@ from app.modules.catering.forms import (
     CateringRequestForm,
     CustomerForm,
     EventRequirementForm,
+    CateringPurchaseRequirementForm,
     InventoryLocationForm,
     ProductCategoryForm,
     ProductForm,
@@ -107,6 +112,8 @@ from app.modules.catering.security import (
     CATERING_EVENT_REQUIREMENT_READ,
     CATERING_EVENT_REQUIREMENT_READY,
     CATERING_EVENT_REQUIREMENT_UPDATE,
+    CATERING_PURCHASE_REQUIREMENT_CREATE,
+    CATERING_PURCHASE_REQUIREMENT_SUBMIT_TO_PROCUREMENT,
     CATERING_REVENUE_CREATE,
     CATERING_REVENUE_READ,
     CATERING_REVENUE_UPDATE,
@@ -130,8 +137,14 @@ from app.modules.catering.services import (
     CateringQuotationService,
     CateringQuotationEventCoordinationService,
     EventRequirementService,
+    CateringPurchaseRequirementService,
+    CateringProcurementHandoffService,
     CateringRevenueService,
     CateringExpenseCostAssociationService,
+)
+
+from app.modules.catering.services.event_requirement_fulfilment import (
+    EventRequirementFulfilmentVerifier,
 )
 
 from app.modules.catering.services.event_profitability import (
@@ -164,6 +177,10 @@ from app.modules.catering.repositories.catering_event import (
 
 from app.modules.catering.repositories.event_requirement import (
     EventRequirementRepository,
+)
+
+from app.modules.catering.repositories.catering_purchase_requirement import (
+    CateringPurchaseRequirementRepository,
 )
 
 from app.modules.catering.repositories.catering_revenue import (
@@ -2128,7 +2145,7 @@ def issue_catering_quotation(quotation_id):
 @login_required
 @require_permission(CATERING_QUOTATION_ACCEPT.name)
 def accept_catering_quotation(quotation_id):
-    """Accept an issued Catering quotation."""
+    """Accept a quotation and progress its associated Event to QUOTED."""
     service = CateringQuotationService(
         authorization_adapter=_build_catering_authorization_adapter(),
     )
@@ -2151,7 +2168,39 @@ def accept_catering_quotation(quotation_id):
             )
         )
 
-    flash("Catering quotation accepted successfully.", "success")
+    try:
+        coordination_service = CateringQuotationEventCoordinationService(
+            quotation_repository=CateringQuotationRepository(),
+            event_repository=CateringEventRepository(),
+            authorization_adapter=_build_catering_authorization_adapter(),
+        )
+        coordination_service.progress_event_from_accepted_quotation(
+            catering_quotation.id,
+            subject=current_user,
+        )
+    except (
+        EntityNotFoundException,
+        EntityValidationException,
+        PermissionError,
+        RuntimeError,
+    ) as exc:
+        flash(
+            "The quotation was accepted, but its associated Event could "
+            f"not be progressed to QUOTED: {exc}",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "catering.view_catering_quotation",
+                quotation_id=catering_quotation.id,
+            )
+        )
+
+    flash(
+        "Catering quotation accepted successfully; associated Event "
+        "progressed to QUOTED.",
+        "success",
+    )
     return redirect(
         url_for(
             "catering.view_catering_quotation",
@@ -2297,19 +2346,14 @@ def create_catering_event_from_request(
     )
 
     try:
-        catering_request = request_service.get(
-            request_id
-        )
+        catering_request = request_service.get(request_id)
     except EntityNotFoundException:
         flash(
             "Catering Request not found.",
             "danger",
         )
-
         return redirect(
-            url_for(
-                "catering.catering_requests"
-            )
+            url_for("catering.catering_requests")
         )
 
     form = CateringEventForm()
@@ -2324,7 +2368,6 @@ def create_catering_event_from_request(
         )
 
     if form.validate_on_submit():
-
         coordination_service = (
             CateringRequestEventCoordinationService(
                 authorization_adapter=(
@@ -2333,22 +2376,36 @@ def create_catering_event_from_request(
             )
         )
 
-        catering_event = (
-            coordination_service.create_event_from_request(
-                request_id,
-                subject=current_user,
-                event_date=form.event_date.data,
-                service_details=form.service_details.data,
-                attendance=form.attendance.data,
-                operational_notes=form.operational_notes.data,
+        try:
+            catering_event = (
+                coordination_service.create_event_from_request(
+                    request_id,
+                    subject=current_user,
+                    event_date=form.event_date.data,
+                    service_details=form.service_details.data,
+                    attendance=form.attendance.data,
+                    operational_notes=form.operational_notes.data,
+                )
             )
-        )
+        except (
+            EntityNotFoundException,
+            EntityValidationException,
+            PermissionError,
+            RuntimeError,
+            ValueError,
+        ) as exc:
+            flash(str(exc), "danger")
+            return redirect(
+                url_for(
+                    "catering.view_catering_request",
+                    request_id=request_id,
+                )
+            )
 
         flash(
             "Catering Event created successfully.",
             "success",
         )
-
         return redirect(
             url_for(
                 "catering.view_catering_event",
@@ -3381,6 +3438,224 @@ def view_catering_event_requirement(
 
 
 @catering_bp.route(
+    "/events/<int:event_id>/requirements/"
+    "<int:requirement_id>/purchase-requirement/create",
+    methods=["GET", "POST"],
+)
+@login_required
+@require_permission(CATERING_PURCHASE_REQUIREMENT_CREATE.name)
+def create_catering_purchase_requirement(
+    event_id: int,
+    requirement_id: int,
+):
+    """Create a Catering Purchase Requirement for an Event Requirement."""
+    event_service = CateringEventService(
+        authorization_adapter=_build_catering_authorization_adapter()
+    )
+    requirement_repository = EventRequirementRepository()
+
+    try:
+        catering_event = event_service.get(event_id)
+        requirement = requirement_repository.get_by_id(
+            requirement_id
+        )
+
+        if (
+            requirement is None
+            or requirement.event_id != event_id
+        ):
+            raise EntityNotFoundException(
+                "EventRequirement",
+                requirement_id,
+            )
+
+        if catering_event.status != "CONFIRMED":
+            raise ValueError(
+                "Catering Purchase Requirements can only be "
+                "created for a CONFIRMED Catering Event."
+            )
+
+        if requirement.fulfilment_type != "PROCUREMENT":
+            raise ValueError(
+                "Catering Purchase Requirements require a "
+                "PROCUREMENT Event Requirement."
+            )
+
+        if requirement.purchase_requirement is not None:
+            raise ValueError(
+                "A Catering Purchase Requirement already exists "
+                "for this Event Requirement."
+            )
+
+        form = CateringPurchaseRequirementForm()
+
+        if form.validate_on_submit():
+            purchase_requirement = CateringPurchaseRequirement(
+                event_requirement_id=requirement.id,
+                description=form.description.data.strip(),
+                item_reference=(
+                    form.item_reference.data.strip()
+                    if form.item_reference.data
+                    else None
+                ),
+                quantity=form.quantity.data,
+                unit=form.unit.data.strip(),
+                required_by_date=form.required_by_date.data,
+                justification=(
+                    form.justification.data.strip()
+                    if form.justification.data
+                    else None
+                ),
+                status="DRAFT",
+            )
+
+            transaction = SQLAlchemyTransactionManager()
+
+            try:
+                transaction.begin()
+
+                CateringPurchaseRequirementService(
+                    authorization_adapter=(
+                        _build_catering_authorization_adapter()
+                    )
+                ).create(
+                    purchase_requirement,
+                    subject=current_user,
+                )
+
+                transaction.commit()
+
+            except Exception:
+                if transaction.active:
+                    transaction.rollback()
+                raise
+
+            flash(
+                "Catering Purchase Requirement created successfully.",
+                "success",
+            )
+
+            return redirect(
+                url_for(
+                    "catering.view_catering_event_requirement",
+                    event_id=event_id,
+                    requirement_id=requirement_id,
+                )
+            )
+
+        return render_template(
+            "modules/catering/purchase_requirements/create.html",
+            form=form,
+            catering_event=catering_event,
+            requirement=requirement,
+        )
+
+    except (
+        EntityNotFoundException,
+        EntityValidationException,
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        flash(str(exc), "danger")
+        return redirect(
+            url_for(
+                "catering.view_catering_event_requirement",
+                event_id=event_id,
+                requirement_id=requirement_id,
+            )
+        )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/requirements/<int:requirement_id>/"
+    "purchase-requirement/submit",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_PURCHASE_REQUIREMENT_SUBMIT_TO_PROCUREMENT.name
+)
+def submit_catering_purchase_requirement_to_procurement(
+    event_id: int,
+    requirement_id: int,
+):
+    """Submit a Catering Purchase Requirement to Procurement."""
+    try:
+        event_requirement = EventRequirementRepository().get_by_id(
+            requirement_id
+        )
+
+        if (
+            event_requirement is None
+            or event_requirement.event_id != event_id
+        ):
+            raise EntityNotFoundException(
+                "EventRequirement",
+                requirement_id,
+            )
+
+        purchase_requirement = (
+            CateringPurchaseRequirementRepository().get_by_id(
+                getattr(
+                    event_requirement.purchase_requirement,
+                    "id",
+                    None,
+                )
+            )
+            if event_requirement.purchase_requirement is not None
+            else None
+        )
+
+        if purchase_requirement is None:
+            raise EntityNotFoundException(
+                "CateringPurchaseRequirement",
+                requirement_id,
+            )
+
+        transaction = SQLAlchemyTransactionManager()
+
+        try:
+            transaction.begin()
+
+            CateringProcurementHandoffService(
+                authorization_adapter=(
+                    _build_catering_authorization_adapter()
+                )
+            ).submit_to_procurement(
+                purchase_requirement,
+                subject=current_user,
+            )
+
+            transaction.commit()
+
+        except Exception:
+            if transaction.active:
+                transaction.rollback()
+            raise
+
+        flash(
+            "Catering Purchase Requirement submitted to Procurement.",
+            "success",
+        )
+
+    except (
+        EntityNotFoundException,
+        EntityValidationException,
+        ValueError,
+        RuntimeError,
+    ) as exc:
+        flash(str(exc), "danger")
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event_requirement",
+            event_id=event_id,
+            requirement_id=requirement_id,
+        )
+    )
+
+
+@catering_bp.route(
     "/events/<int:event_id>/requirements/<int:requirement_id>/edit",
     methods=["GET", "POST"],
 )
@@ -3559,13 +3834,18 @@ def ready_catering_event_requirement(
     requirement_id,
 ):
     """
-    Mark an Event Requirement ready.
+    Mark an Event Requirement ready after verifying fulfilment.
     """
 
     repository = EventRequirementRepository()
 
     try:
         requirement = repository.get_by_id(requirement_id)
+
+        if requirement is None:
+            raise EntityNotFoundException(
+                "Event Requirement not found."
+            )
 
         if requirement.event_id != event_id:
             raise EntityValidationException(
@@ -3574,10 +3854,12 @@ def ready_catering_event_requirement(
 
         EventRequirementService(
             authorization_adapter=_build_catering_authorization_adapter(),
+            fulfilment_verifier=EventRequirementFulfilmentVerifier(),
         ).ready(
             requirement,
             subject=current_user,
         )
+
     except EntityNotFoundException:
         flash(
             "Event Requirement not found.",
@@ -3588,7 +3870,7 @@ def ready_catering_event_requirement(
             str(exc),
             "danger",
         )
-    except ValueError as exc:
+    except (ValueError, RuntimeError) as exc:
         flash(
             str(exc),
             "danger",

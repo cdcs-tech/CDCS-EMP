@@ -23,6 +23,9 @@ from .product_category import ProductCategoryService
 from .stock_item import StockItemService
 from .transfer import StockTransferService
 from .event_requirement import EventRequirementService
+from .catering_purchase_requirement import (
+    CateringPurchaseRequirementService,
+)
 from .procurement_handoff import CateringProcurementHandoffService
 from .customer import CustomerService
 from .expense_cost_association import (
@@ -49,6 +52,7 @@ __all__ = [
     "CateringQuotationEventCoordinationService",
     "CateringRequestEventCoordinationService",
     "EventRequirementService",
+    "CateringPurchaseRequirementService",
     "CateringProcurementHandoffService",
     "CateringExpenseCostAssociationService",
     "CateringExpenseCostConsumptionService",

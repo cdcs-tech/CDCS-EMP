@@ -152,6 +152,8 @@ def test_procurement_get_does_not_start_application_transaction(
     [
         ("catering", "post_movement", "POST"),
         ("catering", "post_transfer", "POST"),
+        ("catering", "create_catering_purchase_requirement", "POST"),
+        ("catering", "submit_catering_purchase_requirement_to_procurement", "POST"),
     ],
 )
 def test_explicit_catering_transactions_remain_excluded(

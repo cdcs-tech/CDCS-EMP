@@ -68,6 +68,7 @@ class EventRequirementService(
             CateringAuthorizationAdapter | None
         ) = None,
         workflow: EventRequirementWorkflow | None = None,
+        fulfilment_verifier: Any | None = None,
     ) -> None:
         super().__init__(
             repository or EventRequirementRepository(),
@@ -85,6 +86,7 @@ class EventRequirementService(
             workflow
             or EventRequirementWorkflow()
         )
+        self.fulfilment_verifier = fulfilment_verifier
 
     def _authorize(
         self,

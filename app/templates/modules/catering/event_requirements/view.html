@@ -123,6 +123,54 @@
 
     </div>
 
+    {% if requirement.fulfilment_type == "PROCUREMENT" %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Catering Purchase Requirement</h2>
+
+            {% if requirement.purchase_requirement %}
+            <dl class="row mb-3">
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">
+                    {{ requirement.purchase_requirement.description }}
+                </dd>
+
+                <dt class="col-sm-3">Quantity</dt>
+                <dd class="col-sm-9">
+                    {{ requirement.purchase_requirement.quantity }}
+                    {{ requirement.purchase_requirement.unit }}
+                </dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    {{ requirement.purchase_requirement.status }}
+                </dd>
+
+                <dt class="col-sm-3">Procurement Reference</dt>
+                <dd class="col-sm-9">
+                    {{ requirement.purchase_requirement.procurement_reference or "Not submitted" }}
+                </dd>
+            </dl>
+
+            {% if requirement.purchase_requirement.procurement_reference %}
+            <p class="text-success mb-0">
+                This requirement has a Procurement reference.
+            </p>
+            {% else %}
+            <p class="text-muted mb-0">
+                This requirement has not yet been submitted to Procurement.
+            </p>
+            {% endif %}
+
+            {% else %}
+            <p class="text-muted mb-0">
+                No Catering Purchase Requirement has been created yet.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="d-flex gap-2 flex-wrap">
 
         {% if requirement.status == "DRAFT" %}
@@ -193,6 +241,44 @@
             </button>
         </form>
 
+        {% endif %}
+
+        {% if
+        requirement.fulfilment_type == "PROCUREMENT"
+        and catering_event.status == "CONFIRMED"
+        and not requirement.purchase_requirement
+        and current_user.has_permission(
+        "CATERING.CATERING_PURCHASE_REQUIREMENT.CREATE"
+        )
+        %}
+        <a href="{{ url_for(
+        'catering.create_catering_purchase_requirement',
+        event_id=catering_event.id,
+        requirement_id=requirement.id
+    ) }}" class="btn btn-primary">
+            Create Catering Purchase Requirement
+        </a>
+        {% endif %}
+
+        {% if
+        requirement.fulfilment_type == "PROCUREMENT"
+        and catering_event.status == "CONFIRMED"
+        and requirement.purchase_requirement
+        and not requirement.purchase_requirement.procurement_reference
+        and current_user.has_permission(
+        "CATERING.CATERING_PURCHASE_REQUIREMENT.SUBMIT_TO_PROCUREMENT"
+        )
+        %}
+        <form method="POST" action="{{ url_for(
+        'catering.submit_catering_purchase_requirement_to_procurement',
+        event_id=catering_event.id,
+        requirement_id=requirement.id
+    ) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success">
+                Submit to Procurement
+            </button>
+        </form>
         {% endif %}
 
         <a href="{{ url_for(

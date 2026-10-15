@@ -1,3 +1,4 @@
+
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
@@ -30,6 +31,9 @@ class CateringEventService(CRUDService[CateringEvent]):
 
     Protected business operations are authorized through the
     Catering authorization adapter at the service boundary.
+
+    Production readiness checks are delegated to an injected readiness
+    service before the event can transition into production.
     """
 
     CONFIRM_PERMISSION = "CATERING.CATERING_EVENT.CONFIRM"
@@ -46,6 +50,7 @@ class CateringEventService(CRUDService[CateringEvent]):
         repository: CateringEventRepository | None = None,
         authorization_adapter: CateringAuthorizationAdapter | None = None,
         workflow: CateringEventWorkflow | None = None,
+        readiness_service: Any | None = None,
     ) -> None:
         super().__init__(
             repository or CateringEventRepository(),
@@ -54,6 +59,7 @@ class CateringEventService(CRUDService[CateringEvent]):
 
         self.authorization_adapter = authorization_adapter
         self.workflow = workflow or CateringEventWorkflow()
+        self.readiness_service = readiness_service
 
     def _authorize(
         self,
@@ -106,9 +112,7 @@ class CateringEventService(CRUDService[CateringEvent]):
         *,
         subject: Any,
     ) -> CateringEvent:
-        """
-        Create a Catering Event after authorization.
-        """
+        """Create a Catering Event after authorization."""
 
         self._authorize(
             subject,
@@ -123,9 +127,7 @@ class CateringEventService(CRUDService[CateringEvent]):
         *,
         subject: Any,
     ) -> CateringEvent:
-        """
-        Update a Catering Event after authorization.
-        """
+        """Update a Catering Event after authorization."""
 
         self._authorize(
             subject,
@@ -140,9 +142,7 @@ class CateringEventService(CRUDService[CateringEvent]):
         *,
         subject: Any,
     ) -> None:
-        """
-        Delete a Catering Event after authorization.
-        """
+        """Delete a Catering Event after authorization."""
 
         self._authorize(
             subject,
@@ -287,6 +287,10 @@ class CateringEventService(CRUDService[CateringEvent]):
         """
         Progress an Event from READY to IN_PRODUCTION.
 
+        Authorization is checked first. If a readiness service has
+        been configured, mandatory production-readiness checks must
+        pass before the workflow transition or persistence occurs.
+
         Event lifecycle validity remains delegated to
         CateringEventWorkflow.
         """
@@ -295,6 +299,9 @@ class CateringEventService(CRUDService[CateringEvent]):
             subject,
             self.START_PRODUCTION_PERMISSION,
         )
+
+        if self.readiness_service is not None:
+            self.readiness_service.ensure_production_ready(event)
 
         self._transition_workflow(
             event,

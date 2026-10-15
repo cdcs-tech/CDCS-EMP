@@ -1,0 +1,173 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}Create Catering Purchase Requirement{% endblock %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">
+            Create Catering Purchase Requirement
+        </h1>
+        <p class="text-muted mb-0">
+            Record a procurement requirement for Event
+            #{{ catering_event.id }}.
+        </p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+
+            <h2 class="h5 mb-3">Event Information</h2>
+
+            <dl class="row mb-0">
+
+                <dt class="col-sm-3">Customer</dt>
+                <dd class="col-sm-9">
+                    {{ catering_event.customer.name }}
+                </dd>
+
+                <dt class="col-sm-3">Event Date</dt>
+                <dd class="col-sm-9">
+                    {{ catering_event.event_date }}
+                </dd>
+
+                <dt class="col-sm-3">Event Status</dt>
+                <dd class="col-sm-9">
+                    {{ catering_event.status }}
+                </dd>
+
+                <dt class="col-sm-3">Event Requirement</dt>
+                <dd class="col-sm-9">
+                    {{ requirement.description }}
+                </dd>
+
+                <dt class="col-sm-3">Fulfilment Type</dt>
+                <dd class="col-sm-9">
+                    {{ requirement.fulfilment_type }}
+                </dd>
+
+            </dl>
+
+        </div>
+    </div>
+
+    <form method="POST">
+
+        {{ form.hidden_tag() }}
+
+        <div class="card mb-4">
+            <div class="card-body">
+
+                <h2 class="h5 mb-3">
+                    Purchase Requirement Details
+                </h2>
+
+                <p class="text-muted">
+                    Describe the goods or services required. This
+                    record remains a Catering-owned draft until it
+                    is explicitly submitted to Procurement.
+                </p>
+
+                <div class="row g-3">
+
+                    <div class="col-12">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control") }}
+
+                        {% for error in form.description.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.item_reference.label(class="form-label") }}
+                        {{ form.item_reference(class="form-control") }}
+
+                        {% for error in form.item_reference.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-3">
+                        {{ form.quantity.label(class="form-label") }}
+                        {{ form.quantity(
+                        class="form-control",
+                        step="0.001",
+                        min="0.001"
+                        ) }}
+
+                        {% for error in form.quantity.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-3">
+                        {{ form.unit.label(class="form-label") }}
+                        {{ form.unit(class="form-control") }}
+
+                        {% for error in form.unit.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.required_by_date.label(class="form-label") }}
+                        {{ form.required_by_date(class="form-control") }}
+
+                        {% for error in form.required_by_date.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-12">
+                        {{ form.justification.label(class="form-label") }}
+                        {{ form.justification(
+                        class="form-control",
+                        rows="4"
+                        ) }}
+
+                        {% for error in form.justification.errors %}
+                        <div class="text-danger small">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+
+            <button type="submit" class="btn btn-primary">
+                Create Draft Requirement
+            </button>
+
+            <a href="{{ url_for(
+                    'catering.view_catering_event_requirement',
+                    event_id=catering_event.id,
+                    requirement_id=requirement.id
+                ) }}" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

@@ -415,3 +415,78 @@ def test_submit_catering_request_handles_validation_error(
         for category, message in flashes
         if category == "danger"
     )
+
+
+def test_create_event_from_request_handles_duplicate_event(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    class FakeRequestService:
+        def __init__(self, authorization_adapter=None):
+            pass
+
+        def get(self, request_id):
+            return SimpleNamespace(
+                id=request_id,
+                service_date=None,
+                requested_service="UAT Test Workshop",
+                attendance=25,
+                notes="",
+                requirements="",
+            )
+
+    class FakeCoordinationService:
+        def __init__(self, authorization_adapter=None):
+            pass
+
+        def create_event_from_request(
+            self,
+            request_id,
+            *,
+            subject,
+            event_date=None,
+            service_details=None,
+            attendance=None,
+            operational_notes=None,
+        ):
+            raise ValueError(
+                f"A Catering Event already exists for Catering Request {request_id}."
+            )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestService",
+        FakeRequestService,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringRequestEventCoordinationService",
+        FakeCoordinationService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/requests/17/create-event",
+        data={
+            "event_date": "2026-10-20",
+            "service_details": "UAT Test Workshop",
+            "attendance": "25",
+            "operational_notes": "",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/requests/17"
+    )
+
+    with authenticated_client.session_transaction() as session:
+        flashes = session.get("_flashes", [])
+
+    assert any(
+        category == "danger"
+        and "already exists" in message.lower()
+        for category, message in flashes
+    )

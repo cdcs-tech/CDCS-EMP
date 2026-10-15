@@ -2013,6 +2013,47 @@ def test_deliver_persists_without_requiring_update_permission():
     )
 
 
+
+def test_start_production_blocks_when_readiness_check_fails():
+    """Verify failed readiness prevents production transition and persistence."""
+
+    repository = Mock(spec=CateringEventRepository)
+    authorization_adapter = Mock(spec=CateringAuthorizationAdapter)
+    workflow = Mock(spec=CateringEventWorkflow)
+    readiness_service = Mock()
+
+    event = Mock(spec=CateringEvent)
+    event.status = CateringEventWorkflow.READY
+    subject = Mock()
+
+    readiness_service.ensure_production_ready.side_effect = RuntimeError(
+        "Mandatory event requirements are not fulfilled."
+    )
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+        readiness_service=readiness_service,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Mandatory event requirements are not fulfilled",
+    ):
+        service.start_production(event, subject=subject)
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.START_PRODUCTION",
+    )
+    readiness_service.ensure_production_ready.assert_called_once_with(event)
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+    assert event.status == CateringEventWorkflow.READY
+
+
+
 def test_complete_requires_authorization_adapter():
     """Verify Event completion fails closed without an adapter."""
 
