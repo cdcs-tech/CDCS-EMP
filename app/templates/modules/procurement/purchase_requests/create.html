@@ -76,17 +76,9 @@ New Purchase Request
                 </div>
 
                 <div class="mb-3">
-
-                    {{ form.status.label(class="form-label") }}
-                    {{ form.status(class="form-control") }}
-
-                    {% for error in form.status.errors %}
-                    <div class="text-danger small">
-                        {{ error }}
-                    </div>
-                    {% endfor %}
-
-                </div>
+    <label class="form-label">Initial Status</label>
+    <p class="form-control-plaintext">Draft — new purchase requests start in DRAFT status.</p>
+</div>
 
                 <div class="mb-3">
 

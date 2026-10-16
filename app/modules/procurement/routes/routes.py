@@ -43,6 +43,12 @@ from app.modules.procurement.commands.purchase_order import (
     ApprovePurchaseOrderCommand,
     SubmitPurchaseOrderCommand,
 )
+from app.modules.procurement.commands.purchase_request import (
+    ApprovePurchaseRequestCommand,
+    RejectPurchaseRequestCommand,
+    ReturnPurchaseRequestCommand,
+    SubmitPurchaseRequestCommand,
+)
 from app.modules.procurement.commands.purchase_order_receive import (
     ReceivePurchaseOrderCommand,
 )
@@ -59,12 +65,16 @@ from app.modules.procurement.security import (
     PROCUREMENT_PURCHASE_ORDER_RECEIVE,
     PROCUREMENT_PURCHASE_REQUEST_CREATE,
     PROCUREMENT_PURCHASE_REQUEST_DELETE,
-    PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
-    PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
-    PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
-    PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
     PROCUREMENT_PURCHASE_REQUEST_READ,
     PROCUREMENT_PURCHASE_REQUEST_UPDATE,
+    PROCUREMENT_PURCHASE_REQUEST_APPROVE,
+    PROCUREMENT_PURCHASE_REQUEST_REJECT,
+    PROCUREMENT_PURCHASE_REQUEST_RETURN,
+    PROCUREMENT_PURCHASE_REQUEST_SUBMIT,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_READ,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_CREATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_UPDATE,
+    PROCUREMENT_PURCHASE_REQUEST_LINE_DELETE,
     PROCUREMENT_PURCHASE_REQUIREMENT_CREATE,
     PROCUREMENT_PURCHASE_REQUIREMENT_DELETE,
     PROCUREMENT_PURCHASE_REQUIREMENT_READ,
@@ -827,6 +837,15 @@ def purchase_requests():
         "modules/procurement/purchase_requests/index.html",
         purchase_requests=result,
         query_options=query_options,
+        can_create_purchase_request=current_user.has_permission(
+            PROCUREMENT_PURCHASE_REQUEST_CREATE.name
+        ),
+        can_update_purchase_request=current_user.has_permission(
+            PROCUREMENT_PURCHASE_REQUEST_UPDATE.name
+        ),
+        can_delete_purchase_request=current_user.has_permission(
+            PROCUREMENT_PURCHASE_REQUEST_DELETE.name
+        ),
     )
 
 
@@ -860,7 +879,7 @@ def create_purchase_request():
                 ),
                 request_date=form.request_date.data,
                 required_by_date=form.required_by_date.data,
-                status=form.status.data,
+                status="DRAFT",
                 justification=form.justification.data,
                 notes=form.notes.data,
             )
@@ -904,9 +923,198 @@ def view_purchase_request(
         purchase_request_id
     )
 
+
     return render_template(
         "modules/procurement/purchase_requests/view.html",
         purchase_request=purchase_request,
+        can_submit_purchase_request=current_user.has_permission(
+            PROCUREMENT_PURCHASE_REQUEST_SUBMIT.name
+        ),
+        can_approve_purchase_request=current_user.has_permission(
+            PROCUREMENT_PURCHASE_REQUEST_APPROVE.name
+        ),
+        can_reject_purchase_request=current_user.has_permission(
+            PROCUREMENT_PURCHASE_REQUEST_REJECT.name
+        ),
+        can_return_purchase_request=current_user.has_permission(
+            PROCUREMENT_PURCHASE_REQUEST_RETURN.name
+        ),
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/submit",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_SUBMIT.name
+)
+def submit_purchase_request(
+    purchase_request_id: int,
+):
+    """Submit a Purchase Request through the execution framework."""
+    command = SubmitPurchaseRequestCommand(
+        purchase_request_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="PROCUREMENT",
+        operation="procurement.purchase_request.submit",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.view_purchase_request",
+            purchase_request_id=purchase_request_id,
+        )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/approve",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_APPROVE.name
+)
+def approve_purchase_request(
+    purchase_request_id: int,
+):
+    """Approve a Purchase Request through the execution framework."""
+    command = ApprovePurchaseRequestCommand(
+        purchase_request_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="PROCUREMENT",
+        operation="procurement.purchase_request.approve",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.view_purchase_request",
+            purchase_request_id=purchase_request_id,
+        )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/reject",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_REJECT.name
+)
+def reject_purchase_request(
+    purchase_request_id: int,
+):
+    """Reject a Purchase Request through the execution framework."""
+    command = RejectPurchaseRequestCommand(
+        purchase_request_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="PROCUREMENT",
+        operation="procurement.purchase_request.reject",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.view_purchase_request",
+            purchase_request_id=purchase_request_id,
+        )
+    )
+
+
+@procurement_bp.route(
+    "/purchase-requests/<int:purchase_request_id>/return",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    PROCUREMENT_PURCHASE_REQUEST_RETURN.name
+)
+def return_purchase_request(
+    purchase_request_id: int,
+):
+    """Return a Purchase Request to draft through the execution framework."""
+    command = ReturnPurchaseRequestCommand(
+        purchase_request_id
+    )
+
+    context = ExecutionContext(
+        user_id=str(current_user.id),
+        module_name="PROCUREMENT",
+        operation="procurement.purchase_request.return",
+    )
+
+    dispatcher = current_app.extensions[
+        "command_dispatcher"
+    ]
+
+    result = dispatcher.dispatch(
+        command,
+        context,
+    )
+
+    flash(
+        result.message,
+        "success" if result.success else "danger",
+    )
+
+    return redirect(
+        url_for(
+            "procurement.view_purchase_request",
+            purchase_request_id=purchase_request_id,
+        )
     )
 
 
@@ -951,9 +1159,6 @@ def edit_purchase_request(
         )
         purchase_request.required_by_date = (
             form.required_by_date.data
-        )
-        purchase_request.status = (
-            form.status.data
         )
         purchase_request.justification = (
             form.justification.data
@@ -1433,7 +1638,7 @@ def receive_purchase_order(
         (
             line.id,
             (
-                f"{line.description} — "
+                f"{line.description} â€” "
                 f"{line.quantity} {line.unit}"
             ),
         )

@@ -19,7 +19,6 @@ def test_purchase_request_form_accepts_valid_data(app):
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
                 "required_by_date": date(2026, 10, 15),
-                "status": "DRAFT",
                 "justification": "Office catering supplies required.",
                 "notes": "Required for the scheduled activity.",
             },
@@ -40,7 +39,6 @@ def test_purchase_request_form_requires_reference(app):
                 "reference": "",
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
-                "status": "DRAFT",
             },
         )
 
@@ -59,7 +57,6 @@ def test_purchase_request_form_requires_purchase_requirement(app):
                 "reference": "PR-001",
                 "purchase_requirement_id": 0,
                 "request_date": date(2026, 10, 1),
-                "status": "DRAFT",
             },
         )
 
@@ -78,7 +75,6 @@ def test_purchase_request_form_requires_request_date(app):
                 "reference": "PR-001",
                 "purchase_requirement_id": 1,
                 "request_date": "",
-                "status": "DRAFT",
             },
         )
 
@@ -98,7 +94,6 @@ def test_purchase_request_form_allows_optional_required_by_date(app):
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
                 "required_by_date": "",
-                "status": "DRAFT",
             },
         )
 
@@ -116,7 +111,6 @@ def test_purchase_request_form_allows_optional_justification_and_notes(app):
                 "reference": "PR-001",
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
-                "status": "DRAFT",
                 "justification": "",
                 "notes": "",
             },
@@ -129,14 +123,14 @@ def test_purchase_request_form_allows_optional_justification_and_notes(app):
         assert form.validate() is True
 
 
-def test_purchase_request_form_requires_status(app):
+def test_purchase_request_form_does_not_expose_lifecycle_status(app):
     with app.test_request_context():
         form = PurchaseRequestForm(
             data={
                 "reference": "PR-001",
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
-                "status": "",
+                "status": "APPROVED",
             },
         )
 
@@ -144,8 +138,9 @@ def test_purchase_request_form_requires_status(app):
             (1, "PR-REQ-001"),
         ]
 
-        assert form.validate() is False
-        assert form.status.errors
+        assert "status" not in form._fields
+        assert not hasattr(form, "status")
+        assert form.validate() is True
 
 
 def test_purchase_request_form_rejects_overlength_reference(app):
@@ -155,7 +150,6 @@ def test_purchase_request_form_rejects_overlength_reference(app):
                 "reference": "X" * 101,
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
-                "status": "DRAFT",
             },
         )
 
@@ -174,7 +168,6 @@ def test_purchase_request_form_rejects_overlength_justification(app):
                 "reference": "PR-001",
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
-                "status": "DRAFT",
                 "justification": "X" * 501,
             },
         )
@@ -194,7 +187,6 @@ def test_purchase_request_form_rejects_overlength_notes(app):
                 "reference": "PR-001",
                 "purchase_requirement_id": 1,
                 "request_date": date(2026, 10, 1),
-                "status": "DRAFT",
                 "notes": "X" * 1001,
             },
         )
@@ -205,21 +197,3 @@ def test_purchase_request_form_rejects_overlength_notes(app):
 
         assert form.validate() is False
         assert form.notes.errors
-
-
-def test_purchase_request_form_accepts_status_without_workflow_transition_validation(app):
-    with app.test_request_context():
-        form = PurchaseRequestForm(
-            data={
-                "reference": "PR-001",
-                "purchase_requirement_id": 1,
-                "request_date": date(2026, 10, 1),
-                "status": "SUBMITTED",
-            },
-        )
-
-        form.purchase_requirement_id.choices = [
-            (1, "PR-REQ-001"),
-        ]
-
-        assert form.validate() is True

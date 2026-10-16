@@ -8,6 +8,10 @@ Purchase request route tests.
 
 from __future__ import annotations
 
+import pytest
+
+from types import SimpleNamespace
+
 from datetime import date
 
 from app.modules.procurement.models import PurchaseRequest
@@ -123,6 +127,9 @@ def test_purchase_request_list_route_is_registered(
         "modules/procurement/purchase_requests/index.html"
     )
     assert captured["context"]["purchase_requests"] == "result"
+    assert captured["context"]["can_create_purchase_request"] is False
+    assert captured["context"]["can_update_purchase_request"] is False
+    assert captured["context"]["can_delete_purchase_request"] is False
 
     options = captured["options"]
 
@@ -201,7 +208,7 @@ def test_purchase_request_create_submits_valid_request(
             "purchase_requirement_id": "1",
             "request_date": "2026-09-15",
             "required_by_date": "2026-09-30",
-            "status": "DRAFT",
+            "status": "APPROVED",
             "justification": "Catering supplies required.",
             "notes": "Initial procurement request.",
         },
@@ -251,6 +258,18 @@ def test_purchase_request_view_renders_for_authorized_user(
         "procurement.purchase_request.read",
     )
 
+    for permission_name in (
+        "procurement.purchase_request.submit",
+        "procurement.purchase_request.approve",
+        "procurement.purchase_request.reject",
+        "procurement.purchase_request.return",
+    ):
+        _grant_permission(
+            session,
+            admin_user,
+            permission_name,
+        )
+
     purchase_request = PurchaseRequest(
         id=1,
         reference="PReq-VIEW-001",
@@ -298,6 +317,10 @@ def test_purchase_request_view_renders_for_authorized_user(
         captured["context"]["purchase_request"]
         is purchase_request
     )
+    assert captured["context"]["can_submit_purchase_request"] is True
+    assert captured["context"]["can_approve_purchase_request"] is True
+    assert captured["context"]["can_reject_purchase_request"] is True
+    assert captured["context"]["can_return_purchase_request"] is True
 
 
 def test_purchase_request_edit_requires_permission(
@@ -329,7 +352,7 @@ def test_purchase_request_edit_submits_updated_request(
         purchase_requirement_id=7,
         request_date=date(2026, 9, 15),
         required_by_date=date(2026, 9, 30),
-        status="DRAFT",
+        status="SUBMITTED",
         justification="Original request.",
         notes="Original notes.",
     )
@@ -386,7 +409,7 @@ def test_purchase_request_edit_submits_updated_request(
             "purchase_requirement_id": "8",
             "request_date": "2026-09-20",
             "required_by_date": "2026-10-15",
-            "status": "DRAFT",
+            "status": "APPROVED",
             "justification": "Updated request.",
             "notes": "Updated notes.",
         },
@@ -404,7 +427,7 @@ def test_purchase_request_edit_submits_updated_request(
     assert entity.purchase_requirement_id == 8
     assert entity.request_date == date(2026, 9, 20)
     assert entity.required_by_date == date(2026, 10, 15)
-    assert entity.status == "DRAFT"
+    assert entity.status == "SUBMITTED"
     assert entity.justification == "Updated request."
     assert entity.notes == "Updated notes."
 
@@ -453,3 +476,119 @@ def test_purchase_request_delete_submits_delete(
         "/procurement/purchase-requests/"
     )
     assert deleted["id"] == 7
+
+
+@pytest.mark.parametrize(
+    (
+        "action",
+        "permission_name",
+        "expected_command",
+        "expected_operation",
+    ),
+    [
+        (
+            "submit",
+            "procurement.purchase_request.submit",
+            "SubmitPurchaseRequestCommand",
+            "procurement.purchase_request.submit",
+        ),
+        (
+            "approve",
+            "procurement.purchase_request.approve",
+            "ApprovePurchaseRequestCommand",
+            "procurement.purchase_request.approve",
+        ),
+        (
+            "reject",
+            "procurement.purchase_request.reject",
+            "RejectPurchaseRequestCommand",
+            "procurement.purchase_request.reject",
+        ),
+        (
+            "return",
+            "procurement.purchase_request.return",
+            "ReturnPurchaseRequestCommand",
+            "procurement.purchase_request.return",
+        ),
+    ],
+)
+def test_purchase_request_workflow_route_dispatches_command(
+    monkeypatch,
+    session,
+    admin_user,
+    authenticated_client,
+    action,
+    permission_name,
+    expected_command,
+    expected_operation,
+):
+    _grant_permission(
+        session,
+        admin_user,
+        permission_name,
+    )
+
+    captured = {}
+
+    class FakeDispatcher:
+        def dispatch(self, command, context):
+            captured["command"] = command
+            captured["context"] = context
+            return SimpleNamespace(
+                success=True,
+                message="Workflow action completed.",
+            )
+
+    monkeypatch.setitem(
+        authenticated_client.application.extensions,
+        "command_dispatcher",
+        FakeDispatcher(),
+    )
+
+    response = authenticated_client.post(
+        f"/procurement/purchase-requests/7/{action}",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/procurement/purchase-requests/7"
+    )
+    assert type(captured["command"]).__name__ == expected_command
+    assert captured["command"].purchase_request_id == 7
+    assert captured["context"].module_name == "PROCUREMENT"
+    assert captured["context"].operation == expected_operation
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        "submit",
+        "approve",
+        "reject",
+        "return",
+    ],
+)
+def test_purchase_request_workflow_route_requires_permission(
+    authenticated_client,
+    action,
+):
+    response = authenticated_client.post(
+        f"/procurement/purchase-requests/7/{action}",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize("action", ["submit", "approve", "reject", "return"])
+def test_purchase_request_workflow_routes_reject_get_requests(
+    authenticated_client,
+    action,
+):
+    response = authenticated_client.get(
+        f"/procurement/purchase-requests/7/{action}",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 405

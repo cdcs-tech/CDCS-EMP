@@ -76,17 +76,9 @@ Edit Purchase Request
                 </div>
 
                 <div class="mb-3">
-
-                    {{ form.status.label(class="form-label") }}
-                    {{ form.status(class="form-control") }}
-
-                    {% for error in form.status.errors %}
-                    <div class="text-danger small">
-                        {{ error }}
-                    </div>
-                    {% endfor %}
-
-                </div>
+    <label class="form-label">Status</label>
+    <p class="form-control-plaintext">{{ purchase_request.status }}</p>
+</div>
 
                 <div class="mb-3">
 

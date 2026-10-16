@@ -15,13 +15,13 @@ Purchase Requests
     {% include "components/page_header.html" %}
     {% endwith %}
 
+    {% if can_create_purchase_request %}
     <div class="d-flex justify-content-end mb-3">
-
         <a href="{{ url_for('procurement.create_purchase_request') }}" class="btn btn-primary">
             New Purchase Request
         </a>
-
     </div>
+    {% endif %}
 
     <div class="card shadow-sm">
 
@@ -189,13 +189,16 @@ Purchase Requests
                                         View
                                     </a>
 
+                                    {% if can_update_purchase_request %}
                                     <a href="{{ url_for(
                                             'procurement.edit_purchase_request',
                                             purchase_request_id=purchase_request.id
                                         ) }}" class="btn btn-outline-secondary btn-sm">
                                         Edit
                                     </a>
+                                    {% endif %}
 
+                                    {% if can_delete_purchase_request %}
                                     <form method="post" action="{{ url_for(
                                               'procurement.delete_purchase_request',
                                               purchase_request_id=purchase_request.id
@@ -209,6 +212,7 @@ Purchase Requests
                                         </button>
 
                                     </form>
+                                    {% endif %}
 
                                 </div>
 

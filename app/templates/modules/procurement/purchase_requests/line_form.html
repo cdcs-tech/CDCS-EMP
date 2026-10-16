@@ -13,6 +13,17 @@
         </div>
     </div>
 
+    <div class="alert alert-info" role="note">
+        <strong>Purpose of this form</strong>
+        <p class="mb-0">
+            Use this form to describe one item or service needed for this
+            Purchase Request. Specify what is needed, the quantity and unit,
+            and any available cost estimates and required-by date. Cost
+            estimates and the required-by date may be left blank when not
+            yet known.
+        </p>
+    </div>
+
     <div class="card">
         <div class="card-body">
             <form method="post">
@@ -56,6 +67,10 @@
                     <div class="col-md-6 mb-3">
                         {{ form.estimated_unit_cost.label(class="form-label") }}
                         {{ form.estimated_unit_cost(class="form-control") }}
+                        <div class="form-text">
+                            Indicative cost for one unit, if known. Leave blank
+                            if an estimate is not yet available.
+                        </div>
                         {% for error in form.estimated_unit_cost.errors %}
                         <div class="text-danger">{{ error }}</div>
                         {% endfor %}
@@ -64,6 +79,11 @@
                     <div class="col-md-6 mb-3">
                         {{ form.estimated_total.label(class="form-label") }}
                         {{ form.estimated_total(class="form-control") }}
+                        <div class="form-text">
+                            Estimated cost for the entire line, if known.
+                            Leave blank if not yet available; this form does
+                            not imply automatic calculation.
+                        </div>
                         {% for error in form.estimated_total.errors %}
                         <div class="text-danger">{{ error }}</div>
                         {% endfor %}

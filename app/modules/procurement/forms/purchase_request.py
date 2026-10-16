@@ -25,7 +25,8 @@ class PurchaseRequestForm(FlaskForm):
 
     Workflow lifecycle transitions are intentionally outside
     this form and belong to the dedicated Procurement Workflow
-    stage.
+    stage. Status is controlled by the application and its
+    explicit workflow actions, not ordinary form submissions.
     """
 
     reference = StringField(
@@ -56,14 +57,6 @@ class PurchaseRequestForm(FlaskForm):
         "Required By Date",
         validators=[
             Optional(),
-        ],
-    )
-
-    status = StringField(
-        "Status",
-        validators=[
-            DataRequired(),
-            Length(max=20),
         ],
     )
 
