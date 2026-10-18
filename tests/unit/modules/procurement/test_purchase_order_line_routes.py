@@ -180,15 +180,27 @@ def test_create_purchase_order_line_creates_line(
         FakePurchaseOrderLineService,
     )
 
+    monkeypatch.setattr(
+        routes.InventoryProductCatalog,
+        "list_active_stock_managed_products",
+        lambda: [
+            SimpleNamespace(
+                code="WATER-500ML",
+                name="Bottled Water 500ml",
+            ),
+        ],
+    )
+
     response = authenticated_client.post(
         "/procurement/purchase-orders/1/lines/create",
         data={
             "description": "Bottled Water",
             "item_reference": "WATER-001",
+            "stock_item_reference": "WATER-500ML",
             "quantity": "20.000",
             "unit": "Carton",
             "unit_price": "8.50",
-            "total_amount": "170.00",
+            "total_amount": "999.99",
             "notes": "For office use.",
         },
         follow_redirects=False,
@@ -205,6 +217,7 @@ def test_create_purchase_order_line_creates_line(
     assert line.purchase_order_id == 1
     assert line.description == "Bottled Water"
     assert line.item_reference == "WATER-001"
+    assert line.stock_item_reference == "WATER-500ML"
     assert line.quantity == Decimal("20.000")
     assert line.unit == "Carton"
     assert line.unit_price == Decimal("8.50")
@@ -310,6 +323,7 @@ def test_edit_purchase_order_line_updates_line(
         purchase_order_id=1,
         description="Old Description",
         item_reference="OLD-001",
+        stock_item_reference="WATER-500ML",
         quantity=Decimal("5.000"),
         unit="Box",
         unit_price=Decimal("10.00"),
@@ -347,15 +361,31 @@ def test_edit_purchase_order_line_updates_line(
         FakePurchaseOrderLineService,
     )
 
+    monkeypatch.setattr(
+        routes.InventoryProductCatalog,
+        "list_active_stock_managed_products",
+        lambda: [
+            SimpleNamespace(
+                code="WATER-500ML",
+                name="Bottled Water 500ml",
+            ),
+            SimpleNamespace(
+                code="WATER-1L",
+                name="Bottled Water 1L",
+            ),
+        ],
+    )
+
     response = authenticated_client.post(
         "/procurement/purchase-orders/1/lines/2/edit",
         data={
             "description": "Updated Bottled Water",
             "item_reference": "WATER-002",
+            "stock_item_reference": "WATER-1L",
             "quantity": "25.000",
             "unit": "Carton",
             "unit_price": "8.50",
-            "total_amount": "212.50",
+            "total_amount": "0.01",
             "notes": "Updated quantity.",
         },
         follow_redirects=False,
@@ -372,6 +402,7 @@ def test_edit_purchase_order_line_updates_line(
     assert line.purchase_order_id == 1
     assert line.description == "Updated Bottled Water"
     assert line.item_reference == "WATER-002"
+    assert line.stock_item_reference == "WATER-1L"
     assert line.quantity == Decimal("25.000")
     assert line.unit == "Carton"
     assert line.unit_price == Decimal("8.50")

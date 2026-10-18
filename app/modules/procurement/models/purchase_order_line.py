@@ -48,6 +48,11 @@ class PurchaseOrderLine(
         nullable=True,
     )
 
+    stock_item_reference = db.Column(
+        db.String(100),
+        nullable=True,
+    )
+
     quantity = db.Column(
         db.Numeric(
             precision=18,

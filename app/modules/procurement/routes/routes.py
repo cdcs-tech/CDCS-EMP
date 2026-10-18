@@ -8,6 +8,8 @@ HTTP routes.
 
 from __future__ import annotations
 
+from decimal import Decimal, ROUND_HALF_UP
+
 from flask import (
     Blueprint,
     current_app,
@@ -91,6 +93,21 @@ from app.modules.procurement.services import (
     PurchaseRequestService,
     PurchaseRequirementService,
     SupplierService,
+)
+from app.modules.procurement.integration.providers.inventory_catalog import (
+    InventoryProductCatalog,
+)
+from app.modules.procurement.integration.contracts import (
+    InventoryReceiptStatusQueryResult,
+    PurchaseOrderLineReceiptStatusRequest,
+)
+from app.modules.procurement.integration.providers.inventory_receipt_status import (
+    InventoryReceiptStatusQueryProvider,
+)
+from app.modules.procurement.integration.receipt_status import (
+    STATUS_UNAVAILABLE,
+    PurchaseOrderLineReceiptStatus,
+    derive_purchase_order_line_receipt_status,
 )
 from app.security.decorators import require_permission
 
@@ -369,13 +386,14 @@ def _load_purchase_requirement_choices(
 
 def _load_purchase_order_choices(
     form: PurchaseOrderForm,
+    current_purchase_request_id: int | None = None,
 ) -> None:
     """
-    Populate Purchase Order Supplier and Purchase Request choices.
+    Populate supplier choices and eligible Purchase Request choices.
 
-    The selections are populated through the existing
-    Supplier and Purchase Request services and pagination
-    contracts.
+    New Purchase Orders may only reference APPROVED Purchase Requests.
+    During editing, retain the order's existing request choice so an
+    older order remains editable if that request is no longer approved.
     """
 
     supplier_service = SupplierService()
@@ -390,32 +408,40 @@ def _load_purchase_order_choices(
     )
 
     form.supplier_id.choices = [
-        (
-            supplier.id,
-            supplier.name,
-        )
+        (supplier.id, supplier.name)
         for supplier in supplier_result.items
     ]
 
     purchase_request_service = PurchaseRequestService()
 
-    purchase_request_result = (
-        purchase_request_service.paginate(
-            QueryOptions(
-                page=1,
-                page_size=1000,
-                sort_by="reference",
-                sort_direction="asc",
-            )
+    purchase_request_result = purchase_request_service.paginate(
+        QueryOptions(
+            page=1,
+            page_size=1000,
+            sort_by="reference",
+            sort_direction="asc",
+            filters={"status": "APPROVED"},
         )
     )
 
-    form.purchase_request_id.choices = [
-        (
-            purchase_request.id,
-            purchase_request.reference,
+    eligible_requests = list(purchase_request_result.items)
+
+    if (
+        current_purchase_request_id is not None
+        and all(
+            purchase_request.id != current_purchase_request_id
+            for purchase_request in eligible_requests
         )
-        for purchase_request in purchase_request_result.items
+    ):
+        current_request = purchase_request_service.get(
+            current_purchase_request_id
+        )
+        if current_request is not None:
+            eligible_requests.append(current_request)
+
+    form.purchase_request_id.choices = [
+        (purchase_request.id, purchase_request.reference)
+        for purchase_request in eligible_requests
     ]
 
 
@@ -1434,9 +1460,7 @@ def create_purchase_order():
 
     form = PurchaseOrderForm()
 
-    _load_purchase_order_choices(
-        form
-    )
+    _load_purchase_order_choices(form)
 
     if form.validate_on_submit():
         service = PurchaseOrderService()
@@ -1450,9 +1474,7 @@ def create_purchase_order():
                     form.expected_delivery_date.data
                 ),
                 status=form.status.data,
-                purchase_request_id=(
-                    form.purchase_request_id.data
-                ),
+                purchase_request_id=form.purchase_request_id.data,
             )
         )
 
@@ -1462,9 +1484,7 @@ def create_purchase_order():
         )
 
         return redirect(
-            url_for(
-                "procurement.purchase_orders"
-            )
+            url_for("procurement.purchase_orders")
         )
 
     return render_template(
@@ -1491,7 +1511,7 @@ def view_purchase_order(
     purchase_order_id: int,
 ):
     """
-    View a Procurement Purchase Order.
+    View a Procurement Purchase Order with derived receiving statuses.
     """
 
     service = PurchaseOrderService()
@@ -1500,9 +1520,78 @@ def view_purchase_order(
         purchase_order_id
     )
 
+    receipt_statuses = {}
+
+    for line in purchase_order.lines or []:
+        line_reference = f"PO-LINE-{line.guid}"
+        ordered_quantity = line.quantity
+
+        if not line.stock_item_reference:
+            inventory_result = InventoryReceiptStatusQueryResult(
+                success=False,
+                purchase_order_reference=purchase_order.reference,
+                purchase_order_line_reference=line_reference,
+                received_quantity=None,
+                unit=None,
+                receipt_count=None,
+                has_receipts=None,
+                error_code="PRODUCT_MAPPING_NOT_FOUND",
+                message="No Inventory Product mapping is configured.",
+            )
+        else:
+            query_request = PurchaseOrderLineReceiptStatusRequest(
+                purchase_order_reference=purchase_order.reference,
+                purchase_order_line_reference=line_reference,
+                stock_item_reference=line.stock_item_reference,
+            )
+
+            try:
+                inventory_result = (
+                    InventoryReceiptStatusQueryProvider.query(
+                        query_request
+                    )
+                )
+            except Exception:
+                # A status lookup must not break Purchase Order viewing.
+                inventory_result = InventoryReceiptStatusQueryResult(
+                    success=False,
+                    purchase_order_reference=purchase_order.reference,
+                    purchase_order_line_reference=line_reference,
+                    received_quantity=None,
+                    unit=None,
+                    receipt_count=None,
+                    has_receipts=None,
+                    error_code="QUERY_FAILED",
+                    message="Inventory receipt status could not be established.",
+                )
+
+        try:
+            derived_status = (
+                derive_purchase_order_line_receipt_status(
+                    purchase_order_reference=purchase_order.reference,
+                    purchase_order_line_reference=line_reference,
+                    ordered_quantity=ordered_quantity,
+                    ordered_unit=line.unit,
+                    inventory_result=inventory_result,
+                )
+            )
+        except Exception:
+            # Keep this display-only integration fail-safe.
+            derived_status = PurchaseOrderLineReceiptStatus(
+                status=STATUS_UNAVAILABLE,
+                ordered_quantity=None,
+                received_quantity=None,
+                unit=None,
+                receipt_count=None,
+                error_code="STATUS_DERIVATION_FAILED",
+            )
+
+        receipt_statuses[line.id] = derived_status
+
     return render_template(
         "modules/procurement/purchase_orders/view.html",
         purchase_order=purchase_order,
+        receipt_statuses=receipt_statuses,
     )
 
 
@@ -1694,14 +1783,27 @@ def receive_purchase_order(
             f"{receiving_reference}"
         )
 
+        if not purchase_order_line.stock_item_reference:
+            flash(
+                "Select an eligible Inventory Product for this "
+                "Purchase Order Line before receiving it.",
+                "danger",
+            )
+            return redirect(
+                url_for(
+                    "procurement.view_purchase_order",
+                    purchase_order_id=purchase_order_id,
+                )
+            )
+
         command = ReceivePurchaseOrderCommand(
             purchase_order_id=purchase_order.id,
             purchase_order_reference=purchase_order.reference,
             purchase_order_line_reference=(
-                purchase_order_line.item_reference
+                f"PO-LINE-{purchase_order_line.guid}"
             ),
             stock_item_reference=(
-                purchase_order_line.item_reference
+                purchase_order_line.stock_item_reference
             ),
             inventory_location_reference=(
                 form.inventory_location_reference.data.strip()
@@ -1753,6 +1855,26 @@ def receive_purchase_order(
     )
 
 
+def _populate_inventory_product_choices(
+    form: PurchaseOrderLineForm,
+) -> None:
+    """Populate the selector with eligible Inventory Product codes."""
+    products = (
+        InventoryProductCatalog.list_active_stock_managed_products()
+    )
+
+    form.stock_item_reference.choices = [
+        ("", "Not inventory-managed"),
+        *[
+            (
+                product.code,
+                f"{product.code} — {product.name}",
+            )
+            for product in products
+        ],
+    ]
+
+
 @procurement_bp.route(
     "/purchase-orders/<int:purchase_order_id>/lines/create",
     methods=["GET", "POST"],
@@ -1778,6 +1900,10 @@ def create_purchase_order_line(
 
     form = PurchaseOrderLineForm()
 
+    eligible_inventory_codes = (
+        _populate_inventory_product_choices(form)
+    )
+
     if form.validate_on_submit():
         service = PurchaseOrderLineService()
 
@@ -1785,10 +1911,16 @@ def create_purchase_order_line(
             purchase_order_id=purchase_order_id,
             description=form.description.data,
             item_reference=form.item_reference.data,
+            stock_item_reference=form.stock_item_reference.data or None,
             quantity=form.quantity.data,
             unit=form.unit.data,
             unit_price=form.unit_price.data,
-            total_amount=form.total_amount.data,
+            total_amount=(
+                form.quantity.data * form.unit_price.data
+            ).quantize(
+                Decimal("0.01"),
+                rounding=ROUND_HALF_UP,
+            ),
             notes=form.notes.data,
         )
 
@@ -1849,13 +1981,25 @@ def edit_purchase_order_line(
 
     form = PurchaseOrderLineForm(obj=line)
 
+    eligible_inventory_codes = (
+        _populate_inventory_product_choices(form)
+    )
+
     if form.validate_on_submit():
         line.description = form.description.data
         line.item_reference = form.item_reference.data
+        line.stock_item_reference = (
+            form.stock_item_reference.data or None
+        )
         line.quantity = form.quantity.data
         line.unit = form.unit.data
         line.unit_price = form.unit_price.data
-        line.total_amount = form.total_amount.data
+        line.total_amount = (
+            form.quantity.data * form.unit_price.data
+        ).quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
         line.notes = form.notes.data
 
         service.update(line)
@@ -1955,7 +2099,8 @@ def edit_purchase_order(
     )
 
     _load_purchase_order_choices(
-        form
+        form,
+        current_purchase_request_id=purchase_order.purchase_request_id,
     )
 
     if form.validate_on_submit():

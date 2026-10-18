@@ -1,3 +1,4 @@
+
 """
 CDCS Enterprise Management Platform (CDCS-EMP)
 
@@ -8,12 +9,14 @@ Purchase order line forms.
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from flask_wtf import FlaskForm
 from wtforms import DecimalField
+from wtforms import SelectField
 from wtforms import StringField
 from wtforms import TextAreaField
-from wtforms.validators import DataRequired
-from wtforms.validators import Length
+from wtforms.validators import DataRequired, Length, NumberRange
 
 
 class PurchaseOrderLineForm(FlaskForm):
@@ -36,11 +39,25 @@ class PurchaseOrderLineForm(FlaskForm):
         ],
     )
 
+    stock_item_reference = SelectField(
+        "Inventory Product",
+        choices=[("", "Not inventory-managed")],
+        coerce=str,
+        default="",
+        validators=[
+            Length(max=100),
+        ],
+    )
+
     quantity = DecimalField(
         "Quantity",
         places=3,
         validators=[
             DataRequired(),
+            NumberRange(
+                min=Decimal("0.001"),
+                message="Quantity must be greater than zero.",
+            ),
         ],
     )
 
@@ -57,6 +74,10 @@ class PurchaseOrderLineForm(FlaskForm):
         places=2,
         validators=[
             DataRequired(),
+            NumberRange(
+                min=Decimal("0.00"),
+                message="Unit price cannot be negative.",
+            ),
         ],
     )
 

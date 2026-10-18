@@ -69,6 +69,7 @@
                         <th>Item Reference</th>
                         <th>Quantity</th>
                         <th>Unit</th>
+                        <th>Receiving Status</th>
                         <th>Unit Price</th>
                         <th>Total Amount</th>
                         <th>Notes</th>
@@ -83,6 +84,26 @@
                         <td>{{ line.item_reference or "—" }}</td>
                         <td>{{ line.quantity }}</td>
                         <td>{{ line.unit }}</td>
+                        <td>
+                            {% set receipt_status = receipt_statuses.get(line.id) %}
+
+                            {% if receipt_status and receipt_status.status != "STATUS_UNAVAILABLE" %}
+                            <strong>{{ receipt_status.status.replace("_", " ") }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {{ receipt_status.received_quantity }}
+                                /
+                                {{ receipt_status.ordered_quantity }}
+                                {{ receipt_status.unit }} received
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                Receipts recorded: {{ receipt_status.receipt_count }}
+                            </small>
+                            {% else %}
+                            <span class="badge bg-secondary">Status unavailable</span>
+                            {% endif %}
+                        </td>
                         <td>{{ line.unit_price }}</td>
                         <td>{{ line.total_amount }}</td>
                         <td>{{ line.notes or "—" }}</td>

@@ -28,9 +28,20 @@ class InventoryReceiptIdempotency(
 
     Each idempotency key identifies one physical receipt operation
     and maps to exactly one successfully posted StockMovement.
+
+    Procurement business references are optional so that receipt
+    operations originating outside Procurement remain compatible.
     """
 
     __tablename__ = "inventory_receipt_idempotency"
+
+    __table_args__ = (
+        db.Index(
+            "ix_inventory_receipt_idempotency_po_line",
+            "purchase_order_reference",
+            "purchase_order_line_reference",
+        ),
+    )
 
     idempotency_key = db.Column(
         db.String(255),
@@ -45,6 +56,16 @@ class InventoryReceiptIdempotency(
         ),
         nullable=False,
         unique=True,
+    )
+
+    purchase_order_reference = db.Column(
+        db.String(100),
+        nullable=True,
+    )
+
+    purchase_order_line_reference = db.Column(
+        db.String(100),
+        nullable=True,
     )
 
     stock_movement = db.relationship(

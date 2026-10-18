@@ -8,6 +8,9 @@ from .contracts import (
     ProcurementFinancialEffectLine,
     ProcurementFinancialEffectRequest,
     PurchaseOrderReceiptRequest,
+    INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION,
+    InventoryReceiptStatusQueryResult,
+    PurchaseOrderLineReceiptStatusRequest,
 )
 
 
@@ -19,4 +22,7 @@ __all__ = [
     "ProcurementFinancialEffectLine",
     "ProcurementFinancialEffectRequest",
     "PurchaseOrderReceiptRequest",
+    "INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION",
+    "InventoryReceiptStatusQueryResult",
+    "PurchaseOrderLineReceiptStatusRequest",
 ]

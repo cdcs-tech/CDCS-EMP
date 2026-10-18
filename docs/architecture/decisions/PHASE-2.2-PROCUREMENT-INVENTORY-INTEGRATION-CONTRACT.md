@@ -1062,6 +1062,187 @@ Procurement
 → Inventory transaction boundary
 ```
 
+## Inventory Receipt Status Query Contract v1
+
+**Status:** APPROVED / ACTIVE
+**Scope:** Read-only Inventory receipt-status queries consumed by Procurement
+**Architectural boundary:** Inventory owns physical receipt history and stock effects. Procurement owns Purchase Order Lines, ordered quantities, and the business presentation of receiving status.
+
+### 1. Purpose
+
+This contract defines the read-only query through which Procurement obtains authoritative receipt information for an individual Purchase Order Line.
+
+The query supports line-level receiving controls without introducing a duplicate Procurement receipt ledger, a cross-module foreign key, or direct Procurement access to Inventory persistence.
+
+The contract is an approved extension to the existing Procurement–Inventory integration boundary. It does not change the ownership or workflow rules established elsewhere in this document.
+
+### 2. Query request
+
+The query accepts the following required business references:
+
+- `purchase_order_reference`
+- `purchase_order_line_reference`
+
+Both references are stable external business identifiers. They are matched exactly and are not database foreign keys.
+
+The query must reject missing or blank references. It must not infer either reference from descriptive text, a movement reason, or an unrelated identifier.
+
+### 3. Successful response
+
+A successful response provides the following information:
+
+| Field | Meaning |
+|---|---|
+| `success` | Indicates that the query completed successfully. |
+| `purchase_order_reference` | The exact Purchase Order business reference queried. |
+| `purchase_order_line_reference` | The exact Purchase Order Line business reference queried. |
+| `received_quantity` | Total quantity represented by qualifying posted receipt movements for the line. |
+| `unit` | The authoritative Inventory Product unit associated with the qualifying receipt history. |
+| `receipt_count` | Number of distinct successful receipt operations represented by qualifying idempotency records. |
+| `has_receipts` | Indicates whether at least one qualifying successful receipt operation exists. |
+
+The response quantity must use a decimal-safe representation. Implementations must preserve the precision required by the Inventory quantity model and must not introduce floating-point rounding into receipt totals.
+
+A successful query with no qualifying receipts returns a zero quantity, a receipt count of zero, and `has_receipts = false`, provided that the query can establish a valid result for the requested references.
+
+A missing mapping, inconsistent historical data, incompatible units, or a query failure must not be reported as a successful zero-receipt result.
+
+### 4. Inventory-owned receipt association
+
+Inventory shall extend its existing `InventoryReceiptIdempotency` persistence boundary to associate a successful Procurement-originated receipt operation with:
+
+- `purchase_order_reference`
+- `purchase_order_line_reference`
+
+These fields are nullable business-reference strings, not foreign keys. They must remain optional for receipt operations that do not originate from Procurement.
+
+For Procurement-originated receipts, the Inventory receipt execution path must persist both references alongside the existing idempotency key and Stock Movement association.
+
+The association must be committed atomically with the successful receipt operation, including the Stock Movement posting, Stock Balance effect, and idempotency record, within the existing Inventory transaction boundary.
+
+A receipt operation must not become query-visible as successful if its stock effect and corresponding idempotency association have not been committed successfully.
+
+### 5. Idempotency and receipt counting
+
+Inventory remains the owner of receipt idempotency.
+
+The existing idempotency key continues to identify one intended receiving operation. Repeated submission of the same operation with the same idempotency key must return the original successful movement and must not create another stock effect or another receipt-count increment.
+
+Each distinct successfully committed idempotency record associated with the exact Purchase Order and Purchase Order Line references represents one successful receipt operation.
+
+Failed operations, uncommitted operations, and unrelated idempotency records must not contribute to the reported receipt quantity or receipt count.
+
+The query must use the structured business-reference fields and their associated Inventory records. It must not parse `StockMovement.reason` or other presentation text to determine the Purchase Order or Purchase Order Line association.
+
+### 6. Receipt eligibility for aggregation
+
+Only qualifying Inventory `RECEIPT` movements with status `POSTED`, linked through the Inventory-owned receipt idempotency record and associated with the exact queried business references, may contribute to the result.
+
+The query must not include:
+
+- Draft or failed movements.
+- Movements that have not been successfully posted.
+- Movements associated with another Purchase Order or Purchase Order Line.
+- Duplicate delivery attempts for an already successful idempotency key.
+- Unrelated stock movements, transfers, adjustments, or other movement types.
+
+The query must verify that the matching receipt history is internally consistent. If the same Purchase Order Line reference is associated with incompatible Inventory Product identities or inconsistent units, the query must report an explicit unavailable or invalid result rather than silently combining quantities.
+
+### 7. Unit-of-measure authority and compatibility
+
+`Product.unit` is the authoritative Inventory Product unit. Inventory remains responsible for the meaning and consistency of that unit within its stock records.
+
+Every successful receipt-status result must identify the unit in which its received quantity is expressed.
+
+Before deriving a receiving status, Procurement must verify that the Inventory unit is compatible with the unit recorded on the Purchase Order Line. Under this contract, compatibility means an exact match after only explicitly approved, non-semantic normalization, such as trimming surrounding whitespace. No implicit unit conversion is permitted.
+
+For example, a quantity recorded in bottles must not be compared directly with an ordered quantity recorded in cartons.
+
+If the Inventory unit is missing, the unit comparison fails, or historical receipt quantities cannot safely be interpreted in one consistent unit, Procurement must treat the receiving status as unavailable. It must not assume zero receipts or infer that the line is fully received.
+
+Changing an Inventory Product unit after stock movements exist must not silently reinterpret historical quantities. Product unit changes that could affect historical meaning require a separate, explicit, audited Inventory control or conversion procedure. That master-data control is outside the implementation scope of this query contract.
+
+### 8. Query failure and unavailable results
+
+A query failure is distinct from a successful query returning zero receipts.
+
+The query implementation must expose a clear failure or unavailable result when it cannot reliably determine the requested receipt status, including when:
+
+- The Inventory query or data access operation fails.
+- The references are missing or invalid.
+- The required Procurement-originated association cannot be established.
+- The matching receipt history is inconsistent.
+- The Inventory Product unit cannot be established or verified.
+- The receipt quantity cannot be safely interpreted.
+
+Procurement must not treat an unavailable result as `NOT_RECEIVED`, `PARTIALLY_RECEIVED`, or `FULLY_RECEIVED`. It must fail safely, prevent controls that depend on an unverified status from proceeding, and provide an actionable message or log entry.
+
+### 9. Procurement-derived line receiving status
+
+Inventory returns authoritative receipt history. Procurement compares the returned quantity with the ordered Purchase Order Line quantity to derive its line-level receiving status.
+
+The following statuses are derived by Procurement and are not Inventory movement statuses:
+
+| Condition | Derived status |
+|---|---|
+| Valid received quantity is zero | `NOT_RECEIVED` |
+| Received quantity is greater than zero and less than the ordered quantity | `PARTIALLY_RECEIVED` |
+| Received quantity equals the ordered quantity | `FULLY_RECEIVED` |
+| Received quantity exceeds the ordered quantity | `OVER_RECEIVED` |
+| Query failure, inconsistent history, or incompatible units | `STATUS_UNAVAILABLE` |
+
+Comparisons must use compatible units and the defined numeric precision of the quantities. Implementations must not use arbitrary floating-point tolerances to conceal quantity discrepancies.
+
+`OVER_RECEIVED` is a condition requiring explicit handling and review. This contract does not, by itself, authorize additional stock movements, quantity adjustments, or silent correction of receipt history.
+
+### 10. Line-level receiving controls
+
+Once the query contract is implemented and verified, Procurement may use the derived status to control receiving and editing:
+
+- `NOT_RECEIVED`: the line may be eligible for its first receipt, subject to existing Purchase Order approval and receiving validations.
+- `PARTIALLY_RECEIVED`: the line may remain eligible for additional partial receipts. Its approved order details must remain protected from edits that would reinterpret the existing receipt history.
+- `FULLY_RECEIVED`: further receipt submissions for that line must be blocked. Approved order details must remain protected.
+- `OVER_RECEIVED`: additional receipt submissions must be blocked pending the explicitly defined handling of the discrepancy.
+- `STATUS_UNAVAILABLE`: receipt-dependent actions must fail safely until a reliable status can be established.
+
+These controls must be enforced server-side as well as reflected in the user interface. Hiding or disabling a button alone is not sufficient.
+
+Partial receipt support does not require Procurement to maintain a cumulative physical-receipt ledger. Inventory remains the source of truth for physical receipt history, and the query is the authorized interface for obtaining that information.
+
+Receiving remains separate from the Purchase Order workflow. Posting a receipt does not, by itself, introduce a new Purchase Order workflow transition or require the Purchase Order to leave its approved state.
+
+### 11. Explicit architectural prohibitions
+
+Implementations of this contract must not:
+
+- Introduce a Procurement-owned duplicate receipt ledger or a new `ProcurementReceipt` entity solely to maintain cumulative physical receipt history.
+- Add a Procurement foreign key to an Inventory Product, Stock Item, Stock Movement, or Stock Balance solely for this integration.
+- Add a Purchase Order foreign key to Inventory movement or balance records.
+- Parse `StockMovement.reason` or other presentation fields to reconstruct structured Purchase Order Line associations.
+- Treat the Procurement `item_reference` as an Inventory Product code unless a separate, explicit mapping establishes that relationship.
+- Treat a Purchase Order Line as equivalent to a Stock Item.
+- Perform implicit unit conversion.
+- Treat query failures, missing associations, or incompatible units as zero receipts.
+- Bypass Inventory's existing transaction or idempotency guarantees.
+
+### 12. Verification requirements
+
+Before line-level receiving controls rely on this contract, focused tests must demonstrate that:
+
+1. A valid line with no successful receipts returns a successful zero-receipt result.
+2. A posted receipt is associated with the exact Purchase Order and Purchase Order Line references.
+3. Multiple distinct successful partial receipts are aggregated correctly.
+4. Replaying the same idempotency key does not duplicate the stock effect, received quantity, or receipt count.
+5. Failed or uncommitted receipt operations do not appear as successful receipts.
+6. Receipts belonging to other Purchase Orders or Purchase Order Lines are excluded.
+7. Non-Procurement receipt operations remain compatible with nullable association fields.
+8. Incompatible units and inconsistent receipt history produce an unavailable or invalid result.
+9. Query failures are distinguishable from a valid zero-receipt result.
+10. Server-side receiving controls enforce the derived line status without changing the approved Purchase Order workflow.
+11. Existing partial-receipt, receipt-idempotency, transaction-integrity, and Procurement–Inventory integration tests continue to pass.
+
+**Approval and implementation boundary:** This contract is approved and active as the architectural basis for the Inventory Receipt Status Query v1. Implementation must preserve the existing Procurement–Inventory integration contract and be completed through focused changes, targeted tests, and the project's established verification workflow. This approval does not itself implement the query, apply a migration, or authorize changes to existing UAT records.
+
 ---
 
 # 29. Error Categories

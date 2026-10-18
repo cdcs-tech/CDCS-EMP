@@ -84,6 +84,41 @@ class PurchaseOrderReceiptRequest:
         if self.notes is not None and not isinstance(self.notes, str):
             raise TypeError("notes must be a string or None.")
 
+from dataclasses import dataclass
+from decimal import Decimal
+
+
+INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION = (
+    "query_purchase_order_line_receipt_status"
+)
+
+
+@dataclass(frozen=True)
+class PurchaseOrderLineReceiptStatusRequest:
+    """Request authoritative Inventory receipt facts for one PO line."""
+
+    purchase_order_reference: str
+    purchase_order_line_reference: str
+    stock_item_reference: str
+
+
+@dataclass(frozen=True)
+class InventoryReceiptStatusQueryResult:
+    """Result of querying Inventory receipt history for one PO line.
+
+    A failed or unavailable result must never be interpreted as zero receipts.
+    """
+
+    success: bool
+    purchase_order_reference: str
+    purchase_order_line_reference: str
+    received_quantity: Decimal | None
+    unit: str | None
+    receipt_count: int | None
+    has_receipts: bool | None
+    error_code: str | None = None
+    message: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # Finance integration payload

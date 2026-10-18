@@ -27,6 +27,12 @@ from app.modules.catering.services import (
 from app.modules.procurement.integration import (
     INVENTORY_RECEIVE_PURCHASE_ORDER_OPERATION,
     PurchaseOrderReceiptRequest,
+    INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION,
+    InventoryReceiptStatusQueryResult,
+    PurchaseOrderLineReceiptStatusRequest,
+)
+from app.modules.procurement.integration.providers.inventory_receipt_status import (
+    InventoryReceiptStatusQueryProvider,
 )
 
 
@@ -77,45 +83,42 @@ class InventoryReceiptIntegrationProvider(
 
         return "inventory"
 
-    def supports(
-        self,
-        operation: str,
-    ) -> bool:
+    def supports(self, operation: str) -> bool:
         """Return whether this provider supports the operation."""
+        return operation in {
+            INVENTORY_RECEIVE_PURCHASE_ORDER_OPERATION,
+            INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION,
+        }
 
-        return (
-            operation
-            == INVENTORY_RECEIVE_PURCHASE_ORDER_OPERATION
-        )
-
-    def validate(
-        self,
-        request: IntegrationRequest,
-    ) -> None:
-        """
-        Validate the enterprise request and domain payload.
-        """
-
+    def validate(self, request: IntegrationRequest) -> None:
+        """Validate the enterprise request and operation-specific payload."""
         super().validate(request)
 
         if not self.supports(request.operation):
-            raise ValueError(
-                "Unsupported Inventory integration operation."
-            )
+            raise ValueError("Unsupported Inventory integration operation.")
 
-        if not isinstance(
-            request.payload,
-            PurchaseOrderReceiptRequest,
+        if (
+            request.operation
+            == INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION
         ):
+            if not isinstance(
+                request.payload,
+                PurchaseOrderLineReceiptStatusRequest,
+            ):
+                raise TypeError(
+                    "Inventory receipt-status query payload must be a "
+                    "PurchaseOrderLineReceiptStatusRequest."
+                )
+            return
+
+        if not isinstance(request.payload, PurchaseOrderReceiptRequest):
             raise TypeError(
-                "Inventory receipt integration payload must be "
-                "a PurchaseOrderReceiptRequest."
+                "Inventory receipt integration payload must be a "
+                "PurchaseOrderReceiptRequest."
             )
 
         if self.movement_service is None:
-            raise RuntimeError(
-                "Inventory movement service is required."
-            )
+            raise RuntimeError("Inventory movement service is required.")
 
     def execute(
         self,
@@ -125,6 +128,46 @@ class InventoryReceiptIntegrationProvider(
         Resolve Inventory references and delegate the
         receipt posting to StockMovementService.
         """
+
+        if (
+            request.operation
+            == INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION
+        ):
+            try:
+                self.validate(request)
+                result = InventoryReceiptStatusQueryProvider.query(
+                    request.payload
+                )
+            except Exception:
+                return IntegrationResponse(
+                    success=False,
+                    message="Inventory receipt status could not be established.",
+                    error="QUERY_FAILED",
+                    request_id=request.request_id,
+                )
+
+            return IntegrationResponse(
+                success=result.success,
+                message=result.message or (
+                    "Inventory receipt status queried successfully."
+                    if result.success
+                    else "Inventory receipt status is unavailable."
+                ),
+                data={
+                    "success": result.success,
+                    "purchase_order_reference": result.purchase_order_reference,
+                    "purchase_order_line_reference": (
+                        result.purchase_order_line_reference
+                    ),
+                    "received_quantity": result.received_quantity,
+                    "unit": result.unit,
+                    "receipt_count": result.receipt_count,
+                    "has_receipts": result.has_receipts,
+                    "error_code": result.error_code,
+                },
+                error=result.error_code,
+                request_id=request.request_id,
+            )
 
         try:
             self.validate(request)
@@ -218,8 +261,12 @@ class InventoryReceiptIntegrationProvider(
                 .post_receipt_movement(
                     movement,
                     subject=subject,
-                    idempotency_key=(
-                        receipt.idempotency_key
+                    idempotency_key=receipt.idempotency_key,
+                    purchase_order_reference=(
+                        receipt.purchase_order_reference
+                    ),
+                    purchase_order_line_reference=(
+                        receipt.purchase_order_line_reference
                     ),
                 )
             )

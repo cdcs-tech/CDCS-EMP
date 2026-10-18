@@ -70,6 +70,8 @@ class FakeMovementService:
         self.movement = None
         self.subject = None
         self.idempotency_key = None
+        self.purchase_order_reference = None
+        self.purchase_order_line_reference = None
 
     def post_receipt_movement(
         self,
@@ -77,10 +79,16 @@ class FakeMovementService:
         *,
         subject,
         idempotency_key,
+        purchase_order_reference=None,
+        purchase_order_line_reference=None,
     ):
         self.movement = movement
         self.subject = subject
         self.idempotency_key = idempotency_key
+        self.purchase_order_reference = purchase_order_reference
+        self.purchase_order_line_reference = (
+            purchase_order_line_reference
+        )
         return FakeMovement()
 
 

@@ -175,6 +175,94 @@ class StockMovementService(CRUDService[StockMovement]):
             movement
         )
 
+    @staticmethod
+    def _normalize_procurement_receipt_references(
+        purchase_order_reference: str | None,
+        purchase_order_line_reference: str | None,
+    ) -> tuple[str | None, str | None]:
+        """
+        Validate and normalize optional Procurement receipt references.
+
+        Both references must be provided together. When provided,
+        both must be non-blank strings of at most 100 characters.
+        """
+
+        if (
+            purchase_order_reference is None
+            and purchase_order_line_reference is None
+        ):
+            return None, None
+
+        if (
+            not isinstance(purchase_order_reference, str)
+            or not isinstance(purchase_order_line_reference, str)
+        ):
+            raise ValueError(
+                "Purchase Order and Purchase Order Line "
+                "references must be supplied together as strings."
+            )
+
+        normalized_purchase_order_reference = (
+            purchase_order_reference.strip()
+        )
+        normalized_purchase_order_line_reference = (
+            purchase_order_line_reference.strip()
+        )
+
+        if (
+            not normalized_purchase_order_reference
+            or not normalized_purchase_order_line_reference
+        ):
+            raise ValueError(
+                "Procurement receipt references cannot be blank."
+            )
+
+        if (
+            len(normalized_purchase_order_reference) > 100
+            or len(normalized_purchase_order_line_reference) > 100
+        ):
+            raise ValueError(
+                "Procurement receipt references cannot exceed "
+                "100 characters."
+            )
+
+        return (
+            normalized_purchase_order_reference,
+            normalized_purchase_order_line_reference,
+        )
+
+    @staticmethod
+    def _validate_existing_receipt_association(
+        existing: InventoryReceiptIdempotency,
+        *,
+        purchase_order_reference: str | None,
+        purchase_order_line_reference: str | None,
+    ) -> None:
+        """
+        Reject idempotency-key reuse for a different receipt association.
+
+        Legacy or non-Procurement records with no association remain
+        replayable by callers that do not supply Procurement references.
+        They are not silently backfilled during a replay.
+        """
+
+        if (
+            purchase_order_reference is None
+            and purchase_order_line_reference is None
+        ):
+            return
+
+        if (
+            existing.purchase_order_reference
+            != purchase_order_reference
+            or existing.purchase_order_line_reference
+            != purchase_order_line_reference
+        ):
+            raise ValueError(
+                "The idempotency key is already associated with "
+                "a different or unassociated receipt operation."
+            )
+
     def _apply_balance_effect(
         self,
         movement: StockMovement,
@@ -314,6 +402,8 @@ class StockMovementService(CRUDService[StockMovement]):
         *,
         subject: Any,
         idempotency_key: str,
+        purchase_order_reference: str | None = None,
+        purchase_order_line_reference: str | None = None,
     ) -> StockMovement:
         """
         Post an Inventory purchase-order receipt atomically.
@@ -321,9 +411,14 @@ class StockMovementService(CRUDService[StockMovement]):
         The idempotency record, StockMovement and StockBalance
         effect are committed as one Inventory transaction.
 
+        Optional Procurement business references associate a
+        successful receipt operation with its Purchase Order and
+        Purchase Order Line without introducing cross-module FKs.
+
         A previously successful idempotency key returns the
         originally posted StockMovement without applying another
-        physical stock effect.
+        physical stock effect. Reusing a key with a different
+        Procurement association is rejected.
 
         A concurrent duplicate is protected by the database-level
         unique constraint on InventoryReceiptIdempotency.
@@ -351,6 +446,14 @@ class StockMovementService(CRUDService[StockMovement]):
                 "Inventory receipt idempotency key is required."
             )
 
+        (
+            normalized_purchase_order_reference,
+            normalized_purchase_order_line_reference,
+        ) = self._normalize_procurement_receipt_references(
+            purchase_order_reference,
+            purchase_order_line_reference,
+        )
+
         self._validate_movement_for_posting(
             movement
         )
@@ -365,6 +468,15 @@ class StockMovementService(CRUDService[StockMovement]):
                 )
 
                 if existing is not None:
+                    self._validate_existing_receipt_association(
+                        existing,
+                        purchase_order_reference=(
+                            normalized_purchase_order_reference
+                        ),
+                        purchase_order_line_reference=(
+                            normalized_purchase_order_line_reference
+                        ),
+                    )
                     return existing.stock_movement
 
                 self.repository.add(
@@ -392,6 +504,12 @@ class StockMovementService(CRUDService[StockMovement]):
                         ),
                         stock_movement_id=movement.id,
                         stock_movement=movement,
+                        purchase_order_reference=(
+                            normalized_purchase_order_reference
+                        ),
+                        purchase_order_line_reference=(
+                            normalized_purchase_order_line_reference
+                        ),
                     )
                 )
 
@@ -410,6 +528,15 @@ class StockMovementService(CRUDService[StockMovement]):
             )
 
             if existing is not None:
+                self._validate_existing_receipt_association(
+                    existing,
+                    purchase_order_reference=(
+                        normalized_purchase_order_reference
+                    ),
+                    purchase_order_line_reference=(
+                        normalized_purchase_order_line_reference
+                    ),
+                )
                 return existing.stock_movement
 
             raise

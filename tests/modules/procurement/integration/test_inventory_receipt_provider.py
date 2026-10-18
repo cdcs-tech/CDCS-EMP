@@ -20,6 +20,9 @@ from app.modules.procurement.integration import (
     INVENTORY_INTEGRATION_PROVIDER,
     INVENTORY_RECEIVE_PURCHASE_ORDER_OPERATION,
     PurchaseOrderReceiptRequest,
+    INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION,
+    InventoryReceiptStatusQueryResult,
+    PurchaseOrderLineReceiptStatusRequest,
 )
 from app.modules.procurement.integration.providers.inventory import (
     InventoryReceiptIntegrationProvider,
@@ -78,6 +81,8 @@ class FakeMovementService:
         self.received_movement = None
         self.received_subject = None
         self.received_idempotency_key = None
+        self.received_purchase_order_reference = None
+        self.received_purchase_order_line_reference = None
 
     def post_receipt_movement(
         self,
@@ -85,6 +90,8 @@ class FakeMovementService:
         *,
         subject,
         idempotency_key,
+        purchase_order_reference=None,
+        purchase_order_line_reference=None,
     ):
         if self.error is not None:
             raise self.error
@@ -92,6 +99,12 @@ class FakeMovementService:
         self.received_movement = movement
         self.received_subject = subject
         self.received_idempotency_key = idempotency_key
+        self.received_purchase_order_reference = (
+            purchase_order_reference
+        )
+        self.received_purchase_order_line_reference = (
+            purchase_order_line_reference
+        )
 
         if self.movement is not None:
             return self.movement
@@ -510,3 +523,64 @@ def test_provider_does_not_implement_receipt_idempotency():
         provider,
         "idempotency_repository",
     )
+
+
+def test_provider_supports_receipt_status_query():
+    provider = build_provider()
+
+    assert provider.supports(
+        INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION
+    )
+
+
+def test_provider_dispatches_receipt_status_query_without_posting(
+    monkeypatch,
+):
+    from app.modules.procurement.integration.providers.inventory_receipt_status import (
+        InventoryReceiptStatusQueryProvider,
+    )
+
+    provider = build_provider()
+    request = IntegrationRequest(
+        provider=INVENTORY_INTEGRATION_PROVIDER,
+        operation=(
+            INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION
+        ),
+        payload=PurchaseOrderLineReceiptStatusRequest(
+            purchase_order_reference="PO-001",
+            purchase_order_line_reference="LINE-001",
+            stock_item_reference="WATER-001",
+        ),
+    )
+
+    expected = InventoryReceiptStatusQueryResult(
+        success=True,
+        purchase_order_reference="PO-001",
+        purchase_order_line_reference="LINE-001",
+        received_quantity=Decimal("0"),
+        unit="bottle",
+        receipt_count=0,
+        has_receipts=False,
+    )
+    calls = []
+
+    def fake_query(payload):
+        calls.append(payload)
+        return expected
+
+    monkeypatch.setattr(
+        InventoryReceiptStatusQueryProvider,
+        "query",
+        staticmethod(fake_query),
+    )
+
+    response = provider.execute(request)
+
+    assert response.success is True
+    assert response.request_id == request.request_id
+    assert response.data["received_quantity"] == Decimal("0")
+    assert response.data["unit"] == "bottle"
+    assert response.data["receipt_count"] == 0
+    assert response.data["has_receipts"] is False
+    assert calls == [request.payload]
+    assert provider.movement_service.received_movement is None
