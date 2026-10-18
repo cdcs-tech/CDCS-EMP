@@ -9,6 +9,7 @@ Product service.
 from __future__ import annotations
 
 from app.core.crud import CRUDService
+from app.core.crud.exceptions import EntityValidationException
 from app.core.data import PaginatedResult, QueryOptions
 
 from app.modules.catering.models import Product
@@ -21,10 +22,11 @@ class ProductService(
     """
     Application service for Catering Product entities.
 
-    Provides the standard enterprise CRUD service boundary,
-    pagination support, and Product-specific lifecycle
-    operations.
+    Product is the authoritative owner of the unit used by
+    associated Inventory stock quantities.
     """
+
+    MAX_UNIT_LENGTH = 50
 
     def __init__(
         self,
@@ -43,6 +45,69 @@ class ProductService(
             repository
             or ProductRepository(),
             entity_name="Product",
+        )
+
+    @classmethod
+    def _normalize_unit(
+        cls,
+        unit: object,
+    ) -> str:
+        """
+        Validate and normalize the authoritative Product unit.
+
+        Surrounding whitespace is removed. Blank, non-string,
+        and overlength values are rejected before persistence.
+        """
+
+        if not isinstance(unit, str):
+            raise EntityValidationException(
+                "Product unit must be a non-empty string "
+                "of at most 50 characters."
+            )
+
+        normalized_unit = unit.strip()
+
+        if (
+            not normalized_unit
+            or len(normalized_unit) > cls.MAX_UNIT_LENGTH
+        ):
+            raise EntityValidationException(
+                "Product unit must be a non-empty string "
+                "of at most 50 characters."
+            )
+
+        return normalized_unit
+
+    def create(
+        self,
+        entity: Product,
+    ) -> Product:
+        """
+        Validate the Product unit before creating the entity.
+        """
+
+        entity.unit = self._normalize_unit(
+            entity.unit
+        )
+
+        return super().create(
+            entity
+        )
+
+    def update(
+        self,
+        entity: Product,
+    ) -> Product:
+        """
+        Validate the Product unit before updating the entity.
+        """
+
+        entity.unit = self._normalize_unit(
+            entity.unit
+        )
+
+        return super().update(
+            entity
         )
 
     def paginate(

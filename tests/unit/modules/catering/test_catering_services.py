@@ -7,6 +7,7 @@ import pytest
 from app.core.crud import CRUDService
 from app.core.crud.exceptions import (
     EntityNotFoundException,
+    EntityValidationException,
 )
 from app.modules.catering.models import (
     Product,
@@ -138,6 +139,92 @@ def test_product_service_create_delegates_to_repository(
     assert repository.get_by_id(
         product.id
     ) is product
+
+
+@pytest.mark.parametrize(
+    ("raw_unit", "expected_unit"),
+    [
+        (" bottle ", "bottle"),
+        ("kg", "kg"),
+    ],
+)
+def test_product_service_create_normalizes_unit(
+    raw_unit,
+    expected_unit,
+):
+    """Product creation stores a trimmed, non-empty unit."""
+
+    repository = Mock(spec=ProductRepository)
+    service = ProductService(repository=repository)
+
+    product = Product(
+        category_id=1,
+        name="Test Product",
+        code="TEST-UNIT-001",
+        unit=raw_unit,
+    )
+
+    service.create(product)
+
+    assert product.unit == expected_unit
+    repository.add.assert_called_once_with(product)
+
+
+@pytest.mark.parametrize(
+    "invalid_unit",
+    [
+        None,
+        "",
+        "   ",
+        "x" * 51,
+        123,
+    ],
+)
+@pytest.mark.parametrize(
+    "operation",
+    ["create", "update"],
+)
+def test_product_service_rejects_invalid_unit(
+    invalid_unit,
+    operation,
+):
+    """Invalid units are rejected before persistence."""
+
+    repository = Mock(spec=ProductRepository)
+    service = ProductService(repository=repository)
+
+    product = Product(
+        category_id=1,
+        name="Test Product",
+        code="TEST-UNIT-002",
+        unit="kg",
+    )
+    product.unit = invalid_unit
+
+    with pytest.raises(EntityValidationException):
+        getattr(service, operation)(product)
+
+    repository.add.assert_not_called()
+    repository.update.assert_not_called()
+
+
+def test_product_service_update_normalizes_unit():
+    """Product updates store a trimmed, non-empty unit."""
+
+    repository = Mock(spec=ProductRepository)
+    service = ProductService(repository=repository)
+
+    product = Product(
+        category_id=1,
+        name="Test Product",
+        code="TEST-UNIT-003",
+        unit=" bottle ",
+    )
+
+    service.update(product)
+
+    assert product.unit == "bottle"
+    repository.update.assert_called_once_with(product)
 
 
 def test_product_category_service_create_delegates_to_repository(db_session):
