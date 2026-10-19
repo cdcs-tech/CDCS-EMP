@@ -212,6 +212,9 @@ Stock Balances
 
                             <td>
                                 {{ balance.quantity }}
+                                {% if balance.stock_item and balance.stock_item.product and balance.stock_item.product.unit %}
+                                    {{ balance.stock_item.product.unit }}
+                                {% endif %}
                             </td>
 
                         </tr>

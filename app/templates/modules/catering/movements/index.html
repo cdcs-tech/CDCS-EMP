@@ -216,7 +216,7 @@ Stock Movements
                                 {% if movement.location %}
                                     {{ movement.location.name }}
                                     {% if movement.location.code %}
-                                        <span class="text-muted">-</span>
+                                        <span class="text-muted">({{ movement.location.code }})</span>
                                     {% endif %}
                                 {% else %}
                                     -
@@ -229,6 +229,9 @@ Stock Movements
 
                             <td>
                                 {{ movement.quantity }}
+                                {% if movement.stock_item and movement.stock_item.product and movement.stock_item.product.unit %}
+                                    {{ movement.stock_item.product.unit }}
+                                {% endif %}
                             </td>
 
                             <td>
