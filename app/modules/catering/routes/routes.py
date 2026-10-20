@@ -2462,6 +2462,30 @@ def view_catering_event(
         )
     )
 
+    expense_cost_association_repository = (
+        CateringExpenseCostAssociationRepository()
+    )
+    expense_repository = ExpenseRepository()
+
+    expense_cost_associations = (
+        expense_cost_association_repository.get_by_catering_context(
+            "CATERING_EVENT",
+            f"EVENT-{catering_event.id}",
+        )
+    )
+
+    expense_cost_association_rows = []
+
+    for association in expense_cost_associations:
+        expense_cost_association_rows.append(
+            {
+                "association": association,
+                "expense": expense_repository.get_by_id(
+                    association.expense_id
+                ),
+            }
+        )
+
     profitability_result = None
     profitability_unavailable = False
     profitability_data_conflict = False
@@ -2472,7 +2496,7 @@ def view_catering_event(
         expense_cost_association_repository=(
             CateringExpenseCostAssociationRepository()
         ),
-        expense_repository=ExpenseRepository(),
+        expense_repository=expense_repository,
     )
 
     try:
@@ -2502,6 +2526,7 @@ def view_catering_event(
         profitability_result=profitability_result,
         profitability_unavailable=profitability_unavailable,
         profitability_data_conflict=profitability_data_conflict,
+        expense_cost_association_rows=expense_cost_association_rows,
     )
 
 

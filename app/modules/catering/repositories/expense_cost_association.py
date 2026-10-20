@@ -39,6 +39,37 @@ class CateringExpenseCostAssociationRepository(
             CateringExpenseCostAssociation
         )
 
+    def get_by_catering_context(
+        self,
+        catering_context_type: str,
+        catering_context_reference: str,
+    ) -> list[CateringExpenseCostAssociation]:
+        """
+        Return all associations for a Catering context,
+        regardless of whether they are eligible or consumed.
+        """
+
+        statement = (
+            select(CateringExpenseCostAssociation)
+            .where(
+                CateringExpenseCostAssociation.catering_context_type
+                == catering_context_type
+            )
+            .where(
+                CateringExpenseCostAssociation.catering_context_reference
+                == catering_context_reference
+            )
+            .order_by(
+                CateringExpenseCostAssociation.id
+            )
+        )
+
+        return list(
+            db.session.execute(statement)
+            .scalars()
+            .all()
+        )
+
     def get_eligible_by_expense_id(
         self,
         expense_id: int,

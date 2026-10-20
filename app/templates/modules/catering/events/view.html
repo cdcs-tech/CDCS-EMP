@@ -162,18 +162,37 @@
     </div>
 
     <!-- Expense Cost Association: separate section -->
-    {% if can_create_expense_cost_association %}
     <div class="card mb-4">
         <div class="card-body">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
                 <div>
                     <h2 class="h5 mb-1">Expense Cost Association</h2>
                     <p class="text-muted small mb-0">
-                        Associate an existing Expense with this Catering Event
-                        so eligible consumed costs can contribute to event profitability.
+                        Associated expenses and their Catering cost status.
+                        Only consumed costs contribute to event profitability.
                     </p>
+                    <div class="alert alert-info small mt-3 mb-0" role="note">
+                        <h3 class="h6 mb-2">Expense Cost Association — Eligibility Guide</h3>
+                        <p class="mb-2">
+                            Before associating an expense with this Catering Event, ensure that:
+                        </p>
+                        <ul class="mb-2">
+                            <li>The Expense exists in the Expense Management module.</li>
+                            <li>The Expense is approved and has a recorded approval timestamp.</li>
+                            <li>The expense represents a legitimate cost attributable to this event.</li>
+                            <li>The expense has not already been associated with this event.
+                                It may be associated with another event when appropriate.</li>
+                        </ul>
+                        <p class="mb-0">
+                            Association links an approved expense to the event. The expense
+                            must still be validly recorded as a consumed Catering cost before
+                            it can contribute to event profitability. Event-cost relevance
+                            must be assessed by the user.
+                        </p>
+                    </div>
                 </div>
 
+                {% if can_create_expense_cost_association %}
                 <div class="flex-shrink-0">
                     <a href="{{ url_for(
                             'catering.create_event_expense_cost_association',
@@ -183,10 +202,76 @@
                         Associate Expense Cost
                     </a>
                 </div>
+                {% endif %}
             </div>
+
+            {% if expense_cost_association_rows %}
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Expense</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">Expense Date</th>
+                            <th scope="col">Association Status</th>
+                            <th scope="col">Consumed At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in expense_cost_association_rows %}
+                        <tr>
+                            <td>
+                                {% if row.expense %}
+                                #{{ row.expense.id }}
+                                {% else %}
+                                #{{ row.association.expense_id }}
+                                <span class="text-muted small">
+                                    (Expense record unavailable)
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.expense %}
+                                {{ row.expense.description }}
+                                {% else %}
+                                <span class="text-muted">Unavailable</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.expense %}
+                                {{ "%.2f"|format(row.expense.amount) }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.expense %}
+                                {{ row.expense.expense_date }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td>{{ row.association.status }}</td>
+                            <td>
+                                {% if row.association.consumed_at %}
+                                {{ row.association.consumed_at }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">
+                No expense costs are associated with this Catering Event yet.
+            </p>
+            {% endif %}
         </div>
     </div>
-    {% endif %}
 
     <!-- Event Requirements: independent section -->
     <div class="card mb-4">
