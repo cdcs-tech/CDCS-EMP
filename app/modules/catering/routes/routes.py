@@ -3187,6 +3187,15 @@ def create_event_expense_cost_association(event_id):
 
         if expense is None:
             flash("Expense not found.", "danger")
+        elif (
+            getattr(expense, "status", None) != "APPROVED"
+            or getattr(expense, "approved_at", None) is None
+        ):
+            flash(
+                "Only approved Expenses with an approval timestamp "
+                "can be associated with a Catering Event.",
+                "warning",
+            )
         else:
             context_type = "CATERING_EVENT"
             context_reference = f"EVENT-{event.id}"

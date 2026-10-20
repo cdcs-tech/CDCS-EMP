@@ -1,6 +1,8 @@
 """Route tests for Catering Expense Cost Associations."""
 
 from types import SimpleNamespace
+from datetime import datetime, timezone
+import pytest
 
 import app.modules.catering.routes.routes as catering_routes
 from app.models.user import User
@@ -147,6 +149,63 @@ def test_create_association_rejects_missing_expense(
     )
 
 
+@pytest.mark.parametrize(
+    ("expense_status", "approved_at"),
+    [
+        ("DRAFT", None),
+        ("SUBMITTED", None),
+        ("APPROVED", None),
+    ],
+    ids=[
+        "draft-expense",
+        "submitted-expense",
+        "approved-without-timestamp",
+    ],
+)
+def test_create_association_rejects_unapproved_expense(
+    authenticated_client,
+    monkeypatch,
+    expense_status,
+    approved_at,
+):
+    _allow_permissions(monkeypatch)
+    _install_form(monkeypatch, valid=True, expense_id=12)
+    _install_repositories(
+        monkeypatch,
+        event=_fake_event(7),
+        expense=SimpleNamespace(
+            id=12,
+            status=expense_status,
+            approved_at=approved_at,
+        ),
+    )
+
+    class UnexpectedAssociationService:
+        def __init__(self, **kwargs):
+            raise AssertionError(
+                "Association service must not be created "
+                "for an ineligible Expense."
+            )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringExpenseCostAssociationService",
+        UnexpectedAssociationService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/expense-cost-associations/create",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert (
+        "Only approved Expenses with an approval timestamp "
+        "can be associated with a Catering Event."
+        in _flashed_messages(authenticated_client)
+    )
+
+
 def test_create_association_rejects_duplicate_for_same_event(
     authenticated_client,
     monkeypatch,
@@ -156,7 +215,11 @@ def test_create_association_rejects_duplicate_for_same_event(
     associations = _install_repositories(
         monkeypatch,
         event=_fake_event(7),
-        expense=SimpleNamespace(id=12),
+        expense=SimpleNamespace(
+            id=12,
+            status="APPROVED",
+            approved_at=datetime.now(timezone.utc),
+        ),
         associations=[
             _fake_association(
                 expense_id=12,
@@ -199,7 +262,11 @@ def test_create_association_allows_same_expense_for_different_event(
     _install_repositories(
         monkeypatch,
         event=_fake_event(8),
-        expense=SimpleNamespace(id=12),
+        expense=SimpleNamespace(
+            id=12,
+            status="APPROVED",
+            approved_at=datetime.now(timezone.utc),
+        ),
         associations=[
             _fake_association(
                 expense_id=12,
