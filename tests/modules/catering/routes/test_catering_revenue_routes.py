@@ -574,10 +574,7 @@ def test_establish_revenue_eligibility_delegates_to_service(
 ):
     _allow_permissions(monkeypatch)
 
-    revenue = SimpleNamespace(
-        id=1,
-    )
-
+    revenue = SimpleNamespace(id=1)
     captured = {}
 
     class FakeRevenueService:
@@ -588,10 +585,19 @@ def test_establish_revenue_eligibility_delegates_to_service(
         def establish_eligibility(
             self,
             entity,
-            subject=None,
+            *,
+            subject,
+            delivery_evidence,
+            eligibility_reason,
+            amount_adjustment_reason=None,
         ):
             captured["revenue"] = entity
             captured["subject"] = subject
+            captured["delivery_evidence"] = delivery_evidence
+            captured["eligibility_reason"] = eligibility_reason
+            captured["amount_adjustment_reason"] = (
+                amount_adjustment_reason
+            )
             return entity
 
     monkeypatch.setattr(
@@ -602,6 +608,15 @@ def test_establish_revenue_eligibility_delegates_to_service(
 
     response = authenticated_client.post(
         "/catering/revenues/1/establish-eligibility",
+        data={
+            "delivery_evidence": (
+                "Workshop catering service delivered and checked."
+            ),
+            "eligibility_reason": (
+                "Revenue amount is supported by the delivered service."
+            ),
+            "amount_adjustment_reason": "",
+        },
         follow_redirects=False,
     )
 
@@ -609,10 +624,16 @@ def test_establish_revenue_eligibility_delegates_to_service(
     assert response.headers["Location"].endswith(
         "/catering/revenues/1"
     )
-
     assert captured["revenue_id"] == 1
     assert captured["revenue"] is revenue
     assert captured["subject"] is not None
+    assert captured["delivery_evidence"] == (
+        "Workshop catering service delivered and checked."
+    )
+    assert captured["eligibility_reason"] == (
+        "Revenue amount is supported by the delivered service."
+    )
+    assert captured["amount_adjustment_reason"] is None
 
 
 def test_recognize_revenue_requires_permission(

@@ -11,16 +11,13 @@ subtitle="View Catering revenue business information."
 {% include "components/page_header.html" %}
 {% endwith %}
 
-<div class="card">
-
+<div class="card mb-4">
     <div class="card-header">
         <h5 class="mb-0">Revenue Details</h5>
     </div>
 
     <div class="card-body">
-
         <dl class="row mb-4">
-
             <dt class="col-sm-3">Revenue Reference</dt>
             <dd class="col-sm-9">{{ revenue.revenue_reference }}</dd>
 
@@ -39,6 +36,7 @@ subtitle="View Catering revenue business information."
             <dd class="col-sm-9">
                 {% if revenue.event %}
                 Event #{{ revenue.event.id }}
+                — {{ revenue.event.status }}
                 {% else %}
                 -
                 {% endif %}
@@ -59,7 +57,6 @@ subtitle="View Catering revenue business information."
 
             <dt class="col-sm-3">Status</dt>
             <dd class="col-sm-9">
-
                 {% if revenue.status == "RECOGNIZED" %}
                 <span class="badge bg-success">Recognized</span>
                 {% elif revenue.status == "ELIGIBLE" %}
@@ -69,93 +66,175 @@ subtitle="View Catering revenue business information."
                 {% else %}
                 <span class="badge bg-warning text-dark">Draft</span>
                 {% endif %}
-
             </dd>
 
-            {% if revenue.recognized_at %}
-
-            <dt class="col-sm-3">Recognized At</dt>
-            <dd class="col-sm-9">{{ revenue.recognized_at }}</dd>
-
+            {% if revenue.eligibility_quotation_id %}
+            <dt class="col-sm-3">Accepted Quotation</dt>
+            <dd class="col-sm-9">
+                Quotation #{{ revenue.eligibility_quotation_id }}
+            </dd>
             {% endif %}
 
+            {% if revenue.eligible_at %}
+            <dt class="col-sm-3">Eligibility Established At</dt>
+            <dd class="col-sm-9">{{ revenue.eligible_at }}</dd>
+            {% endif %}
+
+            {% if revenue.delivery_evidence %}
+            <dt class="col-sm-3">Delivery Evidence</dt>
+            <dd class="col-sm-9">
+                {{ revenue.delivery_evidence }}
+            </dd>
+            {% endif %}
+
+            {% if revenue.eligibility_reason %}
+            <dt class="col-sm-3">Eligibility Reason</dt>
+            <dd class="col-sm-9">
+                {{ revenue.eligibility_reason }}
+            </dd>
+            {% endif %}
+
+            {% if revenue.amount_adjustment_reason %}
+            <dt class="col-sm-3">Amount Adjustment Reason</dt>
+            <dd class="col-sm-9">
+                {{ revenue.amount_adjustment_reason }}
+            </dd>
+            {% endif %}
+
+            {% if revenue.recognized_at %}
+            <dt class="col-sm-3">Recognized At</dt>
+            <dd class="col-sm-9">{{ revenue.recognized_at }}</dd>
+            {% endif %}
         </dl>
 
-        <div class="d-flex gap-2">
-
+        <div class="d-flex gap-2 flex-wrap">
             {% if revenue.status == "DRAFT" %}
-
             <a href="{{ url_for(
-                'catering.edit_revenue',
-                revenue_id=revenue.id
-            ) }}" class="btn btn-primary">
+                        'catering.edit_revenue',
+                        revenue_id=revenue.id
+                    ) }}" class="btn btn-primary">
                 Edit Revenue
             </a>
 
             <form method="post" action="{{ url_for(
-                    'catering.establish_revenue_eligibility',
-                    revenue_id=revenue.id
-                ) }}" class="d-inline">
-
+                        'catering.cancel_revenue',
+                        revenue_id=revenue.id
+                    ) }}" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                <button type="submit" class="btn btn-info">
-                    Establish Eligibility
-                </button>
-
-            </form>
-
-            <form method="post" action="{{ url_for(
-                    'catering.cancel_revenue',
-                    revenue_id=revenue.id
-                ) }}" class="d-inline">
-
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
                 <button type="submit" class="btn btn-warning">
                     Cancel Revenue
                 </button>
-
             </form>
 
             {% elif revenue.status == "ELIGIBLE" %}
-
             <form method="post" action="{{ url_for(
-                    'catering.recognize_revenue',
-                    revenue_id=revenue.id
-                ) }}" class="d-inline">
-
+                        'catering.recognize_revenue',
+                        revenue_id=revenue.id
+                    ) }}" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
                 <button type="submit" class="btn btn-success">
                     Recognize Revenue
                 </button>
-
             </form>
 
             <form method="post" action="{{ url_for(
-                    'catering.cancel_revenue',
-                    revenue_id=revenue.id
-                ) }}" class="d-inline">
-
+                        'catering.cancel_revenue',
+                        revenue_id=revenue.id
+                    ) }}" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
                 <button type="submit" class="btn btn-warning">
                     Cancel Revenue
                 </button>
-
             </form>
-
             {% endif %}
 
             <a href="{{ url_for('catering.revenues') }}" class="btn btn-secondary">
                 Back to Revenue
             </a>
-
         </div>
+    </div>
+</div>
 
+{% if revenue.status == "DRAFT" %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Establish Revenue Eligibility</h5>
     </div>
 
+    <div class="card-body">
+        <p class="text-muted">
+            Record the service delivery evidence and explain why this
+            revenue amount is eligible. Eligibility does not recognize
+            revenue automatically; recognition remains a separate action.
+        </p>
+
+        <form method="post" action="{{ url_for(
+                'catering.establish_revenue_eligibility',
+                revenue_id=revenue.id
+            ) }}">
+            {{ eligibility_form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ eligibility_form.delivery_evidence.label(
+                class="form-label"
+                ) }}
+                {{ eligibility_form.delivery_evidence(
+                class="form-control",
+                rows=4,
+                maxlength=2000,
+                required=true
+                ) }}
+                {% for error in eligibility_form.delivery_evidence.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                <div class="form-text">
+                    Describe what was actually delivered and the evidence
+                    supporting delivery.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                {{ eligibility_form.eligibility_reason.label(
+                class="form-label"
+                ) }}
+                {{ eligibility_form.eligibility_reason(
+                class="form-control",
+                rows=4,
+                maxlength=2000,
+                required=true
+                ) }}
+                {% for error in eligibility_form.eligibility_reason.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                <div class="form-text">
+                    Explain the basis for the revenue amount and date.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                {{ eligibility_form.amount_adjustment_reason.label(
+                class="form-label"
+                ) }}
+                {{ eligibility_form.amount_adjustment_reason(
+                class="form-control",
+                rows=3,
+                maxlength=2000
+                ) }}
+                {% for error in eligibility_form.amount_adjustment_reason.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                <div class="form-text">
+                    Required by the service when the revenue amount differs
+                    from the accepted quotation total.
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-info">
+                Submit Eligibility Evidence
+            </button>
+        </form>
+    </div>
 </div>
+{% endif %}
 
 {% endblock %}

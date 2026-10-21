@@ -1,4 +1,8 @@
 """
+CDCS Enterprise Management Platform (CDCS-EMP)
+
+Catering Module
+
 Catering Revenue forms.
 """
 
@@ -14,18 +18,11 @@ from wtforms.validators import (
     DataRequired,
     Length,
     NumberRange,
+    Optional,
 )
 
 
 class CateringRevenueForm(FlaskForm):
-    """
-    Form for creating and editing a Catering Revenue business record.
-
-    Revenue lifecycle state and recognition timestamp are intentionally
-    excluded because they are controlled by the Catering Revenue service
-    and workflow.
-    """
-
     revenue_reference = StringField(
         "Revenue Reference",
         validators=[
@@ -53,19 +50,13 @@ class CateringRevenueForm(FlaskForm):
     customer_id = SelectField(
         "Customer",
         coerce=int,
-        choices=[],
-        validators=[
-            DataRequired(),
-        ],
+        validators=[DataRequired()],
     )
 
     event_id = SelectField(
         "Catering Event",
         coerce=int,
-        choices=[],
-        validators=[
-            DataRequired(),
-        ],
+        validators=[DataRequired()],
     )
 
     amount = DecimalField(
@@ -87,14 +78,53 @@ class CateringRevenueForm(FlaskForm):
 
     revenue_date = DateField(
         "Revenue Date",
-        validators=[
-            DataRequired(),
-        ],
+        validators=[DataRequired()],
     )
 
     revenue_classification = StringField(
         "Revenue Classification",
         validators=[
+            Optional(),
             Length(max=100),
+        ],
+    )
+
+
+class CateringRevenueEligibilityForm(FlaskForm):
+    """Evidence required to establish Catering Revenue eligibility."""
+
+    delivery_evidence = TextAreaField(
+        "Delivery Evidence",
+        description=(
+            "Describe the catering service actually delivered, "
+            "including relevant completion evidence."
+        ),
+        validators=[
+            DataRequired(),
+            Length(max=2000),
+        ],
+    )
+
+    eligibility_reason = TextAreaField(
+        "Eligibility Reason",
+        description=(
+            "Explain why the delivered service supports this "
+            "revenue amount and revenue date."
+        ),
+        validators=[
+            DataRequired(),
+            Length(max=2000),
+        ],
+    )
+
+    amount_adjustment_reason = TextAreaField(
+        "Amount Adjustment Reason",
+        description=(
+            "If the revenue amount differs from the accepted "
+            "quotation total, explain and document the adjustment."
+        ),
+        validators=[
+            Optional(),
+            Length(max=2000),
         ],
     )

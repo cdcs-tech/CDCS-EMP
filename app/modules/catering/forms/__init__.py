@@ -33,7 +33,10 @@ from .catering_request import CateringRequestForm
 
 from app.modules.catering.forms.catering_event import CateringEventForm
 
-from app.modules.catering.forms.catering_revenue import CateringRevenueForm
+from app.modules.catering.forms.catering_revenue import (
+    CateringRevenueEligibilityForm,
+    CateringRevenueForm,
+)
 
 from app.modules.catering.forms.catering_quotation import (
     CateringQuotationForm,

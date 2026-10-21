@@ -26,8 +26,11 @@ class CateringRevenue(
     """
     Represents an authoritative Catering revenue business fact.
 
-    The revenue fact is owned by Catering. Finance representation,
-    financial classification, accounting treatment, invoices,
+    Eligibility evidence identifies the delivered service, its
+    accepted commercial quotation, and the reason the revenue
+    qualifies for explicit recognition.
+
+    Finance representation, accounting treatment, invoices,
     receipts, payments, and other Finance-owned records remain
     outside this model's ownership boundary.
     """
@@ -79,6 +82,34 @@ class CateringRevenue(
 
     revenue_classification = db.Column(
         db.String(100),
+        nullable=True,
+    )
+
+    # Evidence captured when establishing eligibility.
+    # Nullable to preserve compatibility with existing records.
+    eligibility_quotation_id = db.Column(
+        db.Integer,
+        db.ForeignKey("catering_quotations.id"),
+        nullable=True,
+    )
+
+    delivery_evidence = db.Column(
+        db.String(2000),
+        nullable=True,
+    )
+
+    eligibility_reason = db.Column(
+        db.String(2000),
+        nullable=True,
+    )
+
+    amount_adjustment_reason = db.Column(
+        db.String(2000),
+        nullable=True,
+    )
+
+    eligible_at = db.Column(
+        db.DateTime,
         nullable=True,
     )
 

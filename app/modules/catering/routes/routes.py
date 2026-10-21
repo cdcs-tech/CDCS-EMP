@@ -54,6 +54,7 @@ from app.modules.catering.forms import (
     StockMovementForm,
     StockTransferForm,
     CateringRevenueForm,
+    CateringRevenueEligibilityForm,
     CateringExpenseCostAssociationForm,
 )
 
@@ -1132,9 +1133,12 @@ def view_revenue(
             )
         )
 
+    eligibility_form = CateringRevenueEligibilityForm()
+
     return render_template(
         "modules/catering/revenues/view.html",
         revenue=revenue,
+        eligibility_form=eligibility_form,
     )
 
 
@@ -1276,21 +1280,40 @@ def establish_revenue_eligibility(
     revenue_id,
 ):
     """
-    Establish Catering Revenue recognition eligibility.
+    Establish Catering Revenue eligibility using submitted evidence.
     """
 
     service = CateringRevenueService(
         authorization_adapter=_build_catering_authorization_adapter(),
     )
 
-    try:
-        revenue = service.get(
-            revenue_id
-        )
+    form = CateringRevenueEligibilityForm()
 
+    try:
+        revenue = service.get(revenue_id)
+    except EntityNotFoundException:
+        flash(
+            "Catering Revenue not found.",
+            "danger",
+        )
+        return redirect(url_for("catering.revenues"))
+
+    if not form.validate_on_submit():
+        return render_template(
+            "modules/catering/revenues/view.html",
+            revenue=revenue,
+            eligibility_form=form,
+        ), 400
+
+    try:
         service.establish_eligibility(
             revenue,
             subject=current_user,
+            delivery_evidence=form.delivery_evidence.data,
+            eligibility_reason=form.eligibility_reason.data,
+            amount_adjustment_reason=(
+                form.amount_adjustment_reason.data or None
+            ),
         )
 
         flash(
