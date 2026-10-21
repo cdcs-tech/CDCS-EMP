@@ -668,6 +668,9 @@ def index():
         can_read_events=current_user.has_permission(
             CATERING_EVENT_READ.name
         ),
+        can_read_quotations=current_user.has_permission(
+            CATERING_QUOTATION_READ.name
+        ),
         can_read_revenues=current_user.has_permission(
             CATERING_REVENUE_READ.name
         ),
