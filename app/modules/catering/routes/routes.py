@@ -10,11 +10,20 @@ from flask import (
     Blueprint,
     current_app,
     flash,
+    g,
+    jsonify,
     redirect,
     render_template,
     request,
     url_for,
 )
+
+from datetime import datetime, timezone
+
+from app.modules.expense.integration.post_commit import (
+    ExpenseCateringPostCommitExecutor,
+)
+
 from flask_login import current_user
 from flask_login import login_required
 
@@ -38,6 +47,8 @@ from app.modules.catering.models import CateringQuotationLine
 from app.modules.catering.models import EventRequirement
 from app.modules.catering.models import CateringPurchaseRequirement
 from app.modules.catering.models import CateringExpenseCostAssociation
+
+from app.modules.catering.repositories import CateringQuotationRepository
 
 from app.modules.catering.forms import (
     CateringEventForm,
@@ -1011,6 +1022,159 @@ def revenues():
     )
 
 
+def _configure_revenue_form_choices(
+    form,
+    customers,
+    events,
+    existing_source_reference=None,
+    existing_source_type=None,
+):
+    """Configure valid Event and accepted-quotation form choices."""
+
+    valid_source_types = {
+        value for value, _label in form.source_type.choices
+    }
+
+    if (
+        existing_source_type
+        and existing_source_type not in valid_source_types
+    ):
+        form.source_type.choices = [
+            (
+                existing_source_type,
+                f"Legacy source — {existing_source_type} (must be replaced)",
+            ),
+            *form.source_type.choices,
+        ]
+
+    eligible_events = [
+        event
+        for event in events
+        if event.status in {"DELIVERED", "COMPLETED"}
+    ]
+
+    form.customer_id.choices = [
+        (customer.id, customer.name)
+        for customer in customers
+    ]
+
+    form.event_id.choices = [
+        (
+            event.id,
+            f"Event #{event.id} — {event.event_date} — {event.status}",
+        )
+        for event in eligible_events
+    ]
+
+    def normalize_id(value):
+        if value in ("", None):
+            return None
+
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    selected_event_id = normalize_id(form.event_id.data)
+    selected_customer_id = normalize_id(form.customer_id.data)
+
+    form.source_reference.choices = []
+
+    if existing_source_reference not in (None, ""):
+        form.source_reference.choices.append(
+            (
+                str(existing_source_reference),
+                f"Existing source — {existing_source_reference} (must be replaced)",
+            )
+        )
+
+    if not selected_event_id or not selected_customer_id:
+        return
+
+    if not any(
+        normalize_id(event.id) == selected_event_id
+        and normalize_id(event.customer_id) == selected_customer_id
+        for event in eligible_events
+    ):
+        return
+
+    try:
+        quotation = CateringQuotationRepository().get_accepted_by_event_id(
+            selected_event_id
+        )
+    except ValueError:
+        # Multiple accepted quotations make the source ambiguous.
+        return
+
+    if (
+        quotation is None
+        or normalize_id(quotation.customer_id) != selected_customer_id
+    ):
+        return
+
+    form.source_reference.choices.append(
+        (
+            str(quotation.id),
+            f"Quotation #{quotation.id} — Total {quotation.total_amount}",
+        )
+    )
+
+
+@catering_bp.route(
+    "/revenues/accepted-quotations",
+    methods=["GET"],
+)
+@login_required
+@require_permission(CATERING_QUOTATION_READ.name)
+def get_revenue_accepted_quotation_options():
+    """Return the accepted quotation eligible for a Catering Event."""
+
+    event_id = request.args.get("event_id", type=int)
+    customer_id = request.args.get("customer_id", type=int)
+
+    if not event_id or not customer_id:
+        return jsonify({"options": []}), 200
+
+    event = CateringEventRepository().get_by_id(event_id)
+
+    if (
+        event is None
+        or event.status not in {"DELIVERED", "COMPLETED"}
+        or event.customer_id is None
+        or str(event.customer_id) != str(customer_id)
+    ):
+        return jsonify({"options": []}), 200
+
+    try:
+        quotation = (
+            CateringQuotationRepository()
+            .get_accepted_by_event_id(event_id)
+        )
+    except ValueError:
+        return jsonify({"options": []}), 200
+
+    if (
+        quotation is None
+        or quotation.customer_id is None
+        or str(quotation.customer_id) != str(customer_id)
+    ):
+        return jsonify({"options": []}), 200
+
+    return jsonify(
+        {
+            "options": [
+                {
+                    "value": str(quotation.id),
+                    "label": (
+                        f"Quotation #{quotation.id} - "
+                        f"Total {quotation.total_amount}"
+                    ),
+                }
+            ]
+        }
+    ), 200
+
+
 @catering_bp.route(
     "/revenues/create",
     methods=["GET", "POST"],
@@ -1046,18 +1210,11 @@ def create_revenue():
         )
     )
 
-    form.customer_id.choices = [
-        (customer.id, customer.name)
-        for customer in customers.items
-    ]
-
-    form.event_id.choices = [
-        (
-            event.id,
-            f"Event #{event.id} — {event.event_date} — {event.status}",
-        )
-        for event in events.items
-    ]
+    _configure_revenue_form_choices(
+        form,
+        customers.items,
+        events.items,
+    )
 
     if form.validate_on_submit():
 
@@ -1069,7 +1226,7 @@ def create_revenue():
             service.repository.model(
                 revenue_reference=form.revenue_reference.data,
                 source_type=form.source_type.data,
-                source_reference=form.source_reference.data,
+                source_reference=str(form.source_reference.data),
                 customer_id=form.customer_id.data,
                 event_id=form.event_id.data,
                 amount=form.amount.data,
@@ -1201,18 +1358,13 @@ def edit_revenue(
         )
     )
 
-    form.customer_id.choices = [
-        (customer.id, customer.name)
-        for customer in customers.items
-    ]
-
-    form.event_id.choices = [
-        (
-            event.id,
-            f"Event #{event.id} — {event.event_date} — {event.status}",
-        )
-        for event in events.items
-    ]
+    _configure_revenue_form_choices(
+        form,
+        customers.items,
+        events.items,
+        existing_source_reference=revenue.source_reference,
+        existing_source_type=revenue.source_type,
+    )
 
     if form.validate_on_submit():
 
@@ -1222,7 +1374,7 @@ def edit_revenue(
         revenue.source_type = (
             form.source_type.data
         )
-        revenue.source_reference = (
+        revenue.source_reference = str(
             form.source_reference.data
         )
         revenue.customer_id = (
@@ -3296,10 +3448,53 @@ def create_event_expense_cost_association(event_id):
                     subject=current_user,
                 )
 
-                flash(
-                    "Expense associated with Catering Event successfully.",
-                    "success",
+                # Persist the association before attempting delivery.
+                transaction_manager = getattr(
+                    g,
+                    "cdcs_request_transaction",
+                    None,
                 )
+
+                if transaction_manager is None:
+                    transaction_manager = SQLAlchemyTransactionManager()
+                    transaction_manager.begin()
+
+                transaction_manager.commit()
+
+                delivery_error = None
+
+                try:
+                    ExpenseCateringPostCommitExecutor().deliver_association(
+                        expense=expense,
+                        association=association,
+                        approved_at=expense.approved_at,
+                    )
+                except Exception:
+                    current_app.logger.exception(
+                        "Failed to deliver approved Expense to Catering "
+                        "after creating the Expense Cost Association."
+                    )
+                    delivery_error = True
+                finally:
+                    # The delivery provider may have opened a new SQLAlchemy
+                    # transaction while updating the Catering association.
+                    # Re-adopt it so request lifecycle finalization can commit it.
+                    if not transaction_manager.active:
+                        transaction_manager.begin()
+
+                if delivery_error:
+                    flash(
+                        "Expense association was saved, but Catering delivery "
+                        "failed. Use Retry Delivery to try again.",
+                        "warning",
+                    )
+                else:
+                    flash(
+                        "Expense associated with Catering Event and cost "
+                        "contribution delivered successfully.",
+                        "success",
+                    )
+
                 return redirect(
                     url_for(
                         "catering.view_catering_event",
@@ -3311,6 +3506,119 @@ def create_event_expense_cost_association(event_id):
         "modules/catering/expense_cost_associations/create.html",
         form=form,
         event=event,
+    )
+
+
+@catering_bp.route(
+    "/events/<int:event_id>/expense-cost-associations/"
+    "<int:association_id>/retry",
+    methods=["POST"],
+)
+@login_required
+@require_permission(
+    CATERING_EXPENSE_COST_ASSOCIATION_CREATE.name
+)
+def retry_event_expense_cost_association(
+    event_id,
+    association_id,
+):
+    """Retry delivery of an existing eligible Expense contribution."""
+
+    event_repository = CateringEventRepository()
+    expense_repository = ExpenseRepository()
+    association_repository = CateringExpenseCostAssociationRepository()
+
+    event = event_repository.get_by_id(event_id)
+    if event is None:
+        flash("Catering Event not found.", "danger")
+        return redirect(url_for("catering.catering_events"))
+
+    # Scope the lookup to this Event; never retry another Event's association.
+    associations = association_repository.get_by_catering_context(
+        "CATERING_EVENT",
+        f"EVENT-{event.id}",
+    )
+    association = next(
+        (
+            item
+            for item in associations
+            if item.id == association_id
+        ),
+        None,
+    )
+
+    if association is None:
+        flash(
+            "Expense Cost Association not found for this Catering Event.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "catering.view_catering_event",
+                event_id=event.id,
+            )
+        )
+
+    if association.status != "ELIGIBLE":
+        flash(
+            "Only eligible Expense Cost Associations can be retried.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "catering.view_catering_event",
+                event_id=event.id,
+            )
+        )
+
+    expense = expense_repository.get_by_id(association.expense_id)
+
+    if (
+        expense is None
+        or expense.status != "APPROVED"
+        or not isinstance(expense.approved_at, datetime)
+    ):
+        flash(
+            "The associated Expense must still be approved and have "
+            "an approval timestamp before delivery can be retried.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "catering.view_catering_event",
+                event_id=event.id,
+            )
+        )
+
+    try:
+        ExpenseCateringPostCommitExecutor().deliver_association(
+            expense=expense,
+            association=association,
+            approved_at=expense.approved_at,
+        )
+    except Exception:
+        current_app.logger.exception(
+            "Retry delivery failed for Catering Expense Cost Association "
+            "%s on Event %s.",
+            association_id,
+            event.id,
+        )
+        flash(
+            "Catering delivery failed again. The association remains "
+            "eligible for another retry.",
+            "warning",
+        )
+    else:
+        flash(
+            "Catering cost contribution delivered successfully.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "catering.view_catering_event",
+            event_id=event.id,
+        )
     )
 
 

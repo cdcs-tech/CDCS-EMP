@@ -170,6 +170,72 @@ class CateringRevenueService(CRUDService[CateringRevenue]):
                 "Revenue date is required."
             )
 
+    def _validate_source_relationships(
+        self,
+        revenue: CateringRevenue,
+    ) -> None:
+        """Validate the authoritative Event and quotation source."""
+
+        if revenue.source_type != "CATERING_QUOTATION":
+            raise EntityValidationException(
+                "Revenue source type must be CATERING_QUOTATION."
+            )
+
+        if revenue.event_id is None:
+            raise EntityValidationException(
+                "A Catering Event is required for the revenue source."
+            )
+
+        if revenue.customer_id is None:
+            raise EntityValidationException(
+                "A customer is required for the revenue source."
+            )
+
+        event = self.event_repository.get_by_id(revenue.event_id)
+
+        if event is None:
+            raise EntityValidationException(
+                "The associated Catering Event could not be found."
+            )
+
+        if event.status not in {"DELIVERED", "COMPLETED"}:
+            raise EntityValidationException(
+                "The associated Catering Event must have DELIVERED "
+                "or COMPLETED status."
+            )
+
+        if event.customer_id != revenue.customer_id:
+            raise EntityValidationException(
+                "Revenue customer must match the Catering Event customer."
+            )
+
+        try:
+            quotation = self.quotation_repository.get_accepted_by_event_id(
+                revenue.event_id
+            )
+        except ValueError as exc:
+            raise EntityValidationException(
+                "The Catering Event has multiple accepted quotations; "
+                "the revenue source is ambiguous."
+            ) from exc
+
+        if quotation is None:
+            raise EntityValidationException(
+                "An accepted quotation is required for the revenue source."
+            )
+
+        if quotation.customer_id != revenue.customer_id:
+            raise EntityValidationException(
+                "The accepted quotation customer must match the "
+                "revenue customer."
+            )
+
+        if str(quotation.id) != str(revenue.source_reference).strip():
+            raise EntityValidationException(
+                "Revenue source reference must identify the accepted "
+                "quotation for the selected Event."
+            )
+
     def _transition_workflow(
         self,
         revenue: CateringRevenue,
@@ -216,6 +282,7 @@ class CateringRevenueService(CRUDService[CateringRevenue]):
             )
 
         self._validate_entity(entity)
+        self._validate_source_relationships(entity)
 
         return super().create(entity)
 
@@ -242,6 +309,7 @@ class CateringRevenueService(CRUDService[CateringRevenue]):
             )
 
         self._validate_entity(entity)
+        self._validate_source_relationships(entity)
 
         return super().update(entity)
 

@@ -44,6 +44,7 @@ def _fake_event_page():
                 id=1,
                 event_date=date(2026, 10, 8),
                 status="COMPLETED",
+                customer_id=1,
             ),
         ],
     )
@@ -79,6 +80,201 @@ def _patch_revenue_form_dependencies(
         "CateringEventService",
         lambda authorization_adapter=None: FakeEventService(),
     )
+
+    accepted_quotation = SimpleNamespace(
+        id=12,
+        event_id=1,
+        customer_id=1,
+        total_amount=Decimal("1250.00"),
+        status="ACCEPTED",
+    )
+
+    class FakeQuotationRepository:
+        def get_accepted_by_event_id(self, event_id):
+            assert event_id == 1
+            return accepted_quotation
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationRepository",
+        FakeQuotationRepository,
+    )
+
+
+def test_revenue_accepted_quotation_options_returns_valid_quote(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+    _patch_revenue_form_dependencies(monkeypatch)
+
+    class FakeEventRepository:
+        def get_by_id(self, event_id):
+            assert event_id == 1
+            return SimpleNamespace(
+                id=1,
+                status="COMPLETED",
+                customer_id=1,
+            )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventRepository",
+        FakeEventRepository,
+    )
+
+    response = authenticated_client.get(
+        "/catering/revenues/accepted-quotations"
+        "?event_id=1&customer_id=1"
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "options": [
+            {
+                "value": "12",
+                "label": "Quotation #12 - Total 1250.00",
+            }
+        ]
+    }
+
+
+def test_revenue_accepted_quotation_options_rejects_ineligible_event(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+    _patch_revenue_form_dependencies(monkeypatch)
+
+    class FakeEventRepository:
+        def get_by_id(self, event_id):
+            return SimpleNamespace(
+                id=event_id,
+                status="IN_PROGRESS",
+                customer_id=1,
+            )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventRepository",
+        FakeEventRepository,
+    )
+
+    response = authenticated_client.get(
+        "/catering/revenues/accepted-quotations"
+        "?event_id=1&customer_id=1"
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"options": []}
+
+
+def test_revenue_accepted_quotation_options_rejects_customer_mismatch(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+    _patch_revenue_form_dependencies(monkeypatch)
+
+    class FakeEventRepository:
+        def get_by_id(self, event_id):
+            return SimpleNamespace(
+                id=event_id,
+                status="COMPLETED",
+                customer_id=2,
+            )
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventRepository",
+        FakeEventRepository,
+    )
+
+    response = authenticated_client.get(
+        "/catering/revenues/accepted-quotations"
+        "?event_id=1&customer_id=1"
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"options": []}
+
+
+def test_revenue_accepted_quotation_options_returns_empty_when_no_quote(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+    _patch_revenue_form_dependencies(monkeypatch)
+
+    class FakeEventRepository:
+        def get_by_id(self, event_id):
+            return SimpleNamespace(
+                id=event_id,
+                status="DELIVERED",
+                customer_id=1,
+            )
+
+    class FakeQuotationRepository:
+        def get_accepted_by_event_id(self, event_id):
+            return None
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventRepository",
+        FakeEventRepository,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationRepository",
+        FakeQuotationRepository,
+    )
+
+    response = authenticated_client.get(
+        "/catering/revenues/accepted-quotations"
+        "?event_id=1&customer_id=1"
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"options": []}
+
+
+def test_revenue_accepted_quotation_options_returns_empty_for_ambiguous_quotes(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+    _patch_revenue_form_dependencies(monkeypatch)
+
+    class FakeEventRepository:
+        def get_by_id(self, event_id):
+            return SimpleNamespace(
+                id=event_id,
+                status="COMPLETED",
+                customer_id=1,
+            )
+
+    class FakeQuotationRepository:
+        def get_accepted_by_event_id(self, event_id):
+            raise ValueError("Multiple accepted quotations")
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventRepository",
+        FakeEventRepository,
+    )
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringQuotationRepository",
+        FakeQuotationRepository,
+    )
+
+    response = authenticated_client.get(
+        "/catering/revenues/accepted-quotations"
+        "?event_id=1&customer_id=1"
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"options": []}
 
 
 def test_revenues_requires_authentication(
@@ -286,8 +482,8 @@ def test_create_revenue_delegates_to_service(
         "/catering/revenues/create",
         data={
             "revenue_reference": "REV-UAT-001",
-            "source_type": "CATERING_EVENT",
-            "source_reference": "EVENT-1",
+            "source_type": "CATERING_QUOTATION",
+            "source_reference": "12",
             "customer_id": "1",
             "event_id": "1",
             "amount": "1250.00",
@@ -306,8 +502,8 @@ def test_create_revenue_delegates_to_service(
     entity = created["entity"]
 
     assert entity.revenue_reference == "REV-UAT-001"
-    assert entity.source_type == "CATERING_EVENT"
-    assert entity.source_reference == "EVENT-1"
+    assert entity.source_type == "CATERING_QUOTATION"
+    assert entity.source_reference == "12"
     assert entity.customer_id == 1
     assert entity.event_id == 1
     assert entity.amount == Decimal("1250.00")
@@ -516,8 +712,8 @@ def test_edit_revenue_delegates_to_service(
         "/catering/revenues/1/edit",
         data={
             "revenue_reference": "REV-UAT-001-EDITED",
-            "source_type": "CATERING_EVENT",
-            "source_reference": "EVENT-1-EDITED",
+            "source_type": "CATERING_QUOTATION",
+            "source_reference": "12",
             "customer_id": "1",
             "event_id": "1",
             "amount": "1500.00",
@@ -539,8 +735,8 @@ def test_edit_revenue_delegates_to_service(
     assert revenue.revenue_reference == (
         "REV-UAT-001-EDITED"
     )
-    assert revenue.source_type == "CATERING_EVENT"
-    assert revenue.source_reference == "EVENT-1-EDITED"
+    assert revenue.source_type == "CATERING_QUOTATION"
+    assert revenue.source_reference == "12"
     assert revenue.customer_id == 1
     assert revenue.event_id == 1
     assert revenue.amount == Decimal("1500.00")

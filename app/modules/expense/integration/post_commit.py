@@ -3,7 +3,7 @@ CDCS Enterprise Management Platform (CDCS-EMP)
 
 Expense Management Module
 
-Expense → Catering post-commit integration.
+Expense -> Catering post-commit integration.
 """
 
 from __future__ import annotations
@@ -28,30 +28,17 @@ from app.modules.catering.integration import (
 from app.modules.catering.repositories import (
     CateringExpenseCostAssociationRepository,
 )
-from app.modules.expense.commands import (
-    ApproveExpenseCommand,
-)
+from app.modules.expense.commands import ApproveExpenseCommand
 from app.modules.expense.models import Expense
 
 
-class ExpenseCateringPostCommitExecutor(
-    PostCommitExecutor,
-):
+class ExpenseCateringPostCommitExecutor(PostCommitExecutor):
     """
-    Deliver approved Expense facts to Catering after
-    the originating Expense transaction has committed.
+    Deliver approved Expense facts to Catering after the originating
+    Expense transaction has committed.
 
-    The executor owns only post-commit delivery orchestration.
-
-    It does not:
-    - approve or otherwise modify Expense records;
-    - create or modify Catering associations;
-    - mark Catering associations as consumed;
-    - calculate or allocate costs;
-    - perform accounting or ledger operations.
-
-    Catering remains responsible for consuming the delivered
-    contribution and maintaining its own consumption state.
+    This executor owns integration delivery orchestration only.
+    Catering remains responsible for association and consumption state.
     """
 
     def __init__(
@@ -59,18 +46,14 @@ class ExpenseCateringPostCommitExecutor(
         association_repository: (
             CateringExpenseCostAssociationRepository | None
         ) = None,
-        integration_service: (
-            IntegrationService | None
-        ) = None,
+        integration_service: IntegrationService | None = None,
     ) -> None:
         self.association_repository = (
             association_repository
             or CateringExpenseCostAssociationRepository()
         )
-
         self.integration_service = (
-            integration_service
-            or default_integration_service
+            integration_service or default_integration_service
         )
 
         if not isinstance(
@@ -82,13 +65,9 @@ class ExpenseCateringPostCommitExecutor(
                 "CateringExpenseCostAssociationRepository."
             )
 
-        if not isinstance(
-            self.integration_service,
-            IntegrationService,
-        ):
+        if not isinstance(self.integration_service, IntegrationService):
             raise TypeError(
-                "integration_service must be an "
-                "IntegrationService."
+                "integration_service must be an IntegrationService."
             )
 
     def execute(
@@ -98,62 +77,31 @@ class ExpenseCateringPostCommitExecutor(
         result: Any,
     ) -> None:
         """
-        Deliver all eligible Catering Expense contributions
-        after successful Expense approval commit.
+        Deliver eligible associations after successful Expense approval.
 
-        Non-approval commands and unsuccessful approval results
-        are ignored.
-
-        Each eligible Catering association is delivered
-        independently so one failed association does not prevent
-        other eligible associations from being attempted.
-
-        Integration failures are re-raised after all eligible
-        associations have been attempted. CommandDispatcher
-        isolates those post-commit failures from the already
-        committed Expense transaction.
+        Each association is attempted independently. Failures are raised
+        after all eligible associations have been attempted, preserving
+        the established post-commit failure behavior.
         """
-
-        if not isinstance(
-            command,
-            ApproveExpenseCommand,
-        ):
+        if not isinstance(command, ApproveExpenseCommand):
             return
 
-        if not isinstance(
-            context,
-            ExecutionContext,
-        ):
-            raise TypeError(
-                "context must be an ExecutionContext."
-            )
+        if not isinstance(context, ExecutionContext):
+            raise TypeError("context must be an ExecutionContext.")
 
-        if not isinstance(
-            result,
-            ExecutionResult,
-        ):
-            raise TypeError(
-                "result must be an ExecutionResult."
-            )
+        if not isinstance(result, ExecutionResult):
+            raise TypeError("result must be an ExecutionResult.")
 
         if not result.is_success():
             return
 
         expense = result.data
-
-        if not isinstance(
-            expense,
-            Expense,
-        ):
+        if not isinstance(expense, Expense):
             raise TypeError(
-                "Successful Expense approval result "
-                "must contain an Expense."
+                "Successful Expense approval result must contain an Expense."
             )
 
-        approved_at = self._approved_at(
-            result
-        )
-
+        approved_at = self._approved_at(result)
         associations = (
             self.association_repository.get_eligible_by_expense_id(
                 expense.id
@@ -164,43 +112,11 @@ class ExpenseCateringPostCommitExecutor(
 
         for association in associations:
             try:
-                contribution = (
-                    self._build_contribution(
-                        expense=expense,
-                        association=association,
-                        approved_at=approved_at,
-                    )
+                self.deliver_association(
+                    expense=expense,
+                    association=association,
+                    approved_at=approved_at,
                 )
-
-                request = IntegrationRequest(
-                    provider=CATERING_INTEGRATION_PROVIDER,
-                    operation=(
-                        CATERING_CONSUME_APPROVED_EXPENSE_OPERATION
-                    ),
-                    payload=contribution,
-                    metadata={
-                        "expense_id": expense.id,
-                        "catering_context_type": (
-                            association.catering_context_type
-                        ),
-                        "catering_context_reference": (
-                            association.catering_context_reference
-                        ),
-                    },
-                )
-
-                integration_result = (
-                    self.integration_service.execute(
-                        request
-                    )
-                )
-
-                if not integration_result.success:
-                    raise RuntimeError(
-                        "Catering approved Expense contribution "
-                        "delivery failed."
-                    )
-
             except Exception as exc:
                 if first_failure is None:
                     first_failure = exc
@@ -208,25 +124,73 @@ class ExpenseCateringPostCommitExecutor(
         if first_failure is not None:
             raise first_failure
 
-    @staticmethod
-    def _approved_at(
-        result: ExecutionResult,
-    ) -> datetime:
+    def deliver_association(
+        self,
+        *,
+        expense: Expense,
+        association: Any,
+        approved_at: datetime | None = None,
+    ):
         """
-        Retrieve the approval timestamp captured by the
-        Expense approval handler.
+        Deliver one already-persisted association to Catering.
+
+        This method does not create associations or commit transactions.
+        Callers creating an association must commit it before delivery.
+        Failed delivery leaves consumption state under Catering's control.
         """
+        if not isinstance(expense, Expense):
+            raise TypeError("expense must be an Expense.")
 
-        metadata = result.metadata or {}
+        if getattr(expense, "status", None) != "APPROVED":
+            raise ValueError("Only an approved Expense can be delivered.")
 
-        approved_at = metadata.get(
-            "approved_at"
+        if approved_at is None:
+            approved_at = getattr(expense, "approved_at", None)
+
+        if not isinstance(approved_at, datetime):
+            raise ValueError(
+                "Approved Expense does not contain a valid approval timestamp."
+            )
+
+        contribution = self._build_contribution(
+            expense=expense,
+            association=association,
+            approved_at=approved_at,
         )
 
-        if not isinstance(
-            approved_at,
-            datetime,
-        ):
+        integration_request = IntegrationRequest(
+            provider=CATERING_INTEGRATION_PROVIDER,
+            operation=CATERING_CONSUME_APPROVED_EXPENSE_OPERATION,
+            payload=contribution,
+            metadata={
+                "expense_id": expense.id,
+                "catering_context_type": (
+                    association.catering_context_type
+                ),
+                "catering_context_reference": (
+                    association.catering_context_reference
+                ),
+            },
+        )
+
+        integration_result = self.integration_service.execute(
+            integration_request
+        )
+
+        if not integration_result.success:
+            raise RuntimeError(
+                "Catering approved Expense contribution delivery failed."
+            )
+
+        return integration_result
+
+    @staticmethod
+    def _approved_at(result: ExecutionResult) -> datetime:
+        """Retrieve the approval timestamp captured by the approval handler."""
+        metadata = result.metadata or {}
+        approved_at = metadata.get("approved_at")
+
+        if not isinstance(approved_at, datetime):
             raise ValueError(
                 "Expense approval result does not contain "
                 "a valid approved_at timestamp."
@@ -241,27 +205,18 @@ class ExpenseCateringPostCommitExecutor(
         association: Any,
         approved_at: datetime,
     ) -> ApprovedExpenseCostContribution:
-        """
-        Build the immutable Expense business fact delivered
-        across the enterprise integration boundary.
-        """
-
+        """Build the immutable Expense fact crossing into Catering."""
         classification = expense.classification
 
         if classification is None:
             raise ValueError(
-                "Approved Expense does not have a valid "
-                "Expense classification."
+                "Approved Expense does not have a valid Expense classification."
             )
 
-        classification_reference = (
-            classification.code
-        )
-
+        classification_reference = classification.code
         if not classification_reference:
             raise ValueError(
-                "Expense classification does not have a "
-                "valid classification code."
+                "Expense classification does not have a valid classification code."
             )
 
         return ApprovedExpenseCostContribution(
@@ -269,20 +224,12 @@ class ExpenseCateringPostCommitExecutor(
             description=expense.description,
             amount=expense.amount,
             expense_date=expense.expense_date,
-            classification_reference=(
-                classification_reference
-            ),
-            catering_context_type=(
-                association.catering_context_type
-            ),
-            catering_context_reference=(
-                association.catering_context_reference
-            ),
+            classification_reference=classification_reference,
+            catering_context_type=association.catering_context_type,
+            catering_context_reference=association.catering_context_reference,
             approved_at=approved_at,
             contribution_id=association.contribution_id,
         )
 
 
-__all__ = [
-    "ExpenseCateringPostCommitExecutor",
-]
+__all__ = ["ExpenseCateringPostCommitExecutor"]

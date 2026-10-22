@@ -31,20 +31,17 @@ class CateringRevenueForm(FlaskForm):
         ],
     )
 
-    source_type = StringField(
+    source_type = SelectField(
         "Source Type",
-        validators=[
-            DataRequired(),
-            Length(max=50),
+        choices=[
+            ("CATERING_QUOTATION", "Accepted Catering Quotation"),
         ],
+        validators=[DataRequired()],
     )
 
-    source_reference = StringField(
+    source_reference = SelectField(
         "Source Reference",
-        validators=[
-            DataRequired(),
-            Length(max=100),
-        ],
+        validators=[DataRequired()],
     )
 
     customer_id = SelectField(

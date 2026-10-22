@@ -60,8 +60,8 @@ def service(
 def revenue():
     return CateringRevenue(
         revenue_reference="REV-001",
-        source_type="EVENT",
-        source_reference="EVT-001",
+        source_type="CATERING_QUOTATION",
+        source_reference="12",
         customer_id=3,
         event_id=7,
         amount=Decimal("250.00"),
@@ -88,6 +88,7 @@ def accepted_quotation(quotation_repository):
     quotation.event_id = 7
     quotation.customer_id = 3
     quotation.total_amount = Decimal("250.00")
+    quotation.status = "ACCEPTED"
     quotation_repository.get_accepted_by_event_id.return_value = quotation
     return quotation
 
@@ -103,6 +104,8 @@ def test_create_authorizes_and_persists(
     revenue,
     authorization_adapter,
     repository,
+    delivered_event,
+    accepted_quotation,
 ):
     service.create(revenue, subject="user")
 
@@ -111,6 +114,105 @@ def test_create_authorizes_and_persists(
         "CATERING.CATERING_REVENUE.CREATE",
     )
     repository.add.assert_called_once_with(revenue)
+
+
+@pytest.mark.parametrize(
+    ("source_type", "source_reference", "event_status", "quotation_customer_id"),
+    [
+        ("EVENT", "12", "DELIVERED", 3),
+        ("CATERING_QUOTATION", "999", "DELIVERED", 3),
+        ("CATERING_QUOTATION", "12", "IN_PROGRESS", 3),
+        ("CATERING_QUOTATION", "12", "DELIVERED", 99),
+    ],
+)
+def test_create_rejects_invalid_source_relationships(
+    service,
+    revenue,
+    repository,
+    delivered_event,
+    accepted_quotation,
+    source_type,
+    source_reference,
+    event_status,
+    quotation_customer_id,
+):
+    revenue.source_type = source_type
+    revenue.source_reference = source_reference
+    delivered_event.status = event_status
+    accepted_quotation.customer_id = quotation_customer_id
+
+    with pytest.raises(EntityValidationException):
+        service.create(revenue, subject="user")
+
+    repository.add.assert_not_called()
+
+
+def test_create_rejects_missing_accepted_quotation(
+    service,
+    revenue,
+    repository,
+    delivered_event,
+    quotation_repository,
+):
+    quotation_repository.get_accepted_by_event_id.return_value = None
+
+    with pytest.raises(EntityValidationException):
+        service.create(revenue, subject="user")
+
+    repository.add.assert_not_called()
+
+
+def test_create_rejects_multiple_accepted_quotations(
+    service,
+    revenue,
+    repository,
+    delivered_event,
+    quotation_repository,
+):
+    quotation_repository.get_accepted_by_event_id.side_effect = ValueError(
+        "Multiple ACCEPTED quotations exist for the same event."
+    )
+
+    with pytest.raises(
+        EntityValidationException,
+        match="multiple accepted quotations",
+    ):
+        service.create(revenue, subject="user")
+
+    repository.add.assert_not_called()
+
+
+def test_update_rejects_invalid_source_relationships(
+    service,
+    revenue,
+    repository,
+    delivered_event,
+    accepted_quotation,
+):
+    revenue.id = 1
+    revenue.source_reference = "999"
+
+    persisted_revenue = CateringRevenue(
+        id=1,
+        revenue_reference="REV-001",
+        source_type="CATERING_QUOTATION",
+        source_reference="12",
+        customer_id=3,
+        event_id=7,
+        amount=Decimal("250.00"),
+        currency="USD",
+        revenue_date=date(2026, 10, 1),
+        status=CateringRevenueWorkflow.DRAFT,
+    )
+    repository.get_by_id.return_value = persisted_revenue
+
+    with pytest.raises(
+        EntityValidationException,
+        match="must identify the accepted",
+    ):
+        service.update(revenue, subject="user")
+
+    repository.update.assert_not_called()
 
 
 def test_create_fails_closed_without_authorization_adapter(revenue):

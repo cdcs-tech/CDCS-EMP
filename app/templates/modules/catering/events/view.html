@@ -216,6 +216,7 @@
                             <th scope="col">Expense Date</th>
                             <th scope="col">Association Status</th>
                             <th scope="col">Consumed At</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -258,6 +259,24 @@
                                 {{ row.association.consumed_at }}
                                 {% else %}
                                 —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if can_create_expense_cost_association
+                                and row.expense
+                                and row.association.status == "ELIGIBLE" %}
+                                <form method="POST" action="{{ url_for(
+            'catering.retry_event_expense_cost_association',
+            event_id=catering_event.id,
+            association_id=row.association.id
+        ) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        Retry Delivery
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                         </tr>

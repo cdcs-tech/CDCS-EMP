@@ -11,7 +11,9 @@ subtitle="Update the Catering revenue business record."
 {% include "components/page_header.html" %}
 {% endwith %}
 
-<form method="POST">
+<form method="POST" id="catering-revenue-form"
+    data-quotation-options-url="{{ url_for('catering.get_revenue_accepted_quotation_options') }}"
+    data-existing-source-reference="{{ form.source_reference.data or '' }}">
     {{ form.hidden_tag() }}
 
     <div class="mb-3">
@@ -24,7 +26,7 @@ subtitle="Update the Catering revenue business record."
 
     <div class="mb-3">
         {{ form.source_type.label(class="form-label") }}
-        {{ form.source_type(class="form-control") }}
+        {{ form.source_type(class="form-select") }}
         {% for error in form.source_type.errors %}
         <div class="text-danger small">{{ error }}</div>
         {% endfor %}
@@ -32,7 +34,7 @@ subtitle="Update the Catering revenue business record."
 
     <div class="mb-3">
         {{ form.source_reference.label(class="form-label") }}
-        {{ form.source_reference(class="form-control") }}
+        {{ form.source_reference(class="form-select") }}
         {% for error in form.source_reference.errors %}
         <div class="text-danger small">{{ error }}</div>
         {% endfor %}
@@ -104,5 +106,160 @@ subtitle="Update the Catering revenue business record."
     </div>
 
 </form>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("catering-revenue-form");
+        const customerSelect = document.getElementById("customer_id");
+        const eventSelect = document.getElementById("event_id");
+        const sourceReferenceSelect = document.getElementById("source_reference");
+
+        if (!form || !customerSelect || !eventSelect || !sourceReferenceSelect) {
+            return;
+        }
+
+        const endpointUrl = form.dataset.quotationOptionsUrl;
+        const existingSourceReference = form.dataset.existingSourceReference;
+        let requestSequence = 0;
+
+        function setSourcePlaceholder(label) {
+            sourceReferenceSelect.replaceChildren();
+
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = label;
+            sourceReferenceSelect.appendChild(option);
+        }
+
+        async function refreshQuotationOptions(preserveExisting) {
+            const sequence = ++requestSequence;
+            const customerId = customerSelect.value;
+            const eventId = eventSelect.value;
+
+            setSourcePlaceholder("Loading accepted quotations…");
+            sourceReferenceSelect.disabled = true;
+
+            if (!customerId || !eventId) {
+                if (preserveExisting && existingSourceReference) {
+                    const option = document.createElement("option");
+                    option.value = existingSourceReference;
+                    option.textContent =
+                        "Existing source — " + existingSourceReference +
+                        " (must be replaced if invalid)";
+                    option.selected = true;
+                    sourceReferenceSelect.appendChild(option);
+                } else {
+                    setSourcePlaceholder(
+                        "Select a customer and eligible event first"
+                    );
+                }
+
+                sourceReferenceSelect.disabled = false;
+                return;
+            }
+
+            const url = new URL(endpointUrl, window.location.origin);
+            url.searchParams.set("customer_id", customerId);
+            url.searchParams.set("event_id", eventId);
+
+            try {
+                const response = await fetch(url.toString(), {
+                    headers: { "Accept": "application/json" },
+                    credentials: "same-origin"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Quotation lookup failed");
+                }
+
+                const result = await response.json();
+
+                if (sequence !== requestSequence) {
+                    return;
+                }
+
+                const options = Array.isArray(result.options)
+                    ? result.options
+                    : [];
+
+                const existingIsValid = options.some(
+                    item => String(item.value) === existingSourceReference
+                );
+
+                if (
+                    preserveExisting &&
+                    existingSourceReference &&
+                    !existingIsValid
+                ) {
+                    const legacyOption = document.createElement("option");
+                    legacyOption.value = existingSourceReference;
+                    legacyOption.textContent =
+                        "Existing source — " + existingSourceReference +
+                        " (must be replaced if invalid)";
+                    legacyOption.selected = true;
+                    sourceReferenceSelect.appendChild(legacyOption);
+                }
+
+                if (options.length === 0) {
+                    if (!preserveExisting || !existingSourceReference) {
+                        setSourcePlaceholder(
+                            "No eligible accepted quotation available"
+                        );
+                    }
+                    return;
+                }
+
+                const placeholder = document.createElement("option");
+                placeholder.value = "";
+                placeholder.textContent = "Select an accepted quotation";
+                sourceReferenceSelect.appendChild(placeholder);
+
+                options.forEach(function (item) {
+                    const option = document.createElement("option");
+                    option.value = item.value;
+                    option.textContent = item.label;
+                    sourceReferenceSelect.appendChild(option);
+                });
+
+                if (preserveExisting && existingSourceReference) {
+                    sourceReferenceSelect.value = existingSourceReference;
+                } else {
+                    sourceReferenceSelect.value = "";
+                }
+            } catch (error) {
+                if (sequence !== requestSequence) {
+                    return;
+                }
+
+                setSourcePlaceholder(
+                    "Unable to load quotations; change selection to retry"
+                );
+
+                if (preserveExisting && existingSourceReference) {
+                    const option = document.createElement("option");
+                    option.value = existingSourceReference;
+                    option.textContent =
+                        "Existing source — " + existingSourceReference;
+                    option.selected = true;
+                    sourceReferenceSelect.appendChild(option);
+                }
+            } finally {
+                if (sequence === requestSequence) {
+                    sourceReferenceSelect.disabled = false;
+                }
+            }
+        }
+
+        customerSelect.addEventListener("change", function () {
+            refreshQuotationOptions(false);
+        });
+
+        eventSelect.addEventListener("change", function () {
+            refreshQuotationOptions(false);
+        });
+
+        refreshQuotationOptions(true);
+    });
+</script>
 
 {% endblock %}

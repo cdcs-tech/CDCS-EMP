@@ -65,6 +65,18 @@ class CateringRevenue(
         nullable=True,
     )
 
+    customer = db.relationship(
+        "Customer",
+        foreign_keys=[customer_id],
+        lazy="select",
+    )
+
+    event = db.relationship(
+        "CateringEvent",
+        foreign_keys=[event_id],
+        lazy="select",
+    )
+
     amount = db.Column(
         db.Numeric(precision=18, scale=2),
         nullable=False,
