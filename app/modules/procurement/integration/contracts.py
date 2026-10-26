@@ -52,6 +52,12 @@ class PurchaseOrderReceiptRequest:
     received_at: datetime
     receiving_reference: str
     idempotency_key: str
+    # Optional valuation evidence from the persisted approved PO line.
+    # Missing evidence is permitted for a physical receipt but cannot
+    # qualify that receipt as valued.
+    valuation_unit_price: Decimal | None = None
+    valuation_currency: str | None = None
+    valuation_price_basis: str | None = None
     notes: str | None = None
 
     def __post_init__(self) -> None:
@@ -83,6 +89,34 @@ class PurchaseOrderReceiptRequest:
 
         if self.notes is not None and not isinstance(self.notes, str):
             raise TypeError("notes must be a string or None.")
+
+        valuation_values = (
+            self.valuation_unit_price,
+            self.valuation_currency,
+            self.valuation_price_basis,
+        )
+
+        if all(value is None for value in valuation_values):
+            return
+
+        if any(value is None for value in valuation_values):
+            raise ValueError(
+                "Receipt valuation evidence must be complete or entirely absent."
+            )
+
+        if not isinstance(self.valuation_unit_price, Decimal):
+            raise TypeError("valuation_unit_price must be a Decimal or None.")
+
+        if self.valuation_unit_price < Decimal("0"):
+            raise ValueError("valuation_unit_price must not be negative.")
+
+        if self.valuation_currency not in {"USD", "SSP"}:
+            raise ValueError("valuation_currency must be USD or SSP.")
+
+        if self.valuation_price_basis != "PO_LINE_UNIT_PRICE":
+            raise ValueError(
+                "valuation_price_basis must be PO_LINE_UNIT_PRICE."
+            )
 
 from dataclasses import dataclass
 from decimal import Decimal

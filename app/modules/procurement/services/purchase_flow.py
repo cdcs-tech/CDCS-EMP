@@ -190,6 +190,7 @@ class ProcurementPurchaseFlowService:
         purchase_request,
         *,
         reference: str,
+        currency: str,
         supplier_id,
         order_date,
         expected_delivery_date=None,
@@ -211,6 +212,7 @@ class ProcurementPurchaseFlowService:
 
         purchase_order = PurchaseOrder(
             reference=reference,
+            currency=currency,
             supplier_id=supplier_id,
             order_date=order_date,
             expected_delivery_date=expected_delivery_date,

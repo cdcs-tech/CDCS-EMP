@@ -71,6 +71,52 @@ def test_create_purchase_order_line_requires_permission(
     assert response.status_code == 403
 
 
+def test_create_purchase_order_line_rejects_non_draft_order(
+    monkeypatch,
+    session,
+    admin_user,
+    authenticated_client,
+):
+    _grant_permission(
+        session,
+        admin_user,
+        "procurement.purchase_order_line.create",
+    )
+
+    class FakePurchaseOrderService:
+        def get(self, purchase_order_id):
+            assert purchase_order_id == 1
+            return SimpleNamespace(
+                id=1,
+                status="APPROVED",
+            )
+
+    class FakePurchaseOrderLineService:
+        def create(self, **kwargs):
+            raise AssertionError(
+                "A line must not be created for a non-DRAFT Purchase Order."
+            )
+
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderService",
+        FakePurchaseOrderService,
+    )
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderLineService",
+        FakePurchaseOrderLineService,
+    )
+
+    response = authenticated_client.get(
+        "/procurement/purchase-orders/1/lines/create",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/procurement/purchase-orders/1"
+    )
+
+
 def test_create_purchase_order_line_renders_form(
     authenticated_client,
     admin_user,
@@ -86,6 +132,7 @@ def test_create_purchase_order_line_renders_form(
     purchase_order = SimpleNamespace(
         id=1,
         reference="PO-001",
+        status="DRAFT",
     )
 
     class FakePurchaseOrderService:
@@ -152,6 +199,7 @@ def test_create_purchase_order_line_creates_line(
     purchase_order = SimpleNamespace(
         id=1,
         reference="PO-001",
+        status="DRAFT",
     )
 
     created = {}
@@ -301,6 +349,59 @@ def test_edit_purchase_order_line_rejects_wrong_parent(
     assert response.status_code == 404
 
 
+def test_edit_purchase_order_line_rejects_non_draft_order(
+    monkeypatch,
+    session,
+    admin_user,
+    authenticated_client,
+):
+    _grant_permission(
+        session,
+        admin_user,
+        "procurement.purchase_order_line.update",
+    )
+
+    class FakePurchaseOrderLineService:
+        def get(self, line_id):
+            assert line_id == 2
+            return SimpleNamespace(
+                id=2,
+                purchase_order_id=1,
+            )
+
+        def update(self, line_id, **kwargs):
+            raise AssertionError(
+                "A line must not be updated for a non-DRAFT Purchase Order."
+            )
+
+    class FakePurchaseOrderService:
+        def get(self, purchase_order_id):
+            assert purchase_order_id == 1
+            return SimpleNamespace(
+                id=1,
+                status="APPROVED",
+            )
+
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderLineService",
+        FakePurchaseOrderLineService,
+    )
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderService",
+        FakePurchaseOrderService,
+    )
+
+    response = authenticated_client.get(
+        "/procurement/purchase-orders/1/lines/2/edit",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/procurement/purchase-orders/1"
+    )
+
+
 def test_edit_purchase_order_line_updates_line(
     authenticated_client,
     admin_user,
@@ -316,6 +417,7 @@ def test_edit_purchase_order_line_updates_line(
     purchase_order = SimpleNamespace(
         id=1,
         reference="PO-001",
+        status="DRAFT",
     )
 
     line = SimpleNamespace(
@@ -487,6 +589,59 @@ def test_delete_purchase_order_line_rejects_wrong_parent(
     assert response.status_code == 404
 
 
+def test_delete_purchase_order_line_rejects_non_draft_order(
+    monkeypatch,
+    session,
+    admin_user,
+    authenticated_client,
+):
+    _grant_permission(
+        session,
+        admin_user,
+        "procurement.purchase_order_line.delete",
+    )
+
+    class FakePurchaseOrderLineService:
+        def get(self, line_id):
+            assert line_id == 2
+            return SimpleNamespace(
+                id=2,
+                purchase_order_id=1,
+            )
+
+        def delete(self, line_id):
+            raise AssertionError(
+                "A line must not be deleted from a non-DRAFT Purchase Order."
+            )
+
+    class FakePurchaseOrderService:
+        def get(self, purchase_order_id):
+            assert purchase_order_id == 1
+            return SimpleNamespace(
+                id=1,
+                status="APPROVED",
+            )
+
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderLineService",
+        FakePurchaseOrderLineService,
+    )
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderService",
+        FakePurchaseOrderService,
+    )
+
+    response = authenticated_client.post(
+        "/procurement/purchase-orders/1/lines/2/delete",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/procurement/purchase-orders/1"
+    )
+
+
 def test_delete_purchase_order_line_deletes_line(
     authenticated_client,
     admin_user,
@@ -502,6 +657,7 @@ def test_delete_purchase_order_line_deletes_line(
     purchase_order = SimpleNamespace(
         id=1,
         reference="PO-001",
+        status="DRAFT",
     )
 
     line = SimpleNamespace(

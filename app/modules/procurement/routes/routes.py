@@ -1468,6 +1468,7 @@ def create_purchase_order():
         purchase_order = service.create(
             PurchaseOrder(
                 reference=form.reference.data,
+                currency=form.currency.data,
                 supplier_id=form.supplier_id.data,
                 order_date=form.order_date.data,
                 expected_delivery_date=(
@@ -1898,6 +1899,19 @@ def create_purchase_order_line(
     if purchase_order is None:
         abort(404)
 
+    if purchase_order.status != "DRAFT":
+        flash(
+            "Purchase Order lines can only be changed while "
+            "the Purchase Order is in DRAFT status.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "procurement.view_purchase_order",
+                purchase_order_id=purchase_order_id,
+            )
+        )
+
     form = PurchaseOrderLineForm()
 
     eligible_inventory_codes = (
@@ -1979,6 +1993,19 @@ def edit_purchase_order_line(
     ):
         abort(404)
 
+    if purchase_order.status != "DRAFT":
+        flash(
+            "Purchase Order lines can only be changed while "
+            "the Purchase Order is in DRAFT status.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "procurement.view_purchase_order",
+                purchase_order_id=purchase_order_id,
+            )
+        )
+
     form = PurchaseOrderLineForm(obj=line)
 
     eligible_inventory_codes = (
@@ -2058,6 +2085,19 @@ def delete_purchase_order_line(
     ):
         abort(404)
 
+    if purchase_order.status != "DRAFT":
+        flash(
+            "Purchase Order lines can only be changed while "
+            "the Purchase Order is in DRAFT status.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "procurement.view_purchase_order",
+                purchase_order_id=purchase_order_id,
+            )
+        )
+
     service.delete(line_id)
 
     flash(
@@ -2094,6 +2134,21 @@ def edit_purchase_order(
         purchase_order_id
     )
 
+    if purchase_order is None:
+        abort(404)
+
+    if purchase_order.status != "DRAFT":
+        flash(
+            "Only DRAFT Purchase Orders can be edited.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "procurement.view_purchase_order",
+                purchase_order_id=purchase_order_id,
+            )
+        )
+
     form = PurchaseOrderForm(
         obj=purchase_order
     )
@@ -2104,9 +2159,23 @@ def edit_purchase_order(
     )
 
     if form.validate_on_submit():
+        if form.status.data != purchase_order.status:
+            flash(
+                "Purchase Order status must be changed "
+                "through its workflow actions.",
+                "warning",
+            )
+            return redirect(
+                url_for(
+                    "procurement.view_purchase_order",
+                    purchase_order_id=purchase_order_id,
+                )
+            )
+
         purchase_order.reference = (
             form.reference.data
         )
+        purchase_order.currency = form.currency.data
         purchase_order.supplier_id = (
             form.supplier_id.data
         )
@@ -2115,9 +2184,6 @@ def edit_purchase_order(
         )
         purchase_order.expected_delivery_date = (
             form.expected_delivery_date.data
-        )
-        purchase_order.status = (
-            form.status.data
         )
         purchase_order.purchase_request_id = (
             form.purchase_request_id.data
@@ -2171,6 +2237,25 @@ def delete_purchase_order(
     """
 
     service = PurchaseOrderService()
+
+    purchase_order = service.get(
+        purchase_order_id
+    )
+
+    if purchase_order is None:
+        abort(404)
+
+    if purchase_order.status != "DRAFT":
+        flash(
+            "Only DRAFT Purchase Orders can be deleted.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "procurement.view_purchase_order",
+                purchase_order_id=purchase_order_id,
+            )
+        )
 
     service.delete(
         purchase_order_id

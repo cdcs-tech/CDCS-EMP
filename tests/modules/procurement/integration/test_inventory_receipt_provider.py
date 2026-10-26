@@ -116,6 +116,9 @@ class FakeMovementService:
 def build_receipt(
     *,
     quantity=Decimal("5.000"),
+    valuation_unit_price=None,
+    valuation_currency=None,
+    valuation_price_basis=None,
 ):
     return PurchaseOrderReceiptRequest(
         purchase_order_reference="PO-001",
@@ -134,6 +137,9 @@ def build_receipt(
         ),
         receiving_reference="GRN-001",
         idempotency_key="RECEIPT-001",
+        valuation_unit_price=valuation_unit_price,
+        valuation_currency=valuation_currency,
+        valuation_price_basis=valuation_price_basis,
         notes="Initial receipt",
     )
 
@@ -381,10 +387,44 @@ def test_provider_constructs_receipt_stock_movement():
         == "Purchase Order receipt PO-001 / POL-001"
     )
     assert movement.status == "DRAFT"
+    assert movement.valuation_status == "UNVALUED"
+    assert movement.purchase_order_reference == "PO-001"
+    assert movement.purchase_order_line_reference == "POL-001"
+    assert movement.unit == "bottle"
+    assert movement.valuation_unit_price is None
+    assert movement.valuation_currency is None
+    assert movement.valuation_price_basis is None
     assert (
         movement.occurred_at
         == request.payload.received_at
     )
+
+
+def test_provider_persists_valid_receipt_valuation_snapshot():
+    movement_service = FakeMovementService()
+    provider = build_provider(movement_service=movement_service)
+
+    request = build_request(
+        receipt=build_receipt(
+            valuation_unit_price=Decimal("12.50"),
+            valuation_currency="USD",
+            valuation_price_basis="PO_LINE_UNIT_PRICE",
+        )
+    )
+
+    response = provider.execute(request)
+
+    assert response.success is True
+
+    movement = movement_service.received_movement
+    assert isinstance(movement, StockMovement)
+    assert movement.valuation_status == "VALUED"
+    assert movement.purchase_order_reference == "PO-001"
+    assert movement.purchase_order_line_reference == "POL-001"
+    assert movement.unit == "bottle"
+    assert movement.valuation_unit_price == Decimal("12.50")
+    assert movement.valuation_currency == "USD"
+    assert movement.valuation_price_basis == "PO_LINE_UNIT_PRICE"
 
 
 def test_provider_delegates_posting_to_movement_service():

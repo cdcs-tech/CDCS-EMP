@@ -26,6 +26,25 @@ from app.modules.procurement.handlers.purchase_order_receive import (
 class FakePurchaseOrder:
     id: int
     status: str
+    reference: str = "PO-2026-001"
+    currency: str | None = None
+
+
+@dataclass
+class FakePurchaseOrderLine:
+    guid: str = "L1"
+    purchase_order_id: int = 10
+    stock_item_reference: str = "STOCK-001"
+    unit: str = "kg"
+    unit_price: Decimal | None = None
+
+
+class FakePurchaseOrderLineService:
+    def __init__(self, line=None):
+        self.line = line or FakePurchaseOrderLine()
+
+    def get_by_guid(self, guid):
+        return self.line if guid == self.line.guid else None
 
 
 class FakePurchaseOrderService:
@@ -76,7 +95,7 @@ def build_command(
     return ReceivePurchaseOrderCommand(
         purchase_order_id=10,
         purchase_order_reference="PO-2026-001",
-        purchase_order_line_reference="PO-2026-001-L1",
+        purchase_order_line_reference="PO-LINE-L1",
         stock_item_reference="STOCK-001",
         inventory_location_reference="MAIN",
         quantity_received=quantity_received,
@@ -111,6 +130,7 @@ def build_handler(
             purchase_order,
         ),
         integration_lifecycle=integration_lifecycle,
+        purchase_order_line_service=FakePurchaseOrderLineService(),
     )
 
     return handler, integration_lifecycle, purchase_order

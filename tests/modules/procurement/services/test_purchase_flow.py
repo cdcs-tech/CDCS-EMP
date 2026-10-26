@@ -176,6 +176,7 @@ def test_create_purchase_order_from_request_creates_draft_parent_document(
     result = service.create_purchase_order_from_request(
         purchase_request,
         reference="PO-CATERING-001",
+        currency="USD",
         supplier_id=supplier.id,
         order_date=date(2026, 10, 2),
         expected_delivery_date=date(2026, 10, 4),
@@ -222,6 +223,7 @@ def test_create_purchase_order_from_request_requires_authorization(
         service.create_purchase_order_from_request(
             purchase_request,
             reference="PO-CATERING-001",
+            currency="USD",
             supplier_id=303,
             order_date=date(2026, 10, 2),
             subject="test-user",
@@ -250,6 +252,7 @@ def test_create_purchase_order_from_request_requires_existing_supplier(
         service.create_purchase_order_from_request(
             purchase_request,
             reference="PO-CATERING-001",
+            currency="USD",
             supplier_id=999,
             order_date=date(2026, 10, 2),
             subject="test-user",
@@ -299,6 +302,7 @@ def test_purchase_order_composition_does_not_execute_workflow_transition(
     service.create_purchase_order_from_request(
         purchase_request,
         reference="PO-CATERING-001",
+        currency="USD",
         supplier_id=supplier.id,
         order_date=date(2026, 10, 2),
         subject="test-user",

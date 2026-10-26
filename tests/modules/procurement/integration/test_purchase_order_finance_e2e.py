@@ -314,6 +314,7 @@ def test_purchase_order_approval_to_finance_commitment_e2e(
         supplier_id=supplier.id,
         reference="PO-E2E-FIN-001",
         order_date=date.today(),
+        currency="USD",
         purchase_request_id=(
             purchase_request.id
         ),

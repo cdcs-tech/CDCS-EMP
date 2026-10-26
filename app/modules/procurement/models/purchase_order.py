@@ -44,6 +44,14 @@ class PurchaseOrder(
         unique=True,
     )
 
+    # Required for new Purchase Orders.
+    # Nullable in the database temporarily to preserve legacy rows
+    # whose original currency has not been established.
+    currency = db.Column(
+        db.String(3),
+        nullable=True,
+    )
+
     order_date = db.Column(
         db.Date,
         nullable=False,

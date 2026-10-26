@@ -563,7 +563,7 @@ class ProcurementFinanceCommitmentService:
                 tzinfo=timezone.utc,
             ),
             approved_at=approved_at,
-            currency=self.currency,
+            currency=purchase_order.currency,
             total_procurement_value=total_value,
             purchase_order_lines=lines,
             idempotency_key=idempotency_key,
@@ -623,6 +623,14 @@ class ProcurementFinanceCommitmentService:
         ):
             raise ValueError(
                 "Purchase Order reference must be non-empty."
+            )
+
+        if (
+            not isinstance(purchase_order.currency, str)
+            or purchase_order.currency not in {"USD", "SSP"}
+        ):
+            raise ValueError(
+                "Purchase Order currency must be USD or SSP."
             )
 
     @staticmethod

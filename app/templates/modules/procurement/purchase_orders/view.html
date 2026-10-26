@@ -70,8 +70,8 @@
                         <th>Quantity</th>
                         <th>Unit</th>
                         <th>Receiving Status</th>
-                        <th>Unit Price</th>
-                        <th>Total Amount</th>
+                        <th>Unit Price ({{ purchase_order.currency or "Currency not set" }})</th>
+                        <th>Total Amount ({{ purchase_order.currency or "Currency not set" }})</th>
                         <th>Notes</th>
                         <th>Actions</th>
                     </tr>

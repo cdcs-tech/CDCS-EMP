@@ -195,6 +195,7 @@ def build_movement(
         reference=reference,
         reason="Purchase Order receipt",
         status="DRAFT",
+        valuation_status="UNVALUED",
         occurred_at=datetime.now(
             timezone.utc
         ),
@@ -224,6 +225,9 @@ def test_same_idempotency_key_returns_original_movement_without_new_stock_effect
         (1, 1)
     ].quantity
 
+    assert first_posted.status == "POSTED"
+    assert first_posted.valuation_status == "UNVALUED"
+
     second = build_movement(
         quantity="5",
         reference="GRN-002",
@@ -236,6 +240,7 @@ def test_same_idempotency_key_returns_original_movement_without_new_stock_effect
     )
 
     assert second_posted.id == first_posted.id
+    assert second_posted.valuation_status == "UNVALUED"
 
     assert (
         balance_repository.balances[

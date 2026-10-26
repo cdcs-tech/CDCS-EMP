@@ -29,6 +29,7 @@ def test_purchase_order_form_accepts_valid_data(app):
             app,
             {
                 "reference": "PO-001",
+                "currency": "USD",
                 "supplier_id": 1,
                 "order_date": date(2026, 9, 18),
                 "expected_delivery_date": date(2026, 9, 25),
@@ -97,6 +98,7 @@ def test_purchase_order_form_allows_blank_expected_delivery_date(app):
             app,
             {
                 "reference": "PO-001",
+                "currency": "USD",
                 "supplier_id": 1,
                 "order_date": date(2026, 9, 18),
                 "expected_delivery_date": None,

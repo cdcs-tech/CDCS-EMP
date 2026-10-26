@@ -35,6 +35,17 @@ class PurchaseOrderForm(FlaskForm):
         ],
     )
 
+    currency = SelectField(
+        "Currency",
+        choices=[
+            ("USD", "USD — US Dollar"),
+            ("SSP", "SSP — South Sudanese Pound"),
+        ],
+        validators=[
+            DataRequired(),
+        ],
+    )
+
     supplier_id = SelectField(
         "Supplier",
         coerce=int,

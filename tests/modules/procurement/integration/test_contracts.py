@@ -145,6 +145,94 @@ def test_receipt_contract_supports_partial_receipts():
     assert request.quantity_received == Decimal("2.000")
 
 
+def test_receipt_contract_allows_missing_valuation_evidence():
+    request = build_receipt_request()
+
+    assert request.valuation_unit_price is None
+    assert request.valuation_currency is None
+    assert request.valuation_price_basis is None
+
+
+@pytest.mark.parametrize(
+    ("unit_price", "currency", "price_basis"),
+    [
+        (Decimal("125.00"), "USD", "PO_LINE_UNIT_PRICE"),
+        (Decimal("0.00"), "SSP", "PO_LINE_UNIT_PRICE"),
+    ],
+)
+def test_receipt_contract_accepts_complete_valuation_evidence(
+    unit_price,
+    currency,
+    price_basis,
+):
+    request = build_receipt_request(
+        valuation_unit_price=unit_price,
+        valuation_currency=currency,
+        valuation_price_basis=price_basis,
+    )
+
+    assert request.valuation_unit_price == unit_price
+    assert request.valuation_currency == currency
+    assert request.valuation_price_basis == price_basis
+
+
+@pytest.mark.parametrize(
+    ("overrides", "error_type"),
+    [
+        (
+            {"valuation_unit_price": Decimal("10.00")},
+            ValueError,
+        ),
+        (
+            {"valuation_currency": "USD"},
+            ValueError,
+        ),
+        (
+            {"valuation_price_basis": "PO_LINE_UNIT_PRICE"},
+            ValueError,
+        ),
+        (
+            {
+                "valuation_unit_price": Decimal("-1.00"),
+                "valuation_currency": "USD",
+                "valuation_price_basis": "PO_LINE_UNIT_PRICE",
+            },
+            ValueError,
+        ),
+        (
+            {
+                "valuation_unit_price": 10.00,
+                "valuation_currency": "USD",
+                "valuation_price_basis": "PO_LINE_UNIT_PRICE",
+            },
+            TypeError,
+        ),
+        (
+            {
+                "valuation_unit_price": Decimal("10.00"),
+                "valuation_currency": "EUR",
+                "valuation_price_basis": "PO_LINE_UNIT_PRICE",
+            },
+            ValueError,
+        ),
+        (
+            {
+                "valuation_unit_price": Decimal("10.00"),
+                "valuation_currency": "USD",
+                "valuation_price_basis": "UNKNOWN",
+            },
+            ValueError,
+        ),
+    ],
+)
+def test_receipt_contract_rejects_invalid_valuation_evidence(
+    overrides,
+    error_type,
+):
+    with pytest.raises(error_type):
+        build_receipt_request(**overrides)
+
+
 # ---------------------------------------------------------------------------
 # Finance contract tests
 # ---------------------------------------------------------------------------

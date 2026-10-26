@@ -228,6 +228,7 @@ def test_purchase_order_create_submits_valid_order(
 
     valid_data = {
         "reference": "PO-001",
+        "currency": "USD",
         "supplier_id": "1",
         "order_date": "2026-09-15",
         "expected_delivery_date": "2026-09-30",
@@ -249,6 +250,7 @@ def test_purchase_order_create_submits_valid_order(
 
     entity = created[0]
     assert entity.reference == "PO-001"
+    assert entity.currency == "USD"
     assert entity.supplier_id == 1
     assert entity.order_date == date(2026, 9, 15)
     assert entity.expected_delivery_date == date(2026, 9, 30)
@@ -259,6 +261,7 @@ def test_purchase_order_create_submits_valid_order(
     invalid_data = {
         **valid_data,
         "reference": "PO-INVALID-001",
+        "currency": "USD",
         "purchase_request_id": "8",
     }
 
@@ -357,6 +360,160 @@ def test_purchase_order_edit_requires_permission(
     assert response.status_code == 403
 
 
+def test_purchase_order_edit_rejects_non_draft_order(
+    monkeypatch,
+    session,
+    admin_user,
+    authenticated_client,
+):
+    _grant_permission(
+        session,
+        admin_user,
+        "procurement.purchase_order.update",
+    )
+
+    purchase_order = SimpleNamespace(
+        id=1,
+        status="APPROVED",
+    )
+
+    class FakePurchaseOrderService:
+        def get(self, purchase_order_id):
+            assert purchase_order_id == 1
+            return purchase_order
+
+        def update(self, entity):
+            raise AssertionError(
+                "A non-DRAFT Purchase Order must not be updated."
+            )
+
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderService",
+        FakePurchaseOrderService,
+    )
+
+    response = authenticated_client.get(
+        "/procurement/purchase-orders/1/edit",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/procurement/purchase-orders/1"
+    )
+
+
+def test_purchase_order_edit_rejects_direct_status_change(
+    monkeypatch,
+    session,
+    admin_user,
+    authenticated_client,
+):
+    _grant_permission(
+        session,
+        admin_user,
+        "procurement.purchase_order.update",
+    )
+
+    purchase_order = PurchaseOrder(
+        id=1,
+        reference="PO-EDIT-001",
+        supplier_id=3,
+        order_date=date(2026, 9, 15),
+        expected_delivery_date=date(2026, 9, 30),
+        status="DRAFT",
+        purchase_request_id=7,
+    )
+
+    class FakePurchaseOrderService:
+        def get(self, purchase_order_id):
+            assert purchase_order_id == 1
+            return purchase_order
+
+        def update(self, entity):
+            raise AssertionError(
+                "Generic editing must not change Purchase Order status."
+            )
+
+    class FakeSupplier:
+        def __init__(self, supplier_id, name):
+            self.id = supplier_id
+            self.name = name
+
+    class FakeSupplierService:
+        def paginate(self, options):
+            class Result:
+                items = [
+                    FakeSupplier(3, "Supplier Three"),
+                    FakeSupplier(4, "Supplier Four"),
+                ]
+
+            return Result()
+
+    class FakePurchaseRequest:
+        def __init__(self, purchase_request_id, reference, status):
+            self.id = purchase_request_id
+            self.reference = reference
+            self.status = status
+
+    class FakePurchaseRequestService:
+        def paginate(self, options):
+            assert options.filters == {"status": "APPROVED"}
+
+            class Result:
+                items = [
+                    FakePurchaseRequest(
+                        8,
+                        "PReq-008",
+                        "APPROVED",
+                    ),
+                ]
+
+            return Result()
+
+        def get(self, purchase_request_id):
+            if purchase_request_id == 7:
+                return FakePurchaseRequest(
+                    7,
+                    "PReq-007",
+                    "REJECTED",
+                )
+            return None
+
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderService",
+        FakePurchaseOrderService,
+    )
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.SupplierService",
+        FakeSupplierService,
+    )
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseRequestService",
+        FakePurchaseRequestService,
+    )
+
+    response = authenticated_client.post(
+        "/procurement/purchase-orders/1/edit",
+        data={
+            "reference": "PO-EDIT-002",
+            "currency": "USD",
+            "supplier_id": "4",
+            "order_date": "2026-09-20",
+            "expected_delivery_date": "2026-10-15",
+            "status": "SUBMITTED",
+            "purchase_request_id": "8",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/procurement/purchase-orders/1"
+    )
+    assert purchase_order.status == "DRAFT"
+
+
 def test_purchase_order_edit_submits_updated_order(
     monkeypatch,
     session,
@@ -452,6 +609,7 @@ def test_purchase_order_edit_submits_updated_order(
         "/procurement/purchase-orders/1/edit",
         data={
             "reference": "PO-EDIT-002",
+            "currency": "USD",
             "supplier_id": "4",
             "order_date": "2026-09-20",
             "expected_delivery_date": "2026-10-15",
@@ -486,6 +644,47 @@ def test_purchase_order_delete_requires_permission(
     assert response.status_code == 403
 
 
+def test_purchase_order_delete_rejects_non_draft_order(
+    monkeypatch,
+    session,
+    admin_user,
+    authenticated_client,
+):
+    _grant_permission(
+        session,
+        admin_user,
+        "procurement.purchase_order.delete",
+    )
+
+    class FakePurchaseOrderService:
+        def get(self, purchase_order_id):
+            assert purchase_order_id == 7
+            return SimpleNamespace(
+                id=7,
+                status="APPROVED",
+            )
+
+        def delete(self, purchase_order_id):
+            raise AssertionError(
+                "A non-DRAFT Purchase Order must not be deleted."
+            )
+
+    monkeypatch.setattr(
+        "app.modules.procurement.routes.routes.PurchaseOrderService",
+        FakePurchaseOrderService,
+    )
+
+    response = authenticated_client.post(
+        "/procurement/purchase-orders/7/delete",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/procurement/purchase-orders/7"
+    )
+
+
 def test_purchase_order_delete_submits_delete(
     monkeypatch,
     session,
@@ -501,6 +700,13 @@ def test_purchase_order_delete_submits_delete(
     deleted = {}
 
     class FakePurchaseOrderService:
+        def get(self, purchase_order_id):
+            assert purchase_order_id == 7
+            return SimpleNamespace(
+                id=7,
+                status="DRAFT",
+            )
+
         def delete(self, purchase_order_id):
             deleted["id"] = purchase_order_id
 

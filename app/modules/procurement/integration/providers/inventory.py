@@ -8,6 +8,8 @@ Inventory receipt integration provider.
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from app.core.integration import (
     IntegrationRequest,
     IntegrationResponse,
@@ -85,6 +87,7 @@ class InventoryReceiptIntegrationProvider(
 
     def supports(self, operation: str) -> bool:
         """Return whether this provider supports the operation."""
+
         return operation in {
             INVENTORY_RECEIVE_PURCHASE_ORDER_OPERATION,
             INVENTORY_QUERY_PURCHASE_ORDER_LINE_RECEIPT_STATUS_OPERATION,
@@ -92,10 +95,13 @@ class InventoryReceiptIntegrationProvider(
 
     def validate(self, request: IntegrationRequest) -> None:
         """Validate the enterprise request and operation-specific payload."""
+
         super().validate(request)
 
         if not self.supports(request.operation):
-            raise ValueError("Unsupported Inventory integration operation.")
+            raise ValueError(
+                "Unsupported Inventory integration operation."
+            )
 
         if (
             request.operation
@@ -111,14 +117,19 @@ class InventoryReceiptIntegrationProvider(
                 )
             return
 
-        if not isinstance(request.payload, PurchaseOrderReceiptRequest):
+        if not isinstance(
+            request.payload,
+            PurchaseOrderReceiptRequest,
+        ):
             raise TypeError(
                 "Inventory receipt integration payload must be a "
                 "PurchaseOrderReceiptRequest."
             )
 
         if self.movement_service is None:
-            raise RuntimeError("Inventory movement service is required.")
+            raise RuntimeError(
+                "Inventory movement service is required."
+            )
 
     def execute(
         self,
@@ -141,7 +152,9 @@ class InventoryReceiptIntegrationProvider(
             except Exception:
                 return IntegrationResponse(
                     success=False,
-                    message="Inventory receipt status could not be established.",
+                    message=(
+                        "Inventory receipt status could not be established."
+                    ),
                     error="QUERY_FAILED",
                     request_id=request.request_id,
                 )
@@ -155,7 +168,9 @@ class InventoryReceiptIntegrationProvider(
                 ),
                 data={
                     "success": result.success,
-                    "purchase_order_reference": result.purchase_order_reference,
+                    "purchase_order_reference": (
+                        result.purchase_order_reference
+                    ),
                     "purchase_order_line_reference": (
                         result.purchase_order_line_reference
                     ),
@@ -202,9 +217,7 @@ class InventoryReceiptIntegrationProvider(
 
         stock_item = (
             self.stock_item_repository
-            .get_by_product_id(
-                product.id
-            )
+            .get_by_product_id(product.id)
         )
 
         if stock_item is None:
@@ -236,6 +249,21 @@ class InventoryReceiptIntegrationProvider(
                 request_id=request.request_id,
             )
 
+        # Only complete, valid valuation evidence qualifies a receipt
+        # as valued. Physical receipt remains possible without it.
+        unit_price = receipt.valuation_unit_price
+        currency = receipt.valuation_currency
+        price_basis = receipt.valuation_price_basis
+
+        has_valid_valuation = (
+            isinstance(unit_price, Decimal)
+            and unit_price.is_finite()
+            and unit_price >= Decimal("0")
+            and isinstance(currency, str)
+            and currency in {"USD", "SSP"}
+            and price_basis == "PO_LINE_UNIT_PRICE"
+        )
+
         movement = StockMovement(
             stock_item_id=stock_item.id,
             location_id=location.id,
@@ -248,11 +276,26 @@ class InventoryReceiptIntegrationProvider(
                 f"{receipt.purchase_order_line_reference}"
             ),
             status="DRAFT",
+            valuation_status=(
+                "VALUED" if has_valid_valuation else "UNVALUED"
+            ),
+            purchase_order_reference=(
+                receipt.purchase_order_reference
+            ),
+            purchase_order_line_reference=(
+                receipt.purchase_order_line_reference
+            ),
+            unit=receipt.unit,
+            valuation_unit_price=(
+                unit_price if has_valid_valuation else None
+            ),
+            valuation_currency=(
+                currency if has_valid_valuation else None
+            ),
+            valuation_price_basis=(
+                price_basis if has_valid_valuation else None
+            ),
             occurred_at=receipt.received_at,
-        )
-
-        subject = request.metadata.get(
-            "subject"
         )
 
         try:
@@ -260,7 +303,7 @@ class InventoryReceiptIntegrationProvider(
                 self.movement_service
                 .post_receipt_movement(
                     movement,
-                    subject=subject,
+                    subject=request.metadata.get("subject", ""),
                     idempotency_key=receipt.idempotency_key,
                     purchase_order_reference=(
                         receipt.purchase_order_reference
@@ -270,13 +313,11 @@ class InventoryReceiptIntegrationProvider(
                     ),
                 )
             )
-
         except Exception as exc:
             return IntegrationResponse(
                 success=False,
                 message=(
-                    "Inventory receipt posting could not "
-                    "be completed."
+                    "Inventory receipt posting could not be completed."
                 ),
                 error=str(exc),
                 request_id=request.request_id,
@@ -284,9 +325,7 @@ class InventoryReceiptIntegrationProvider(
 
         return IntegrationResponse(
             success=True,
-            message=(
-                "Inventory receipt posted successfully."
-            ),
+            message="Inventory receipt posted successfully.",
             data={
                 "stock_movement_id": posted_movement.id,
                 "stock_item_id": posted_movement.stock_item_id,
@@ -294,9 +333,7 @@ class InventoryReceiptIntegrationProvider(
                 "quantity": posted_movement.quantity,
                 "movement_type": posted_movement.movement_type,
                 "status": posted_movement.status,
-                "receiving_reference": (
-                    receipt.receiving_reference
-                ),
+                "receiving_reference": receipt.receiving_reference,
             },
             request_id=request.request_id,
         )

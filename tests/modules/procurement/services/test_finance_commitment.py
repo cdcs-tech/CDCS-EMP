@@ -58,6 +58,7 @@ def purchase_order():
     purchase_order.id = 101
     purchase_order.reference = "PO-2026-001"
     purchase_order.status = "APPROVED"
+    purchase_order.currency = "USD"
     purchase_order.order_date = datetime(2026, 9, 26)
 
     purchase_order.purchase_request = SimpleNamespace(
@@ -521,3 +522,22 @@ def test_retry_keeps_same_idempotency_key_across_attempts(
         requests[0].request_id
         != requests[1].request_id
     )
+
+
+@pytest.mark.parametrize(
+    "currency",
+    [None, "", "EUR", "usd"],
+)
+def test_validate_purchase_order_rejects_missing_or_unsupported_currency(
+    purchase_order,
+    currency,
+):
+    purchase_order.currency = currency
+
+    with pytest.raises(
+        ValueError,
+        match="Purchase Order currency must be USD or SSP",
+    ):
+        ProcurementFinanceCommitmentService._validate_purchase_order(
+            purchase_order
+        )

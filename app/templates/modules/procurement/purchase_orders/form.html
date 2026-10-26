@@ -46,6 +46,22 @@
 
                     <div class="col-md-6">
 
+                        {{ form.currency.label(class="form-label") }}
+
+                        {{ form.currency(class="form-select") }}
+
+                        {% for error in form.currency.errors %}
+
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                    <div class="col-md-6">
+
                         {{ form.supplier_id.label(class="form-label") }}
 
                         {{ form.supplier_id(class="form-select") }}

@@ -75,6 +75,50 @@ class StockMovement(
         default="DRAFT",
     )
 
+    valuation_status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="NOT_APPLICABLE",
+        server_default="NOT_APPLICABLE",
+    )
+
+    # Immutable Procurement provenance captured when a PO receipt is posted.
+    # Nullable to preserve compatibility with legacy and non-PO movements.
+    purchase_order_reference = db.Column(
+        db.String(100),
+        nullable=True,
+    )
+
+    purchase_order_line_reference = db.Column(
+        db.String(100),
+        nullable=True,
+    )
+
+    # Unit and commercial price evidence as accepted for this receipt.
+    unit = db.Column(
+        db.String(50),
+        nullable=True,
+    )
+
+    valuation_unit_price = db.Column(
+        db.Numeric(
+            precision=18,
+            scale=2,
+        ),
+        nullable=True,
+    )
+
+    valuation_currency = db.Column(
+        db.String(3),
+        nullable=True,
+    )
+
+    # Explicitly identifies the interpretation of valuation_unit_price.
+    valuation_price_basis = db.Column(
+        db.String(50),
+        nullable=True,
+    )
+
     occurred_at = db.Column(
         db.DateTime,
         nullable=False,
@@ -125,6 +169,11 @@ class StockMovement(
         db.CheckConstraint(
             "status IN ('DRAFT', 'POSTED')",
             name="ck_stock_movements_status",
+        ),
+        db.CheckConstraint(
+            "valuation_status IN "
+            "('NOT_APPLICABLE', 'UNVALUED', 'VALUED')",
+            name="ck_stock_movements_valuation_status",
         ),
     )
 

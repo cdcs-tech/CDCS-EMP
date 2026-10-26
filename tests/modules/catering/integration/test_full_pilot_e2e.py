@@ -53,6 +53,7 @@ from app.modules.finance.models import FinanceRevenue
 from app.modules.procurement.commands import ReceivePurchaseOrderCommand
 from app.modules.procurement.models import (
     PurchaseOrder,
+    PurchaseOrderLine,
     PurchaseRequest,
     Supplier,
 )
@@ -61,6 +62,9 @@ from app.modules.procurement.services.purchase_flow import (
 )
 from app.modules.procurement.services.purchase_order import (
     PurchaseOrderService,
+)
+from app.modules.procurement.services.purchase_order_line import (
+    PurchaseOrderLineService,
 )
 from app.modules.procurement.services.purchase_request import (
     PurchaseRequestService,
@@ -393,12 +397,32 @@ def test_full_pilot_business_flow_executes_across_module_boundaries(
                 order_date=date(2026, 10, 1),
                 expected_delivery_date=date(2026, 10, 4),
                 subject=str(admin_user.id),
+                currency="USD",
             )
         )
 
         assert isinstance(purchase_order, PurchaseOrder)
         assert purchase_order.status == "DRAFT"
         assert purchase_order.purchase_request_id == purchase_request.id
+
+        # Create a persisted PO line before submitting the order.
+        purchase_order_line = PurchaseOrderLine(
+            purchase_order_id=purchase_order.id,
+            description="C6.8 Food Supplies",
+            item_reference="FOOD-C6.8",
+            stock_item_reference="FOOD-C6.8",
+            quantity=Decimal("10.000"),
+            unit="units",
+            unit_price=Decimal("42.00"),
+            total_amount=Decimal("420.00"),
+        )
+
+        purchase_order_line = PurchaseOrderLineService().create(
+            purchase_order_line,
+        )
+        db.session.flush()
+
+        assert purchase_order_line.guid
 
         purchase_order_service = PurchaseOrderService()
 
@@ -477,7 +501,9 @@ def test_full_pilot_business_flow_executes_across_module_boundaries(
             ReceivePurchaseOrderCommand(
                 purchase_order_id=purchase_order.id,
                 purchase_order_reference=purchase_order.reference,
-                purchase_order_line_reference="C6.8-PO-001-LINE-001",
+                purchase_order_line_reference=(
+                    f"PO-LINE-{purchase_order_line.guid}"
+                ),
                 stock_item_reference="FOOD-C6.8",
                 inventory_location_reference="MAIN",
                 quantity_received=Decimal("10"),

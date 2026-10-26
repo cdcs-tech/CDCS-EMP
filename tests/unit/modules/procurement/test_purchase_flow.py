@@ -306,6 +306,7 @@ def test_create_purchase_order_from_request_authorizes_and_creates_draft():
     result = service.create_purchase_order_from_request(
         purchase_request,
         reference="PO-001",
+        currency="USD",
         supplier_id=30,
         order_date=date(2026, 9, 29),
         expected_delivery_date=date(2026, 10, 2),
@@ -361,6 +362,7 @@ def test_create_purchase_order_from_request_requires_existing_request():
         service.create_purchase_order_from_request(
             purchase_request,
             reference="PO-999",
+            currency="USD",
             supplier_id=30,
             order_date=date(2026, 9, 29),
             subject=42,
@@ -392,6 +394,7 @@ def test_create_purchase_order_from_request_requires_identifier():
         service.create_purchase_order_from_request(
             purchase_request,
             reference="PO-NONE",
+            currency="USD",
             supplier_id=30,
             order_date=date(2026, 9, 29),
             subject=42,
@@ -426,6 +429,7 @@ def test_create_purchase_order_from_request_requires_existing_supplier():
         service.create_purchase_order_from_request(
             purchase_request,
             reference="PO-020",
+            currency="USD",
             supplier_id=999,
             order_date=date(2026, 9, 29),
             subject=42,
@@ -462,6 +466,7 @@ def test_create_purchase_order_from_request_does_not_execute_workflow():
     result = service.create_purchase_order_from_request(
         purchase_request,
         reference="PO-020",
+        currency="USD",
         supplier_id=30,
         order_date=date(2026, 9, 29),
         subject=42,
@@ -532,6 +537,7 @@ def test_purchase_order_creation_uses_existing_service():
     result = service.create_purchase_order_from_request(
         purchase_request,
         reference="PO-SERVICE",
+        currency="USD",
         supplier_id=30,
         order_date=date(2026, 9, 29),
         subject=42,

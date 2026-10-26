@@ -46,9 +46,13 @@ class FakePurchaseOrder:
         *,
         purchase_order_id: int = 101,
         status: str = "APPROVED",
+        reference: str = "PO-2026-001",
+        currency: str | None = "USD",
     ) -> None:
         self.id = purchase_order_id
         self.status = status
+        self.reference = reference
+        self.currency = currency
 
 
 class FakePurchaseOrderService:
@@ -57,11 +61,13 @@ class FakePurchaseOrderService:
     def __init__(
         self,
         purchase_order: FakePurchaseOrder | None = None,
+        unit_price: Decimal | None = Decimal("10.00"),
     ) -> None:
         self.purchase_order = (
             purchase_order
             or FakePurchaseOrder()
         )
+        self.unit_price = unit_price
         self.requested_ids: list[int] = []
 
     def get(
@@ -72,6 +78,48 @@ class FakePurchaseOrderService:
             purchase_order_id
         )
         return self.purchase_order
+
+
+class FakePurchaseOrderLine:
+    """Minimal persisted Purchase Order Line for handler tests."""
+
+    def __init__(
+        self,
+        *,
+        guid: str = "11111111-1111-4111-8111-111111111111",
+        purchase_order_id: int = 101,
+        stock_item_reference: str = "ITEM-001",
+        unit: str = "kg",
+        unit_price: Decimal | None = Decimal("10.00"),
+    ) -> None:
+        self.guid = guid
+        self.purchase_order_id = purchase_order_id
+        self.stock_item_reference = stock_item_reference
+        self.unit = unit
+        self.unit_price = unit_price
+
+
+class FakePurchaseOrderLineService:
+    """Minimal Purchase Order Line lookup test double."""
+
+    def __init__(
+        self,
+        line: FakePurchaseOrderLine | None = None,
+    ) -> None:
+        self.line = line or FakePurchaseOrderLine()
+        self.requested_guids: list[str] = []
+
+    def get_by_guid(
+        self,
+        guid: str,
+    ) -> FakePurchaseOrderLine | None:
+        self.requested_guids.append(guid)
+
+        expected_reference = f"PO-LINE-{self.line.guid}"
+        if guid == self.line.guid or f"PO-LINE-{guid}" == expected_reference:
+            return self.line
+
+        return None
 
 
 class FakeIntegrationLifecycle:
@@ -141,14 +189,19 @@ def command(
     return ReceivePurchaseOrderCommand(
         purchase_order_id=101,
         purchase_order_reference="PO-2026-001",
-        purchase_order_line_reference="POL-2026-001-01",
+        purchase_order_line_reference=(
+            "PO-LINE-11111111-1111-4111-8111-111111111111"
+        ),
         stock_item_reference="ITEM-001",
         inventory_location_reference="STORE-JUBA",
         quantity_received=Decimal("25.000"),
         unit="kg",
         received_at=received_at,
         receiving_reference="GRN-2026-001",
-        idempotency_key="GRN-2026-001:POL-2026-001-01",
+        idempotency_key=(
+            "GRN-2026-001:"
+            "PO-LINE-11111111-1111-4111-8111-111111111111"
+        ),
         notes="Initial partial receipt.",
     )
 
@@ -252,10 +305,14 @@ def receiving_handler(
     integration_lifecycle = FakeIntegrationLifecycle(
         result=successful_result
     )
+    purchase_order_line_service = (
+        FakePurchaseOrderLineService()
+    )
 
     handler = ReceivePurchaseOrderHandler(
         service=approved_purchase_order_service,
         integration_lifecycle=integration_lifecycle,
+        purchase_order_line_service=purchase_order_line_service,
     )
 
     return (
@@ -427,7 +484,7 @@ def test_handler_builds_purchase_order_receipt_request(
     )
     assert (
         receipt.purchase_order_line_reference
-        == "POL-2026-001-01"
+        == "PO-LINE-11111111-1111-4111-8111-111111111111"
     )
     assert (
         receipt.stock_item_reference
@@ -442,18 +499,78 @@ def test_handler_builds_purchase_order_receipt_request(
         == Decimal("25.000")
     )
     assert receipt.unit == "kg"
+    assert receipt.valuation_unit_price == Decimal("10.00")
+    assert receipt.valuation_currency == "USD"
+    assert receipt.valuation_price_basis == "PO_LINE_UNIT_PRICE"
     assert (
         receipt.receiving_reference
         == "GRN-2026-001"
     )
     assert (
         receipt.idempotency_key
-        == "GRN-2026-001:POL-2026-001-01"
+        == (
+            "GRN-2026-001:"
+            "PO-LINE-11111111-1111-4111-8111-111111111111"
+        )
     )
     assert (
         receipt.notes
         == "Initial partial receipt."
     )
+
+
+@pytest.mark.parametrize(
+    ("currency", "unit_price"),
+    [
+        pytest.param(None, Decimal("10.00"), id="missing-currency"),
+        pytest.param("EUR", Decimal("10.00"), id="unsupported-currency"),
+        pytest.param("USD", None, id="missing-unit-price"),
+        pytest.param("USD", Decimal("-1.00"), id="negative-unit-price"),
+        pytest.param("USD", Decimal("NaN"), id="nan-unit-price"),
+        pytest.param("USD", Decimal("Infinity"), id="infinite-unit-price"),
+    ],
+)
+def test_handler_preserves_physical_receipt_without_invalid_valuation(
+    command: ReceivePurchaseOrderCommand,
+    context: ExecutionContext,
+    successful_result: IntegrationResult,
+    currency: str | None,
+    unit_price: Decimal | None,
+):
+    """Invalid valuation evidence must not prevent an otherwise valid receipt."""
+
+    purchase_order_service = FakePurchaseOrderService(
+        FakePurchaseOrder(currency=currency)
+    )
+    purchase_order_line_service = FakePurchaseOrderLineService(
+        FakePurchaseOrderLine(unit_price=unit_price)
+    )
+    integration_lifecycle = FakeIntegrationLifecycle(
+        result=successful_result
+    )
+    handler = ReceivePurchaseOrderHandler(
+        service=purchase_order_service,
+        integration_lifecycle=integration_lifecycle,
+        purchase_order_line_service=purchase_order_line_service,
+    )
+
+    result = handler.handle(command, context)
+
+    assert result.success is True
+    assert len(integration_lifecycle.requests) == 1
+
+    receipt = integration_lifecycle.requests[0].payload
+    assert isinstance(receipt, PurchaseOrderReceiptRequest)
+
+    # Physical receipt details remain available.
+    assert receipt.quantity_received == Decimal("25.000")
+    assert receipt.stock_item_reference == "ITEM-001"
+    assert receipt.unit == "kg"
+
+    # Valuation evidence must be absent as a complete set.
+    assert receipt.valuation_unit_price is None
+    assert receipt.valuation_currency is None
+    assert receipt.valuation_price_basis is None
 
 
 # ---------------------------------------------------------------------------
@@ -608,6 +725,7 @@ def test_handler_returns_rejection_when_inventory_rejects_receipt(
     handler = ReceivePurchaseOrderHandler(
         service=purchase_order_service,
         integration_lifecycle=integration_lifecycle,
+        purchase_order_line_service=FakePurchaseOrderLineService(),
     )
 
     result = handler.handle(
@@ -653,6 +771,7 @@ def test_handler_returns_failure_for_invalid_receipt_contract(
     handler = ReceivePurchaseOrderHandler(
         service=purchase_order_service,
         integration_lifecycle=integration_lifecycle,
+        purchase_order_line_service=FakePurchaseOrderLineService(),
     )
 
     result = handler.handle(
@@ -695,6 +814,7 @@ def test_handler_returns_failure_when_integration_lifecycle_raises(
     handler = ReceivePurchaseOrderHandler(
         service=purchase_order_service,
         integration_lifecycle=integration_lifecycle,
+        purchase_order_line_service=FakePurchaseOrderLineService(),
     )
 
     result = handler.handle(
