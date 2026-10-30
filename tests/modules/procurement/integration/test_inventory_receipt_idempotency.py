@@ -253,6 +253,79 @@ def test_same_idempotency_key_returns_original_movement_without_new_stock_effect
     assert len(idempotency_repository.records) == 1
 
 
+def test_receipt_retry_preserves_original_valuation_snapshot():
+    (
+        service,
+        movement_repository,
+        balance_repository,
+        idempotency_repository,
+    ) = build_service()
+
+    first = build_movement(
+        quantity="5",
+        reference="GRN-VALUED-001",
+    )
+    first.valuation_status = "VALUED"
+    first.purchase_order_reference = "PO-001"
+    first.purchase_order_line_reference = "POL-001"
+    first.unit = "kg"
+    first.valuation_unit_price = Decimal("2.50")
+    first.valuation_currency = "USD"
+    first.valuation_price_basis = "PO_LINE_UNIT_PRICE"
+
+    first_posted = service.post_receipt_movement(
+        first,
+        subject="user-1",
+        idempotency_key="receipt-valued-001",
+        purchase_order_reference="PO-001",
+        purchase_order_line_reference="POL-001",
+    )
+
+    original_balance = balance_repository.balances[
+        (1, 1)
+    ].quantity
+
+    second = build_movement(
+        quantity="5",
+        reference="GRN-VALUED-RETRY",
+    )
+    second.valuation_status = "VALUED"
+    second.purchase_order_reference = "PO-001"
+    second.purchase_order_line_reference = "POL-001"
+    second.unit = "kg"
+    second.valuation_unit_price = Decimal("99.99")
+    second.valuation_currency = "SSP"
+    second.valuation_price_basis = "RETRY_CONFLICT"
+
+    second_posted = service.post_receipt_movement(
+        second,
+        subject="user-1",
+        idempotency_key="receipt-valued-001",
+        purchase_order_reference="PO-001",
+        purchase_order_line_reference="POL-001",
+    )
+
+    assert second_posted.id == first_posted.id
+    assert second_posted.reference == "GRN-VALUED-001"
+    assert second_posted.valuation_status == "VALUED"
+    assert second_posted.purchase_order_reference == "PO-001"
+    assert second_posted.purchase_order_line_reference == "POL-001"
+    assert second_posted.unit == "kg"
+    assert second_posted.valuation_unit_price == Decimal("2.50")
+    assert second_posted.valuation_currency == "USD"
+    assert (
+        second_posted.valuation_price_basis
+        == "PO_LINE_UNIT_PRICE"
+    )
+
+    assert (
+        balance_repository.balances[(1, 1)].quantity
+        == original_balance
+    )
+    assert len(movement_repository.movements) == 1
+    assert len(idempotency_repository.records) == 1
+
+
 def test_different_idempotency_keys_create_independent_receipts():
     (
         service,
