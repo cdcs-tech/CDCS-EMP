@@ -33,6 +33,7 @@ def _requirement_form_data(**overrides):
     data = {
         "description": "Bottled Water",
         "item_reference": "WATER-001",
+        "stock_item_id": "0",
         "quantity": "100",
         "unit": "bottles",
         "fulfilment_type": "PROCUREMENT",
@@ -79,6 +80,22 @@ def test_create_event_requirement_persists_aggregate(
 
             return requirement
 
+    class FakeStockItemService:
+        def get_all(self):
+            return [
+                SimpleNamespace(
+                    id=55,
+                    is_active=True,
+                    product=SimpleNamespace(name="UAT Bottled Water"),
+                )
+            ]
+
+    monkeypatch.setattr(
+        catering_routes,
+        "StockItemService",
+        FakeStockItemService,
+    )
+
     monkeypatch.setattr(
         catering_routes,
         "CateringEventService",
@@ -93,7 +110,7 @@ def test_create_event_requirement_persists_aggregate(
 
     response = authenticated_client.post(
         "/catering/events/7/requirements/create",
-        data=_requirement_form_data(),
+        data=_requirement_form_data(stock_item_id="55"),
         follow_redirects=False,
     )
 
@@ -107,6 +124,7 @@ def test_create_event_requirement_persists_aggregate(
     assert requirement.event_id == 7
     assert requirement.description == "Bottled Water"
     assert requirement.item_reference == "WATER-001"
+    assert requirement.stock_item_id == 55
     assert requirement.quantity == Decimal("100")
     assert requirement.unit == "bottles"
     assert requirement.fulfilment_type == "PROCUREMENT"
@@ -167,6 +185,16 @@ def test_edit_event_requirement_updates_and_redirects(
             updated["requirement"] = entity
             updated["subject"] = subject
             return entity
+
+    class FakeStockItemService:
+        def get_all(self):
+            return []
+
+    monkeypatch.setattr(
+        catering_routes,
+        "StockItemService",
+        FakeStockItemService,
+    )
 
     monkeypatch.setattr(
         catering_routes,
@@ -554,3 +582,260 @@ def test_event_requirements_list_filters_by_event(
     assert queried["options"].filters == {
         "event_id": 7,
     }
+
+
+def test_consume_event_requirement_delegates_valid_request(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    event = SimpleNamespace(id=7)
+    requirement = SimpleNamespace(
+        id=31,
+        event_id=7,
+        fulfilment_type="INVENTORY",
+    )
+    delegated = {}
+
+    class FakeEventService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, event_id):
+            assert event_id == 7
+            return event
+
+    class FakeRequirementRepository:
+        def get_by_id(self, requirement_id):
+            assert requirement_id == 31
+            return requirement
+
+    class FakeMovementService:
+        def __init__(self, **kwargs):
+            pass
+
+    class FakeConsumptionService:
+        def __init__(self, **kwargs):
+            delegated["dependencies"] = kwargs
+
+        def consume(self, **kwargs):
+            delegated["request"] = kwargs
+            return SimpleNamespace(id=41)
+
+    monkeypatch.setattr(
+        catering_routes, "CateringEventService", FakeEventService
+    )
+    monkeypatch.setattr(
+        catering_routes, "EventRequirementRepository",
+        FakeRequirementRepository,
+    )
+    monkeypatch.setattr(
+        catering_routes, "CateringEventConsumptionEvidenceRepository",
+        lambda: SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        catering_routes, "StockMovementService", FakeMovementService
+    )
+    monkeypatch.setattr(
+        catering_routes, "CateringEventConsumptionService",
+        FakeConsumptionService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/requirements/31/consume",
+        data={
+            "csrf_token": "test-token",
+            "location_id": "3",
+            "quantity": "2.500",
+            "unit": "kg",
+            "idempotency_key": "route-test-key-001",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7/requirements/31"
+    )
+
+    submitted = delegated["request"]
+    assert submitted["event"] is event
+    assert submitted["requirement_id"] == 31
+    assert submitted["location_id"] == 3
+    assert submitted["quantity"] == "2.500"
+    assert submitted["unit"] == "kg"
+    assert submitted["idempotency_key"] == "route-test-key-001"
+    assert submitted["subject"] is not None
+
+    assert "requirement_repository" in delegated["dependencies"]
+    assert "consumption_evidence_repository" in delegated["dependencies"]
+    assert "movement_service" in delegated["dependencies"]
+
+
+def test_consume_event_requirement_rejects_other_event(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    class FakeEventService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, event_id):
+            return SimpleNamespace(id=7)
+
+    class FakeRequirementRepository:
+        def get_by_id(self, requirement_id):
+            return SimpleNamespace(
+                id=31,
+                event_id=99,
+                fulfilment_type="INVENTORY",
+            )
+
+    monkeypatch.setattr(
+        catering_routes, "CateringEventService", FakeEventService
+    )
+    monkeypatch.setattr(
+        catering_routes, "EventRequirementRepository",
+        FakeRequirementRepository,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/requirements/31/consume",
+        data={"csrf_token": "test-token"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7/requirements"
+    )
+
+
+def test_consume_event_requirement_rejects_procurement_fulfilment(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    class FakeEventService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, event_id):
+            return SimpleNamespace(id=7)
+
+    class FakeRequirementRepository:
+        def get_by_id(self, requirement_id):
+            return SimpleNamespace(
+                id=31,
+                event_id=7,
+                fulfilment_type="PROCUREMENT",
+            )
+
+    monkeypatch.setattr(
+        catering_routes, "CateringEventService", FakeEventService
+    )
+    monkeypatch.setattr(
+        catering_routes, "EventRequirementRepository",
+        FakeRequirementRepository,
+    )
+
+    def unexpected_service(**kwargs):
+        raise AssertionError(
+            "Consumption service must not be constructed for Procurement."
+        )
+
+    monkeypatch.setattr(
+        catering_routes, "CateringEventConsumptionService",
+        unexpected_service,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/requirements/31/consume",
+        data={"csrf_token": "test-token"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7/requirements/31"
+    )
+
+
+def test_consume_event_requirement_handles_validation_error(
+    authenticated_client,
+    monkeypatch,
+):
+    from app.core.crud.exceptions import EntityValidationException
+
+    _allow_permissions(monkeypatch)
+
+    event = SimpleNamespace(id=7)
+    requirement = SimpleNamespace(
+        id=31,
+        event_id=7,
+        fulfilment_type="INVENTORY",
+    )
+
+    class FakeEventService:
+        def __init__(self, **kwargs):
+            pass
+
+        def get(self, event_id):
+            return event
+
+    class FakeRequirementRepository:
+        def get_by_id(self, requirement_id):
+            return requirement
+
+    class FakeMovementService:
+        def __init__(self, **kwargs):
+            pass
+
+    class FakeConsumptionService:
+        def __init__(self, **kwargs):
+            pass
+
+        def consume(self, **kwargs):
+            raise EntityValidationException(
+                "The issue would exceed the remaining Event Requirement quantity."
+            )
+
+    monkeypatch.setattr(
+        catering_routes, "CateringEventService", FakeEventService
+    )
+    monkeypatch.setattr(
+        catering_routes, "EventRequirementRepository",
+        FakeRequirementRepository,
+    )
+    monkeypatch.setattr(
+        catering_routes, "CateringEventConsumptionEvidenceRepository",
+        lambda: SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        catering_routes, "StockMovementService", FakeMovementService
+    )
+    monkeypatch.setattr(
+        catering_routes, "CateringEventConsumptionService",
+        FakeConsumptionService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/requirements/31/consume",
+        data={
+            "csrf_token": "test-token",
+            "location_id": "3",
+            "quantity": "999",
+            "unit": "kg",
+            "idempotency_key": "route-test-key-002",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7/requirements/31"
+    )

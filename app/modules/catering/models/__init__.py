@@ -38,6 +38,9 @@ from .event_requirement_stock_allocation import (
     EventRequirementStockAllocation,
 )
 from app.modules.catering.models.catering_revenue import CateringRevenue
+from app.modules.catering.models.catering_event_consumption_evidence import (
+    CateringEventConsumptionEvidence,
+)
 
 __all__ = [
     "BaseModel",
@@ -61,4 +64,5 @@ __all__ = [
     "CateringPurchaseRequirement",
     "CateringExpenseCostAssociation",
     "CateringRevenue",
+    "CateringEventConsumptionEvidence",
 ]

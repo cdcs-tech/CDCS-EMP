@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.crud import CRUDService
+from app.core.crud.exceptions import EntityValidationException
 from app.core.workflow.base import WorkflowState
 from app.modules.catering.models import CateringEvent
 from app.modules.catering.repositories import CateringEventRepository
@@ -319,14 +320,21 @@ class CateringEventService(CRUDService[CateringEvent]):
         """
         Progress an Event from IN_PRODUCTION to DELIVERED.
 
-        Event lifecycle validity remains delegated to
-        CateringEventWorkflow.
+        Delivery readiness must be verified after authorization and
+        before the Event lifecycle transition or persistence.
         """
 
         self._authorize(
             subject,
             self.DELIVER_PERMISSION,
         )
+
+        if self.readiness_service is None:
+            raise EntityValidationException(
+                "Catering Event delivery readiness service is required."
+            )
+
+        self.readiness_service.ensure_delivery_ready(event)
 
         self._transition_workflow(
             event,

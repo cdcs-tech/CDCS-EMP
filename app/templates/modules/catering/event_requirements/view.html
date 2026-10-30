@@ -111,11 +111,132 @@
 
             {% else %}
 
-            <p class="mb-0">
+            <p class="mb-3">
                 This requirement is identified for Inventory fulfilment.
-                Inventory stock transactions are handled outside the Event
-                Requirement workflow.
+                Record actual stock consumption below. Each successful
+                submission creates a posted stock issue and consumption
+                evidence against this requirement.
             </p>
+
+            {% if current_user.has_permission("CATERING.STOCK_MOVEMENT.POST") %}
+
+            {% if inventory_locations %}
+
+            <form method="POST" action="{{ url_for(
+                        'catering.consume_catering_event_requirement',
+                        event_id=catering_event.id,
+                        requirement_id=requirement.id
+                    ) }}" class="border rounded p-3 mb-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="idempotency_key" value="{{ consumption_idempotency_key }}">
+
+                <h3 class="h6 mb-3">Record Stock Consumption</h3>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="location_id" class="form-label">
+                            Inventory Location
+                        </label>
+                        <select id="location_id" name="location_id" class="form-select" required>
+                            <option value="">Select a location</option>
+                            {% for location in inventory_locations %}
+                            <option value="{{ location.id }}">
+                                {{ location.code }} - {{ location.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="quantity" class="form-label">
+                            Quantity to Consume
+                        </label>
+                        <input id="quantity" name="quantity" type="number" class="form-control" min="0.001" step="0.001"
+                            required>
+                        <div class="form-text">
+                            Required total:
+                            {{ requirement.quantity }} {{ requirement.unit }}.
+                            The system validates cumulative consumption
+                            before posting.
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="unit" class="form-label">Unit</label>
+                        <input id="unit" name="unit" type="text" class="form-control" value="{{ requirement.unit }}"
+                            maxlength="50" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">
+                    Record Consumption
+                </button>
+            </form>
+
+            {% else %}
+
+            <p class="text-muted mb-3">
+                No active Inventory locations are available.
+                Activate an Inventory location before recording
+                stock consumption.
+            </p>
+
+            {% endif %}
+
+            {% else %}
+
+            <p class="text-muted mb-3">
+                You do not have permission to post stock consumption.
+            </p>
+
+            {% endif %}
+
+            <h3 class="h6 mb-3">Consumption History</h3>
+
+            {% if consumption_evidence %}
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Evidence ID</th>
+                            <th>Quantity Consumed</th>
+                            <th>Movement ID</th>
+                            <th>Movement Type</th>
+                            <th>Movement Status</th>
+                            <th>Reference</th>
+                            <th>Posted At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evidence in consumption_evidence %}
+                        <tr>
+                            <td>{{ evidence.id }}</td>
+                            <td>
+                                {{ evidence.quantity }} {{ evidence.unit }}
+                            </td>
+                            <td>{{ evidence.stock_movement_id }}</td>
+                            <td>
+                                {{ evidence.stock_movement.movement_type }}
+                            </td>
+                            <td>
+                                {{ evidence.stock_movement.status }}
+                            </td>
+                            <td>
+                                {{ evidence.stock_movement.reference or "—" }}
+                            </td>
+                            <td>
+                                {{ evidence.stock_movement.posted_at or "—" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">
+                No stock consumption has been recorded for this requirement.
+            </p>
+            {% endif %}
 
             {% endif %}
 

@@ -133,12 +133,51 @@ def test_deliver_catering_event_delegates_to_service(
     authenticated_client,
     monkeypatch,
 ):
-    _assert_operational_route(
-        authenticated_client,
-        monkeypatch,
-        endpoint="deliver",
-        service_method="deliver",
-        initial_status="IN_PRODUCTION",
+    _allow_permissions(monkeypatch)
+
+    event = _fake_event(status="IN_PRODUCTION")
+    captured = {}
+
+    class FakeEventService:
+        def __init__(self, **kwargs):
+            captured["service_kwargs"] = kwargs
+
+        def get(self, event_id):
+            assert event_id == 7
+            return event
+
+        def deliver(self, entity, *, subject):
+            captured["event"] = entity
+            captured["subject"] = subject
+
+    monkeypatch.setattr(
+        catering_routes,
+        "CateringEventService",
+        FakeEventService,
+    )
+
+    response = authenticated_client.post(
+        "/catering/events/7/deliver",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/catering/events/7"
+    )
+    assert captured["event"] is event
+    assert captured["subject"] is not None
+
+    readiness_service = captured["service_kwargs"].get(
+        "readiness_service"
+    )
+    assert isinstance(
+        readiness_service,
+        catering_routes.CateringDeliveryReadinessService,
+    )
+    assert isinstance(
+        readiness_service._procurement_evidence_resolver,
+        catering_routes.ProcurementDeliveryEvidenceResolver,
     )
 
 

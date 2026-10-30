@@ -53,6 +53,13 @@ class EventRequirementForm(FlaskForm):
         ],
     )
 
+    stock_item_id = SelectField(
+        "Inventory Stock Item",
+        choices=[],
+        coerce=int,
+        validators=[],
+    )
+
     quantity = DecimalField(
         "Quantity",
         places=3,

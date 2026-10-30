@@ -20,6 +20,8 @@ from flask import (
 
 from datetime import datetime, timezone
 
+from uuid import uuid4
+
 from app.modules.expense.integration.post_commit import (
     ExpenseCateringPostCommitExecutor,
 )
@@ -159,6 +161,18 @@ from app.modules.catering.services.event_requirement_fulfilment import (
     EventRequirementFulfilmentVerifier,
 )
 
+from app.modules.catering.services.catering_delivery_readiness import (
+    CateringDeliveryReadinessService,
+)
+
+from app.modules.catering.services.procurement_delivery_evidence import (
+    ProcurementDeliveryEvidenceResolver,
+)
+
+from app.modules.catering.services.catering_event_consumption import (
+    CateringEventConsumptionService,
+)
+
 from app.modules.catering.services.event_profitability import (
     EventProfitabilityService,
 )
@@ -189,6 +203,10 @@ from app.modules.catering.repositories.catering_event import (
 
 from app.modules.catering.repositories.event_requirement import (
     EventRequirementRepository,
+)
+
+from app.modules.catering.repositories.catering_event_consumption_evidence import (
+    CateringEventConsumptionEvidenceRepository,
 )
 
 from app.modules.catering.repositories.catering_purchase_requirement import (
@@ -3161,8 +3179,17 @@ def deliver_catering_event(event_id):
     Mark an IN_PRODUCTION Catering Event as DELIVERED.
     """
 
+    readiness_service = CateringDeliveryReadinessService(
+        requirement_repository=EventRequirementRepository(),
+        consumption_evidence_repository=(
+            CateringEventConsumptionEvidenceRepository()
+        ),
+        procurement_evidence_resolver=ProcurementDeliveryEvidenceResolver(),
+    )
+
     service = CateringEventService(
         authorization_adapter=_build_catering_authorization_adapter(),
+        readiness_service=readiness_service,
     )
 
     try:
@@ -3696,11 +3723,32 @@ def create_catering_event_requirement(event_id):
 
     form = EventRequirementForm()
 
+    stock_items = StockItemService().get_all()
+
+    form.stock_item_id.choices = [
+        (
+            0,
+            "-- No Inventory Stock Item --",
+        ),
+    ] + [
+        (
+            stock_item.id,
+            (
+                stock_item.product.name
+                if stock_item.product
+                else str(stock_item.id)
+            ),
+        )
+        for stock_item in stock_items
+        if stock_item.is_active
+    ]
+
     if form.validate_on_submit():
         requirement = EventRequirement(
             event_id=catering_event.id,
             description=form.description.data,
             item_reference=form.item_reference.data,
+            stock_item_id=form.stock_item_id.data or None,
             quantity=form.quantity.data,
             unit=form.unit.data,
             fulfilment_type=form.fulfilment_type.data,
@@ -3752,6 +3800,120 @@ def create_catering_event_requirement(event_id):
 
 
 @catering_bp.route(
+    "/events/<int:event_id>/requirements/"
+    "<int:requirement_id>/consume",
+    methods=["POST"],
+)
+@login_required
+@require_permission(CATERING_STOCK_MOVEMENT_POST.name)
+def consume_catering_event_requirement(
+    event_id: int,
+    requirement_id: int,
+):
+    """Post physical stock consumption for an Event Requirement."""
+
+    detail_url = url_for(
+        "catering.view_catering_event_requirement",
+        event_id=event_id,
+        requirement_id=requirement_id,
+    )
+
+    if not request.form.get("csrf_token"):
+        flash(
+            "The consumption request is missing its security token.",
+            "error",
+        )
+        return redirect(detail_url)
+
+    try:
+        catering_event = CateringEventService(
+            authorization_adapter=_build_catering_authorization_adapter(),
+        ).get(event_id)
+
+        requirement = EventRequirementRepository().get_by_id(
+            requirement_id
+        )
+
+        if requirement.event_id != catering_event.id:
+            flash(
+                "Event Requirement does not belong to this Catering Event.",
+                "error",
+            )
+            return redirect(
+                url_for(
+                    "catering.catering_event_requirements",
+                    event_id=event_id,
+                )
+            )
+
+        if requirement.fulfilment_type != "INVENTORY":
+            flash(
+                "Only Inventory fulfilment requirements can be consumed "
+                "from stock.",
+                "error",
+            )
+            return redirect(detail_url)
+
+        raw_location_id = (request.form.get("location_id") or "").strip()
+        try:
+            location_id = int(raw_location_id)
+        except (TypeError, ValueError):
+            raise EntityValidationException(
+                "Select a valid Inventory location."
+            )
+
+        quantity = (request.form.get("quantity") or "").strip()
+        unit = (request.form.get("unit") or "").strip()
+        idempotency_key = (
+            request.form.get("idempotency_key") or ""
+        ).strip()
+
+        service = CateringEventConsumptionService(
+            requirement_repository=EventRequirementRepository(),
+            consumption_evidence_repository=(
+                CateringEventConsumptionEvidenceRepository()
+            ),
+            movement_service=StockMovementService(
+                authorization_adapter=(
+                    _build_catering_authorization_adapter()
+                )
+            ),
+        )
+
+        service.consume(
+            event=catering_event,
+            requirement_id=requirement_id,
+            location_id=location_id,
+            quantity=quantity,
+            unit=unit,
+            subject=current_user,
+            idempotency_key=idempotency_key,
+        )
+
+    except EntityNotFoundException:
+        flash(
+            "Catering Event or Event Requirement not found.",
+            "error",
+        )
+        return redirect(
+            url_for(
+                "catering.catering_event_requirements",
+                event_id=event_id,
+            )
+        )
+
+    except (EntityValidationException, ValueError, RuntimeError) as exc:
+        flash(str(exc), "error")
+        return redirect(detail_url)
+
+    flash(
+        "Stock consumption recorded successfully.",
+        "success",
+    )
+    return redirect(detail_url)
+
+
+@catering_bp.route(
     "/events/<int:event_id>/requirements/<int:requirement_id>"
 )
 @login_required
@@ -3774,6 +3936,7 @@ def view_catering_event_requirement(
         ).get(event_id)
 
         requirement = repository.get_by_id(requirement_id)
+
     except EntityNotFoundException:
         flash(
             "Event Requirement not found.",
@@ -3798,10 +3961,31 @@ def view_catering_event_requirement(
             )
         )
 
+    consumption_evidence = (
+        CateringEventConsumptionEvidenceRepository()
+        .get_by_requirement_id(requirement_id)
+    )
+
+    inventory_locations = []
+    if (
+        requirement.fulfilment_type == "INVENTORY"
+        and current_user.has_permission(
+            CATERING_STOCK_MOVEMENT_POST.name
+        )
+    ):
+        inventory_locations = [
+            location
+            for location in InventoryLocationService().repository.get_all()
+            if location.is_active and not location.is_deleted
+        ]
+
     return render_template(
         "modules/catering/event_requirements/view.html",
         requirement=requirement,
         catering_event=catering_event,
+        consumption_evidence=consumption_evidence,
+        inventory_locations=inventory_locations,
+        consumption_idempotency_key=str(uuid4()),
     )
 
 
@@ -4075,9 +4259,30 @@ def edit_catering_event_requirement(
         obj=requirement
     )
 
+    stock_items = StockItemService().get_all()
+
+    form.stock_item_id.choices = [
+        (
+            0,
+            "-- No Inventory Stock Item --",
+        ),
+    ] + [
+        (
+            stock_item.id,
+            (
+                stock_item.product.name
+                if stock_item.product
+                else str(stock_item.id)
+            ),
+        )
+        for stock_item in stock_items
+        if stock_item.is_active
+    ]
+
     if form.validate_on_submit():
         requirement.description = form.description.data
         requirement.item_reference = form.item_reference.data
+        requirement.stock_item_id = form.stock_item_id.data or None
         requirement.quantity = form.quantity.data
         requirement.unit = form.unit.data
         requirement.fulfilment_type = form.fulfilment_type.data

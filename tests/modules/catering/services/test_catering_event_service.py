@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from app.core.crud.exceptions import EntityValidationException
 from app.core.crud.exceptions import EntityNotFoundException
 from app.modules.catering.models import CateringEvent
 from app.modules.catering.repositories import CateringEventRepository
@@ -1796,6 +1797,38 @@ def test_deliver_requires_authorization_adapter():
     assert event.status == CateringEventWorkflow.IN_PRODUCTION
 
 
+def test_deliver_rejects_missing_readiness_service():
+    """Verify delivery fails closed without a readiness service."""
+
+    repository = Mock(spec=CateringEventRepository)
+    authorization_adapter = Mock(spec=CateringAuthorizationAdapter)
+    workflow = Mock(spec=CateringEventWorkflow)
+
+    event = Mock(spec=CateringEvent)
+    event.status = CateringEventWorkflow.IN_PRODUCTION
+    subject = Mock()
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+    )
+
+    with pytest.raises(
+        EntityValidationException,
+        match="delivery readiness service is required",
+    ):
+        service.deliver(event, subject=subject)
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.DELIVER",
+    )
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+    assert event.status == CateringEventWorkflow.IN_PRODUCTION
+
+
 def test_deliver_authorizes_before_workflow_transition():
     """Verify Event delivery uses the canonical DELIVER permission."""
 
@@ -1823,6 +1856,8 @@ def test_deliver_authorizes_before_workflow_transition():
         spec=CateringEvent,
     )
 
+    readiness_service = Mock()
+
     event.status = CateringEventWorkflow.IN_PRODUCTION
 
     subject = Mock()
@@ -1831,6 +1866,7 @@ def test_deliver_authorizes_before_workflow_transition():
         repository=repository,
         authorization_adapter=authorization_adapter,
         workflow=workflow,
+        readiness_service=readiness_service,
     )
 
     service.deliver(
@@ -1916,6 +1952,8 @@ def test_deliver_workflow_failure_does_not_persist_or_change_state():
         spec=CateringEventWorkflow,
     )
 
+    readiness_service = Mock()
+
     workflow.transition.side_effect = ValueError(
         "Invalid Event transition",
     )
@@ -1930,6 +1968,7 @@ def test_deliver_workflow_failure_does_not_persist_or_change_state():
         repository=repository,
         authorization_adapter=authorization_adapter,
         workflow=workflow,
+        readiness_service=readiness_service,
     )
 
     with pytest.raises(
@@ -1951,6 +1990,84 @@ def test_deliver_workflow_failure_does_not_persist_or_change_state():
     assert event.status == CateringEventWorkflow.IN_PRODUCTION
 
 
+def test_deliver_checks_readiness_after_authorization_before_transition():
+    """Verify delivery readiness runs after authorization and before transition."""
+
+    repository = Mock(spec=CateringEventRepository)
+    authorization_adapter = Mock(spec=CateringAuthorizationAdapter)
+    workflow = Mock(spec=CateringEventWorkflow)
+    readiness_service = Mock()
+
+    workflow.transition.return_value = type(
+        "WorkflowState",
+        (),
+        {"name": CateringEventWorkflow.DELIVERED},
+    )()
+
+    event = Mock(spec=CateringEvent)
+    event.status = CateringEventWorkflow.IN_PRODUCTION
+    subject = Mock()
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+        readiness_service=readiness_service,
+    )
+
+    service.deliver(event, subject=subject)
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.DELIVER",
+    )
+    readiness_service.ensure_delivery_ready.assert_called_once_with(event)
+    workflow.transition.assert_called_once_with(
+        CateringEventWorkflow.IN_PRODUCTION,
+        CateringEventWorkflow.DELIVERED,
+    )
+    repository.update.assert_called_once_with(event)
+
+
+def test_deliver_blocks_when_readiness_check_fails():
+    """Verify failed delivery readiness prevents transition and persistence."""
+
+    repository = Mock(spec=CateringEventRepository)
+    authorization_adapter = Mock(spec=CateringAuthorizationAdapter)
+    workflow = Mock(spec=CateringEventWorkflow)
+    readiness_service = Mock()
+
+    readiness_service.ensure_delivery_ready.side_effect = RuntimeError(
+        "Event requirements are not fulfilled for delivery."
+    )
+
+    event = Mock(spec=CateringEvent)
+    event.status = CateringEventWorkflow.IN_PRODUCTION
+    subject = Mock()
+
+    service = CateringEventService(
+        repository=repository,
+        authorization_adapter=authorization_adapter,
+        workflow=workflow,
+        readiness_service=readiness_service,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Event requirements are not fulfilled for delivery",
+    ):
+        service.deliver(event, subject=subject)
+
+    authorization_adapter.authorize.assert_called_once_with(
+        subject,
+        "CATERING.CATERING_EVENT.DELIVER",
+    )
+    readiness_service.ensure_delivery_ready.assert_called_once_with(event)
+    workflow.transition.assert_not_called()
+    repository.update.assert_not_called()
+    assert event.status == CateringEventWorkflow.IN_PRODUCTION
+
+
 def test_deliver_persists_without_requiring_update_permission():
     """
     Verify Event delivery persists through the base CRUD path rather
@@ -1968,6 +2085,8 @@ def test_deliver_persists_without_requiring_update_permission():
     workflow = Mock(
         spec=CateringEventWorkflow,
     )
+
+    readiness_service = Mock()
 
     workflow.transition.return_value = type(
         "WorkflowState",
@@ -1989,6 +2108,7 @@ def test_deliver_persists_without_requiring_update_permission():
         repository=repository,
         authorization_adapter=authorization_adapter,
         workflow=workflow,
+        readiness_service=readiness_service,
     )
 
     service.deliver(
