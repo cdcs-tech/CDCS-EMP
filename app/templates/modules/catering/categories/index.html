@@ -15,11 +15,7 @@ Product Categories
     {% include "components/page_header.html" %}
     {% endwith %}
 
-    <div class="mb-3">
-        <a href="{{ url_for('catering.index') }}" class="btn btn-outline-secondary">
-            Back to Catering
-        </a>
-    </div>
+    {% include "modules/catering/_inventory_navigation.html" %}
 
     <div class="card shadow-sm">
 

@@ -1,216 +1,220 @@
 {% extends "base/dashboard_base.html" %}
 
-{% block title %}
-Dashboard
-{% endblock %}
+{% block title %}Executive Dashboard | CDCS-EMP{% endblock %}
 
 {% block page_content %}
+<div class="container-fluid px-0">
 
-<div class="container-fluid">
-
-    <!-- Page Header -->
-
-    {% with
-    title="Executive Dashboard",
-    subtitle="Welcome to the CDCS Enterprise Management Platform."
-    %}
-    {% include "components/page_header.html" %}
-    {% endwith %}
-
-    <!-- KPI Cards -->
-
-    <div class="row g-4 mb-4">
-
-        {% with
-        title="Employees",
-        value="--",
-        icon="bi-people"
-        %}
-        {% include "components/kpi_card.html" %}
-        {% endwith %}
-
-        {% with
-        title="Members",
-        value="--",
-        icon="bi-person-badge"
-        %}
-        {% include "components/kpi_card.html" %}
-        {% endwith %}
-
-        {% with
-        title="Assets",
-        value="--",
-        icon="bi-box-seam"
-        %}
-        {% include "components/kpi_card.html" %}
-        {% endwith %}
-
-        {% with
-        title="Revenue",
-        value="--",
-        icon="bi-cash-stack"
-        %}
-        {% include "components/kpi_card.html" %}
-        {% endwith %}
-
-    </div>
-
-    <!-- Dashboard Widgets -->
-
-    <div class="row g-4 mb-4">
-
-        <!-- Performance Overview -->
-
-        <div class="col-lg-8">
-
-            <div class="card shadow-sm">
-
-                <div class="card-header fw-semibold">
-
-                    Performance Overview
-
+    <!-- Welcome banner -->
+    <section class="p-4 p-lg-5 mb-4 rounded-4 text-white shadow-sm"
+        style="background: linear-gradient(120deg, #147b98 0%, #35b7d3 65%, #65cce0 100%);">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <img src="{{ url_for('static', filename='images/branding/cdcs-logo.png') }}"
+                        alt="CDCS — Career Development & Consultancy Services"
+                        class="img-fluid bg-white rounded-3 p-2 shadow-sm"
+                        style="width: 170px; max-width: 45%; height: auto; object-fit: contain;">
+                    <div class="small text-uppercase fw-semibold" style="letter-spacing: .12em;">
+                        CDCS Enterprise Management Platform
+                    </div>
                 </div>
 
-                <div class="card-body">
-
-                    <canvas id="performanceChart"></canvas>
-
-                </div>
-
+                <h1 class="display-6 fw-bold mb-3">Your work. Your operations. One platform.</h1>
+                <p class="fs-6 mb-0" style="max-width: 680px;">
+                    Welcome to your operational workspace. Access your core workflows,
+                    manage day-to-day activities, and review available business reports
+                    from one place.
+                </p>
             </div>
 
-        </div>
-
-        <!-- Quick Actions -->
-
-        <div class="col-lg-4">
-
-            <div class="card shadow-sm">
-
-                <div class="card-header fw-semibold">
-
-                    Quick Actions
-
+            <div class="col-lg-4 text-lg-end">
+                <a href="{{ url_for('reporting.index') }}" class="btn btn-light btn-lg fw-semibold shadow-sm">
+                    <i class="bi bi-bar-chart-line me-2"></i>
+                    Explore Reports
+                </a>
+                <div class="small mt-3 opacity-75">
+                    Clear workflows. Connected operations. Better visibility.
                 </div>
-
-                <div class="list-group list-group-flush">
-
-                    <a href="#" class="list-group-item list-group-item-action">
-
-                        Add Employee
-
-                    </a>
-
-                    <a href="#" class="list-group-item list-group-item-action">
-
-                        Register Member
-
-                    </a>
-
-                    <a href="#" class="list-group-item list-group-item-action">
-
-                        Create Purchase
-
-                    </a>
-
-                    <a href="#" class="list-group-item list-group-item-action">
-
-                        Record Asset
-
-                    </a>
-
-                </div>
-
             </div>
-
         </div>
+    </section>
 
+    <!-- Section heading -->
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <div>
+            <h2 class="h4 fw-bold mb-1">Your workspace</h2>
+            <p class="text-muted mb-0">
+                Jump directly into an operational area.
+            </p>
+        </div>
+        <span class="badge rounded-pill px-3 py-2" style="background-color: #e5f6fa; color: #176b80;">
+            <i class="bi bi-grid-1x2 me-1" aria-hidden="true"></i>
+            Core workspaces
+        </span>
     </div>
 
-    <!-- Bottom Section -->
+    <!-- Operational workspace cards -->
+    <div class="row g-4 mb-5">
 
-    <div class="row g-4">
-
-        <!-- Recent Activity -->
-
-        <div class="col-lg-6">
-
-            <div class="card shadow-sm">
-
-                <div class="card-header fw-semibold">
-
-                    Recent Activity
-
-                </div>
-
-                <div class="card-body">
-
-                    <p class="text-muted">
-
-                        No recent activity available.
-
+        <div class="col-sm-6 col-xl-4">
+            <a href="{{ url_for('catering.index') }}"
+                class="card h-100 border-0 shadow-sm text-decoration-none text-reset"
+                style="border-top: 4px solid #35b7d3 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="rounded-3 p-3" style="background-color: #e5f6fa; color: #168ba5;">
+                            <i class="bi bi-cup-hot fs-3" aria-hidden="true"></i>
+                        </span>
+                        <i class="bi bi-arrow-up-right text-muted fs-5" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">Catering</h3>
+                    <p class="text-muted mb-3">
+                        Manage catering operations, customer requests, events,
+                        and related workflows.
                     </p>
-
+                    <span class="fw-semibold small" style="color: #168ba5;">
+                        Open Catering <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                    </span>
                 </div>
-
-            </div>
-
+            </a>
         </div>
 
-        <!-- System Information -->
-
-        <div class="col-lg-6">
-
-            <div class="card shadow-sm">
-
-                <div class="card-header fw-semibold">
-
-                    System Information
-
+        <div class="col-sm-6 col-xl-4">
+            <a href="{{ url_for('procurement.purchase_requests') }}"
+                class="card h-100 border-0 shadow-sm text-decoration-none text-reset"
+                style="border-top: 4px solid #ed7d2e !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="rounded-3 p-3" style="background-color: #fff0e5; color: #c96a24;">
+                            <i class="bi bi-cart-check fs-3" aria-hidden="true"></i>
+                        </span>
+                        <i class="bi bi-arrow-up-right text-muted fs-5" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">Procurement</h3>
+                    <p class="text-muted mb-3">
+                        Access purchase requests and continue the purchasing workflow.
+                    </p>
+                    <span class="fw-semibold small" style="color: #c96a24;">
+                        Open Purchase Requests
+                        <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                    </span>
                 </div>
+            </a>
+        </div>
 
-                <div class="card-body">
-
-                    <table class="table table-sm">
-
-                        <tbody>
-
-                            <tr>
-
-                                <th>Platform</th>
-
-                                <td>CDCS-EMP</td>
-
-                            </tr>
-
-                            <tr>
-
-                                <th>Version</th>
-
-                                <td>1.0 Alpha</td>
-
-                            </tr>
-
-                            <tr>
-
-                                <th>Environment</th>
-
-                                <td>Development</td>
-
-                            </tr>
-
-                        </tbody>
-
-                    </table>
-
+        <div class="col-sm-6 col-xl-4">
+            <a href="{{ url_for('expense.expenses') }}"
+                class="card h-100 border-0 shadow-sm text-decoration-none text-reset"
+                style="border-top: 4px solid #7c83db !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="rounded-3 p-3" style="background-color: #eeeeff; color: #5b61b5;">
+                            <i class="bi bi-receipt fs-3" aria-hidden="true"></i>
+                        </span>
+                        <i class="bi bi-arrow-up-right text-muted fs-5" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">Expense Management</h3>
+                    <p class="text-muted mb-3">
+                        Review expense records and follow their processing workflow.
+                    </p>
+                    <span class="fw-semibold small" style="color: #5b61b5;">
+                        Open Expenses <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                    </span>
                 </div>
+            </a>
+        </div>
 
-            </div>
+        <div class="col-sm-6 col-xl-4">
+            <a href="{{ url_for('catering.catering_events') }}"
+                class="card h-100 border-0 shadow-sm text-decoration-none text-reset"
+                style="border-top: 4px solid #2c9b72 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="rounded-3 p-3" style="background-color: #e6f6ef; color: #237d5c;">
+                            <i class="bi bi-calendar2-check fs-3" aria-hidden="true"></i>
+                        </span>
+                        <i class="bi bi-arrow-up-right text-muted fs-5" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">Catering Events</h3>
+                    <p class="text-muted mb-3">
+                        Open event records and follow planning, readiness,
+                        production, and delivery workflows.
+                    </p>
+                    <span class="fw-semibold small" style="color: #237d5c;">
+                        View Events <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                    </span>
+                </div>
+            </a>
+        </div>
 
+        <div class="col-sm-6 col-xl-4">
+            <a href="{{ url_for('catering.catering_requests') }}"
+                class="card h-100 border-0 shadow-sm text-decoration-none text-reset"
+                style="border-top: 4px solid #e2a72e !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="rounded-3 p-3" style="background-color: #fff6dc; color: #9a7013;">
+                            <i class="bi bi-inboxes fs-3" aria-hidden="true"></i>
+                        </span>
+                        <i class="bi bi-arrow-up-right text-muted fs-5" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">Catering Requests</h3>
+                    <p class="text-muted mb-3">
+                        Access incoming catering demand and its next steps.
+                    </p>
+                    <span class="fw-semibold small" style="color: #9a7013;">
+                        View Requests <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                    </span>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-sm-6 col-xl-4">
+            <a href="{{ url_for('reporting.index') }}"
+                class="card h-100 border-0 shadow-sm text-decoration-none text-reset"
+                style="border-top: 4px solid #35b7d3 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="rounded-3 p-3" style="background-color: #e5f6fa; color: #168ba5;">
+                            <i class="bi bi-bar-chart-line fs-3" aria-hidden="true"></i>
+                        </span>
+                        <i class="bi bi-arrow-up-right text-muted fs-5" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">Reports & Insights</h3>
+                    <p class="text-muted mb-3">
+                        Access available reports, including Catering Event Profitability.
+                    </p>
+                    <span class="fw-semibold small" style="color: #168ba5;">
+                        Explore Reports <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                    </span>
+                </div>
+            </a>
         </div>
 
     </div>
+
+    <!-- Closing information strip -->
+    <section class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-4">
+            <div class="row align-items-center g-3">
+                <div class="col-auto">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px; background-color: #e5f6fa; color: #168ba5;">
+                        <i class="bi bi-info-circle fs-4" aria-hidden="true"></i>
+                    </span>
+                </div>
+                <div class="col">
+                    <h2 class="h6 fw-bold mb-1">A workspace built around real operations</h2>
+                    <p class="text-muted small mb-0">
+                        Dashboard statistics and activity summaries will be added when
+                        their data sources and business definitions are available.
+                        Use the workspace links above to access current records and reports.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
 
 </div>
-
 {% endblock %}

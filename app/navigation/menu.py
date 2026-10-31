@@ -20,6 +20,16 @@ MENU_ITEMS = [
         "hide_if_empty": True,
         "children": [
             {
+                "title": "Products",
+                "endpoint": "catering.products",
+                "permission": "catering.product.read",
+            },
+            {
+                "title": "Product Categories",
+                "endpoint": "catering.categories",
+                "permission": "catering.product_category.read",
+            },
+            {
                 "title": "Stock Items",
                 "endpoint": "catering.stock_items",
                 "permission": "catering.stock_item.read",
@@ -81,6 +91,24 @@ MENU_ITEMS = [
             {
                 "title": "Expenses",
                 "endpoint": "expense.expenses",
+            },
+        ],
+    },
+    {
+        "title": "Reports",
+        "endpoint": None,
+        "icon": "bi-graph-up",
+        "hide_if_empty": True,
+        "children": [
+            {
+                "title": "All Reports",
+                "endpoint": "reporting.index",
+                "permission": "reporting.report.view",
+            },
+            {
+                "title": "Catering Event Profitability",
+                "endpoint": "reporting.catering_event_profitability",
+                "permission": "reporting.report.execute",
             },
         ],
     },

@@ -108,7 +108,10 @@ def test_navigation_preserves_existing_menu_and_brand_context(
     expected_titles = {
         item["title"]
         for item in MENU_ITEMS
-        if item["title"] != "Inventory Management"
+        if item["title"] not in {
+            "Inventory Management",
+            "Reports",
+        }
     }
     actual_titles = {
         item["title"]
@@ -117,3 +120,75 @@ def test_navigation_preserves_existing_menu_and_brand_context(
 
     assert expected_titles <= actual_titles
     assert context.get("brand")
+
+
+def test_reports_shows_only_permitted_links(app, monkeypatch):
+    allowed_permissions = {
+        "reporting.report.view",
+        "reporting.report.execute",
+    }
+    monkeypatch.setattr(
+        AuthorizationService,
+        "has_permission",
+        staticmethod(lambda permission: permission in allowed_permissions),
+    )
+
+    context = build_template_context(app)
+    group = next(
+        (
+            item
+            for item in context["menu_items"]
+            if item["title"] == "Reports"
+        ),
+        None,
+    )
+
+    assert group is not None
+    assert [child["title"] for child in group["children"]] == [
+        "All Reports",
+        "Catering Event Profitability",
+    ]
+    assert [child["endpoint"] for child in group["children"]] == [
+        "reporting.index",
+        "reporting.catering_event_profitability",
+    ]
+    assert all("permission" not in child for child in group["children"])
+
+
+def test_reports_hides_links_without_reporting_permissions(app, monkeypatch):
+    monkeypatch.setattr(
+        AuthorizationService,
+        "has_permission",
+        staticmethod(lambda permission: False),
+    )
+
+    context = build_template_context(app)
+
+    assert not any(
+        item["title"] == "Reports"
+        for item in context["menu_items"]
+    )
+
+
+def test_reports_shows_only_landing_page_when_execute_is_not_permitted(
+    app,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        AuthorizationService,
+        "has_permission",
+        staticmethod(
+            lambda permission: permission == "reporting.report.view"
+        ),
+    )
+
+    context = build_template_context(app)
+    group = next(
+        item
+        for item in context["menu_items"]
+        if item["title"] == "Reports"
+    )
+
+    assert [child["title"] for child in group["children"]] == [
+        "All Reports",
+    ]

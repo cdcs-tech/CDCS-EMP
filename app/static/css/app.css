@@ -40,3 +40,42 @@ body {
 
 }
 
+/* CDCS brand styling for the shared application navbar */
+.cdcs-navbar {
+    background-color: #123047;
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg,
+            #35b7d3 0%,
+            #35b7d3 72%,
+            #ed7d2e 100%) 1;
+}
+
+.cdcs-navbar .navbar-brand {
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.cdcs-navbar .navbar-brand:hover,
+.cdcs-navbar .navbar-brand:focus {
+    color: #35b7d3;
+}
+
+.cdcs-navbar .btn-outline-light:hover,
+.cdcs-navbar .btn-outline-light:focus {
+    color: #123047;
+    background-color: #ffffff;
+    border-color: #ffffff;
+}
+
+.cdcs-navbar .btn-light {
+    color: #123047;
+    border: 1px solid #ffffff;
+}
+
+.cdcs-navbar .btn-light:hover,
+.cdcs-navbar .btn-light:focus {
+    color: #ffffff;
+    background-color: #ed7d2e;
+    border-color: #ed7d2e;
+}
