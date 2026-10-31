@@ -1,0 +1,188 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Catering Event Profitability Register | CDCS Enterprise Management Platform
+{% endblock %}
+
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h2 mb-1">Catering Event Profitability Register</h1>
+        <p class="text-muted mb-0">
+            Management view of Catering Events and their financial readiness.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary mt-2 mt-md-0" href="{{ url_for('reporting.index') }}">
+        Back to Reports
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h2 class="h5 mb-0">Register Filters</h2>
+    </div>
+
+    <div class="card-body">
+        <form method="get" action="{{ url_for('reporting.catering_event_profitability_register') }}">
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label for="date_from" class="form-label">Event Date From</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from"
+                        value="{{ selected_date_from }}">
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label for="date_to" class="form-label">Event Date To</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ selected_date_to }}">
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label for="operational_status" class="form-label">
+                        Operational Status
+                    </label>
+                    <select class="form-select" id="operational_status" name="operational_status">
+                        <option value="">All statuses</option>
+                        {% for status in operational_statuses %}
+                        <option value="{{ status }}" {% if selected_operational_status==status %}selected{% endif %}>
+                            {{ status.replace('_', ' ') }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label for="customer_id" class="form-label">Customer</label>
+                    <select class="form-select" id="customer_id" name="customer_id">
+                        <option value="">All customers</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}" {% if selected_customer_id==customer.id|string %}selected{%
+                            endif %}>
+                            {{ customer.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">
+                    Apply Filters
+                </button>
+                <a class="btn btn-outline-secondary"
+                    href="{{ url_for('reporting.catering_event_profitability_register') }}">
+                    Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if report_error %}
+<div class="alert alert-danger" role="alert">
+    {{ report_error }}
+</div>
+{% endif %}
+
+{% if register_result %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">
+        {{ register_result.total_records }} event(s) found.
+        Page {{ register_result.page }} of {{ register_result.total_pages }}.
+    </p>
+    <p class="text-muted small mb-0">
+        Financial readiness is assessed independently of operational status.
+    </p>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Event</th>
+                    <th scope="col">Event Date</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Operational Status</th>
+                    <th scope="col">Financial Readiness</th>
+                    <th scope="col">Report</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in register_result.items %}
+                <tr>
+                    <td>{{ item.event_reference }}</td>
+                    <td>{{ item.event_date.strftime('%d %b %Y') }}</td>
+                    <td>{{ item.customer_name or "Customer unavailable" }}</td>
+                    <td>
+                        <span class="badge bg-secondary">
+                            {{ item.operational_status.replace('_', ' ') }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if item.financial_readiness == 'REPORTABLE' %}
+                        <span class="badge bg-success">REPORTABLE</span>
+                        {% elif item.financial_readiness == 'DATA CONFLICT' %}
+                        <span class="badge bg-danger">DATA CONFLICT</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">AWAITING DATA</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('reporting.catering_event_profitability', event_id=item.event_id) }}"
+                            class="btn btn-sm btn-outline-primary">
+                            Open Detail
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        No Catering Events match the selected filters.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if register_result.total_pages > 1 %}
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <div>
+            {% if register_result.has_previous %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for(
+                                'reporting.catering_event_profitability_register',
+                                date_from=selected_date_from,
+                                date_to=selected_date_to,
+                                operational_status=selected_operational_status,
+                                customer_id=selected_customer_id,
+                                page=register_result.page - 1
+                            ) }}">
+                Previous
+            </a>
+            {% endif %}
+        </div>
+
+        <span class="text-muted small">
+            Page {{ register_result.page }} of {{ register_result.total_pages }}
+        </span>
+
+        <div>
+            {% if register_result.has_next %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for(
+                                'reporting.catering_event_profitability_register',
+                                date_from=selected_date_from,
+                                date_to=selected_date_to,
+                                operational_status=selected_operational_status,
+                                customer_id=selected_customer_id,
+                                page=register_result.page + 1
+                            ) }}">
+                Next
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

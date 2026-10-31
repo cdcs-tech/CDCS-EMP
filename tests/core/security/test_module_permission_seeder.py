@@ -169,3 +169,57 @@ def test_seed_manager_places_module_permission_seeder_after_core_rbac(
     assert names.index("Module Permission Seeder") < names.index(
         "User Seeder"
     )
+
+
+def test_module_permission_seeder_synchronizes_reporting_permissions(
+    app,
+    db_session,
+    system_administrator,
+):
+    from app.core.reporting.permissions import (
+        all_report_permissions,
+    )
+
+    module = FakeModule(
+        list(all_report_permissions())
+    )
+
+    app.extensions["module_manager"] = FakeModuleManager(
+        [module]
+    )
+
+    seeder = ModulePermissionSeeder()
+
+    first_result = seeder.run()
+
+    assert first_result == {
+        "created": 8,
+        "skipped": 0,
+    }
+
+    expected_permissions = {
+        permission.code: permission
+        for permission in all_report_permissions()
+    }
+
+    assert set(expected_permissions) == {
+        "reporting.report.view",
+        "reporting.report.execute",
+        "reporting.report.export",
+        "reporting.report.manage",
+    }
+
+    for expected_code, definition in expected_permissions.items():
+        permission = DBPermission.query.filter_by(
+            name=definition.name,
+        ).first()
+
+        assert permission is not None, expected_code
+        assert permission.module == "reporting"
+
+        assignment = RolePermission.query.filter_by(
+            role_id=system_administrator.id,
+            permission_id=permission.id,
+        ).first()
+
+        assert assignment is not None, expected_code

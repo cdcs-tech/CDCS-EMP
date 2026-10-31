@@ -422,16 +422,16 @@ def test_report_permission_definitions_have_human_readable_names():
 
     assert permissions[
         "reporting.report.view"
-    ].name == "View Report"
+    ].name == "reporting.report.view"
 
     assert permissions[
         "reporting.report.execute"
-    ].name == "Execute Report"
+    ].name == "reporting.report.execute"
 
     assert permissions[
         "reporting.report.export"
-    ].name == "Export Report"
+    ].name == "reporting.report.export"
 
     assert permissions[
         "reporting.report.manage"
-    ].name == "Manage Report"
+    ].name == "reporting.report.manage"

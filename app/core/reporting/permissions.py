@@ -50,7 +50,7 @@ _REPORT_PERMISSION_DEFINITIONS: dict[
         module="reporting",
         resource="report",
         action="view",
-        name="View Report",
+        name="reporting.report.view",
         description=(
             "Permission to view reporting resources."
         ),
@@ -59,7 +59,7 @@ _REPORT_PERMISSION_DEFINITIONS: dict[
         module="reporting",
         resource="report",
         action="execute",
-        name="Execute Report",
+        name="reporting.report.execute",
         description=(
             "Permission to execute reporting resources."
         ),
@@ -68,7 +68,7 @@ _REPORT_PERMISSION_DEFINITIONS: dict[
         module="reporting",
         resource="report",
         action="export",
-        name="Export Report",
+        name="reporting.report.export",
         description=(
             "Permission to export reporting resources."
         ),
@@ -77,7 +77,7 @@ _REPORT_PERMISSION_DEFINITIONS: dict[
         module="reporting",
         resource="report",
         action="manage",
-        name="Manage Report",
+        name="reporting.report.manage",
         description=(
             "Permission to manage reporting resources."
         ),
@@ -195,7 +195,6 @@ def register_report_permissions(
     permissions = all_report_permissions()
 
     for permission in permissions:
-
         registry.register(
             permission
         )

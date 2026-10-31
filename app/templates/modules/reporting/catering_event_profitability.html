@@ -1,0 +1,155 @@
+{% extends "base/dashboard_base.html" %}
+
+{% block title %}
+Catering Event Profitability | CDCS Enterprise Management Platform
+{% endblock %}
+
+{% block page_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Catering Event Profitability</h1>
+        <p class="text-muted mb-0">
+            Based on recognized Catering revenue and consumed Catering costs.
+        </p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('reporting.index') }}">
+        Back to Reports
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" action="{{ url_for('reporting.catering_event_profitability') }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-8">
+                    <label for="event_id" class="form-label">
+                        Catering Event
+                    </label>
+                    <select id="event_id" name="event_id" class="form-select" required>
+                        <option value="">Select a Catering Event</option>
+                        {% for event in events %}
+                        <option value="{{ event.id }}" {% if selected_event_id==event.id %}selected{% endif %}>
+                            Event #{{ event.id }} —
+                            {{ event.event_date }} —
+                            {{ event.status }} —
+                            {{ event.service_details|truncate(70, True) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <button type="submit" class="btn btn-primary">
+                        View Report
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if report_error %}
+<div class="alert alert-warning" role="alert">
+    {{ report_error }}
+</div>
+{% endif %}
+
+{% if profitability_data_conflict %}
+<div class="alert alert-danger" role="alert">
+    <h2 class="h5">Report unavailable due to conflicting data</h2>
+    <p class="mb-0">
+        The selected event has conflicting records needed for this report.
+        Resolve the underlying data issue before relying on its profitability.
+    </p>
+</div>
+{% elif profitability_unavailable %}
+<div class="alert alert-warning" role="alert">
+    <h2 class="h5">Profitability is currently unavailable</h2>
+    <p class="mb-0">
+        Recognized Catering revenue or a required linked Expense record
+        is unavailable. No profitability figure has been calculated.
+    </p>
+</div>
+{% elif profitability_result %}
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Recognized Revenue</p>
+                <p class="h3 mb-0">
+                    {{ profitability_result.currency }}
+                    {{ "{:,.2f}".format(profitability_result.revenue_amount) }}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Consumed Costs</p>
+                <p class="h3 mb-0">
+                    {{ profitability_result.currency }}
+                    {{ "{:,.2f}".format(profitability_result.total_cost) }}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Profit / (Loss)</p>
+                <p class="h3 mb-0">
+                    {{ profitability_result.currency }}
+                    {{ "{:,.2f}".format(profitability_result.profit) }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h2 class="h5 mb-0">Consumed Cost Contributions</h2>
+    </div>
+    <div class="card-body">
+        {% if profitability_result.cost_contributions %}
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Expense ID</th>
+                        <th scope="col">Contribution Reference</th>
+                        <th scope="col" class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contribution in profitability_result.cost_contributions %}
+                    <tr>
+                        <td>{{ contribution.expense_id }}</td>
+                        <td>{{ contribution.contribution_id }}</td>
+                        <td class="text-end">
+                            {{ profitability_result.currency }}
+                            {{ "{:,.2f}".format(contribution.expense_amount) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2">Total Consumed Costs</th>
+                        <th class="text-end">
+                            {{ profitability_result.currency }}
+                            {{ "{:,.2f}".format(profitability_result.total_cost) }}
+                        </th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">
+            No consumed Catering cost contributions were returned for this event.
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

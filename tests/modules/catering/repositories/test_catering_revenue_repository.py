@@ -4,6 +4,8 @@ Tests for the Catering Revenue repository.
 
 from unittest.mock import Mock, patch
 
+from sqlalchemy.dialects import mssql
+
 from app.modules.catering.models import CateringRevenue
 from app.modules.catering.repositories import CateringRevenueRepository
 
@@ -92,6 +94,7 @@ def test_get_recognized_by_event_id_queries_recognized_revenue():
     statement = session.execute.call_args.args[0]
     compiled = str(
         statement.compile(
+            dialect=mssql.dialect(),
             compile_kwargs={"literal_binds": True}
         )
     )
@@ -100,3 +103,6 @@ def test_get_recognized_by_event_id_queries_recognized_revenue():
     assert "42" in compiled
     assert "catering_revenues.status" in compiled
     assert "RECOGNIZED" in compiled
+    assert "catering_revenues.is_deleted" in compiled
+    assert "catering_revenues.is_deleted = 0" in compiled
+    assert "catering_revenues.is_deleted IS 0" not in compiled

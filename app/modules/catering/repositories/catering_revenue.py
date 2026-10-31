@@ -6,7 +6,7 @@ Catering Module
 Catering Revenue repository.
 """
 
-from sqlalchemy import select
+from sqlalchemy import false, select
 
 from app.core.data.sqlalchemy_repository import (
     SQLAlchemyRepository,
@@ -58,6 +58,9 @@ class CateringRevenueRepository(
             .where(
                 CateringRevenue.status
                 == "RECOGNIZED"
+            )
+            .where(
+                CateringRevenue.is_deleted == false()
             )
         )
 
