@@ -51,6 +51,17 @@
                 </div>
 
                 <div class="mb-3">
+                    {{ form.currency.label(class="form-label") }}
+                    {{ form.currency(class="form-select") }}
+
+                    {% for error in form.currency.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
                     {{ form.expense_date.label(class="form-label") }}
                     {{ form.expense_date(class="form-control") }}
 

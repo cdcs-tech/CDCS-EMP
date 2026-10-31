@@ -588,6 +588,7 @@ def create_expense():
                 classification_id=form.classification_id.data,
                 description=form.description.data,
                 amount=form.amount.data,
+                currency=form.currency.data or None,
                 expense_date=form.expense_date.data,
             )
         )
@@ -659,6 +660,11 @@ def edit_expense(
         obj=expense
     )
 
+    # Preserve unknown currency for legacy Expense records.
+    # Do not let the form's USD default overwrite a stored NULL.
+    if request.method == "GET":
+        form.currency.data = expense.currency or ""
+
     _load_expense_classification_choices(
         form
     )
@@ -673,6 +679,7 @@ def edit_expense(
         expense.amount = (
             form.amount.data
         )
+        expense.currency = form.currency.data or None
         expense.expense_date = (
             form.expense_date.data
         )

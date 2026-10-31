@@ -27,6 +27,7 @@
 
                 <dt class="col-sm-3">Amount</dt>
                 <dd class="col-sm-9">
+                    {{ expense.currency or "Unknown" }}
                     {{ "%.2f"|format(expense.amount) }}
                 </dd>
 

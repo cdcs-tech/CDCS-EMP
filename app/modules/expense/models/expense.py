@@ -52,6 +52,12 @@ class Expense(
         nullable=False,
     )
 
+    currency = db.Column(
+        db.String(3),
+        nullable=True,
+        default="USD",
+    )
+
     expense_date = db.Column(
         db.Date,
         nullable=False,

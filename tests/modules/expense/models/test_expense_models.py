@@ -47,6 +47,7 @@ def test_expense_has_expected_table_and_columns():
         "classification_id",
         "description",
         "amount",
+        "currency",
         "expense_date",
         "approved_at",
     }.issubset(
@@ -132,3 +133,33 @@ def test_expense_can_be_constructed():
     assert expense.amount == Decimal("150.00")
     assert expense.expense_date == date(2026, 9, 22)
     assert expense.approved_at is None
+
+
+def test_expense_currency_is_nullable_with_usd_application_default():
+    currency_column = inspect(Expense).columns.currency
+
+    assert currency_column.nullable is True
+    assert currency_column.default is not None
+    assert currency_column.default.arg == "USD"
+
+    expense = Expense(
+        classification_id=1,
+        description="Test expense",
+        amount=Decimal("100.00"),
+        expense_date=date(2026, 10, 30),
+        currency=None,
+    )
+
+    assert expense.currency is None
+
+
+def test_expense_currency_can_remain_unknown():
+    expense = Expense(
+        classification_id=1,
+        description="Legacy expense awaiting verification",
+        amount=Decimal("150.00"),
+        expense_date=date(2026, 9, 22),
+        currency=None,
+    )
+
+    assert expense.currency is None

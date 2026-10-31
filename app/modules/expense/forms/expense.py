@@ -15,6 +15,7 @@ from wtforms import SelectField
 from wtforms import StringField
 from wtforms.validators import DataRequired
 from wtforms.validators import Length
+from wtforms.validators import Optional
 
 
 class ExpenseForm(FlaskForm):
@@ -45,6 +46,19 @@ class ExpenseForm(FlaskForm):
         places=2,
         validators=[
             DataRequired(),
+        ],
+    )
+
+    currency = SelectField(
+        "Currency",
+        choices=[
+            ("USD", "USD — US Dollar"),
+            ("SSP", "SSP — South Sudanese Pound"),
+            ("", "Unknown — not yet verified"),
+        ],
+        default="USD",
+        validators=[
+            Optional(),
         ],
     )
 

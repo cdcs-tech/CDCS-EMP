@@ -113,6 +113,7 @@
                             </td>
 
                             <td>
+                                {{ expense.currency or "Unknown" }}
                                 {{ "%.2f"|format(expense.amount) }}
                             </td>
 

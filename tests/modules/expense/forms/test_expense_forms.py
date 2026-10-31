@@ -88,6 +88,7 @@ def test_expense_form_has_expected_fields(app):
             "classification_id",
             "description",
             "amount",
+            "currency",
             "expense_date",
         }
 
@@ -121,6 +122,7 @@ def test_expense_form_requires_classification(app):
                     "classification_id": "",
                     "description": "Office electricity expense",
                     "amount": "150.00",
+                    "currency": "USD",
                     "expense_date": "2026-09-22",
                 }
             )

@@ -399,6 +399,7 @@ def test_edit_expense_delegates_to_service(
         classification_id=1,
         description="Printer paper",
         amount=125.50,
+        currency=None,
         expense_date=date(2026, 9, 20),
     )
 
@@ -445,6 +446,7 @@ def test_edit_expense_delegates_to_service(
             "classification_id": "1",
             "description": "Printer paper and toner",
             "amount": "175.75",
+            "currency": "",
             "expense_date": "2026-09-21",
         },
     )
@@ -474,7 +476,62 @@ def test_edit_expense_delegates_to_service(
     assert expense.classification_id == 1
     assert expense.description == "Printer paper and toner"
     assert expense.amount == 175.75
+    assert expense.currency is None
     assert expense.expense_date == date(2026, 9, 21)
+
+
+def test_edit_expense_preserves_unknown_currency_on_get(
+    authenticated_client,
+    monkeypatch,
+):
+    _allow_permissions(monkeypatch)
+
+    expense = SimpleNamespace(
+        id=1,
+        classification_id=1,
+        description="Legacy expense",
+        amount=125.50,
+        currency=None,
+        expense_date=date(2026, 9, 20),
+    )
+
+    classifications = SimpleNamespace(
+        items=[
+            SimpleNamespace(
+                id=1,
+                name="Office Supplies",
+            ),
+        ],
+    )
+
+    class FakeExpenseClassificationService:
+        def paginate(self, options):
+            return classifications
+
+    class FakeExpenseService:
+        def get(self, entity_id):
+            return expense
+
+    monkeypatch.setattr(
+        expense_routes,
+        "ExpenseClassificationService",
+        FakeExpenseClassificationService,
+    )
+
+    monkeypatch.setattr(
+        expense_routes,
+        "ExpenseService",
+        FakeExpenseService,
+    )
+
+    response = authenticated_client.get(
+        "/expense/expenses/1/edit"
+    )
+
+    assert response.status_code == 200
+    assert 'name="currency"' in response.text
+    assert "Unknown" in response.text
+    assert expense.currency is None
 
 
 def test_delete_expense_requires_delete_permission(
