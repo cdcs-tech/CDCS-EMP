@@ -18,6 +18,7 @@ def test_event_requirement_form_has_expected_fields(app):
         assert set(form._fields) == {
             "description",
             "item_reference",
+            "stock_item_id",
             "quantity",
             "unit",
             "fulfilment_type",
@@ -28,42 +29,40 @@ def test_event_requirement_form_has_expected_fields(app):
 
 def test_event_requirement_form_accepts_valid_inventory_requirement(app):
     with app.test_request_context():
-        form = EventRequirementForm(
-            formdata=MultiDict(
-                {
-                    "description": "Drinking water",
-                    "item_reference": "WATER-500ML",
-                    "quantity": "120.000",
-                    "unit": "bottles",
-                    "fulfilment_type": "INVENTORY",
-                    "required_by_date": "2026-10-15",
-                    "notes": "For event guests.",
-                }
-            )
-        )
+        form = EventRequirementForm(formdata=MultiDict({
+            "description": "Drinking water",
+            "item_reference": "WATER-500ML",
+            "stock_item_id": "0",
+            "quantity": "120.000",
+            "unit": "bottles",
+            "fulfilment_type": "INVENTORY",
+            "required_by_date": "2026-10-15",
+            "notes": "For event guests.",
+        }))
         form.fulfilment_type.choices = FULFILMENT_CHOICES
-
+        form.stock_item_id.choices = [
+            (0, "-- No Inventory Stock Item --"),
+        ]
         assert form.validate() is True
         assert form.quantity.data == Decimal("120.000")
 
 
 def test_event_requirement_form_accepts_valid_procurement_requirement(app):
     with app.test_request_context():
-        form = EventRequirementForm(
-            formdata=MultiDict(
-                {
-                    "description": "Additional catering chairs",
-                    "item_reference": "",
-                    "quantity": "50.000",
-                    "unit": "chairs",
-                    "fulfilment_type": "PROCUREMENT",
-                    "required_by_date": "2026-10-15",
-                    "notes": "",
-                }
-            )
-        )
+        form = EventRequirementForm(formdata=MultiDict({
+            "description": "Additional catering chairs",
+            "item_reference": "",
+            "stock_item_id": "0",
+            "quantity": "50.000",
+            "unit": "chairs",
+            "fulfilment_type": "PROCUREMENT",
+            "required_by_date": "2026-10-15",
+            "notes": "",
+        }))
         form.fulfilment_type.choices = FULFILMENT_CHOICES
-
+        form.stock_item_id.choices = [
+            (0, "-- No Inventory Stock Item --"),
+        ]
         assert form.validate() is True
 
 
