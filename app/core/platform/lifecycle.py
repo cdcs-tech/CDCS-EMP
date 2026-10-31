@@ -113,6 +113,7 @@ class ApplicationLifecycle:
             "catering.post_transfer",
             "catering.create_catering_purchase_requirement",
             "catering.submit_catering_purchase_requirement_to_procurement",
+            "catering.consume_catering_event_requirement",
             "catering.recognize_revenue",
             "procurement.submit_purchase_request",
             "procurement.approve_purchase_request",
