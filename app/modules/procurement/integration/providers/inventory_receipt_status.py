@@ -1,4 +1,3 @@
-
 """Read-only Inventory receipt-status queries for Procurement."""
 
 from decimal import Decimal
